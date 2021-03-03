@@ -1,0 +1,39 @@
+#! /usr/bin/env python3
+# potg
+# Copyright (c) 2021 David Bucher <David.Bucher@physik.lmu.de>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+
+import fileinput
+import matplotlib.pyplot as plt
+
+vals = []
+
+plt.ion()
+for line in fileinput.input():
+    plt.clf()
+    print(line, end='')
+    line = line.strip()
+    if(line.startswith('(')):
+        line, _ = line.strip('()').split(',')
+    vals.append(float(line))
+    plt.plot(vals)
+    plt.draw()
+    plt.pause(0.001)
+
+plt.ioff()
+plt.clf()
+plt.plot(vals)
+plt.show()
