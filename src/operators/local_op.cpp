@@ -26,13 +26,13 @@
 
 using namespace operators;
 
-local_op::local_op(size_t n_total, const std::vector<size_t>& acts_on,
-                   Eigen::MatrixXcd& op)
+local_op::local_op(const std::vector<size_t>& acts_on, Eigen::MatrixXcd& op)
     : Base{}, acts_on_{acts_on}, op_{op} {}
 
 void local_op::evaluate(machine::rbm& rbm, const Eigen::MatrixXcd& state,
                         const Eigen::MatrixXcd& thetas) {
-    result_.setZero();
+    auto& result = get_result_();
+    result.setZero();
     size_t loc = get_local_psi(state);
 
     Eigen::MatrixXcd res = op_.col(loc);
@@ -47,19 +47,18 @@ void local_op::evaluate(machine::rbm& rbm, const Eigen::MatrixXcd& state,
         if (std::abs(res(i)) > 1e-12) {
             // std::cout << ((i == loc) ? "true" : "false") << " ";
             if (i == loc) {
-                result_(0) += res(i);
+                result(0) += res(i);
             } else {
                 // std::cout << i << ";" << loc << "=" << (size_t)(i ^ loc)
                 //           << " ...";
-                get_flips(i ^ loc);
+                auto flips = get_flips(i ^ loc);
                 // for (auto& f : flips_) {
                 //     std::cout << f << ",";
                 // }
-                result_(0) += res(i) * rbm.psi_over_psi(state, flips_, thetas);
+                result(0) += res(i) * rbm.psi_over_psi(state, flips, thetas);
             }
         }
     }
-    // std::cout << std::endl;
 }
 
 size_t local_op::get_local_psi(const Eigen::MatrixXcd& s) {
@@ -70,11 +69,12 @@ size_t local_op::get_local_psi(const Eigen::MatrixXcd& s) {
     return loc;
 }
 
-void local_op::get_flips(size_t loc) {
-    flips_.clear();
+std::vector<size_t> local_op::get_flips(size_t loc) {
+    std::vector<size_t> flips;
     for (size_t i = 0; i < acts_on_.size(); i++) {
         if ((loc >> i & 1)) {
-            flips_.push_back(acts_on_[i]);
+            flips.push_back(acts_on_[i]);
         }
     }
+    return flips;
 }

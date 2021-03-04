@@ -29,13 +29,12 @@ class local_op : public base_op {
     using Base = base_op;
     std::vector<size_t> acts_on_;
     Eigen::MatrixXcd& op_;
-    std::vector<size_t> flips_;
 
     size_t get_local_psi(const Eigen::MatrixXcd&);
-    void get_flips(size_t);
+    std::vector<size_t> get_flips(size_t);
 
    public:
-    local_op(size_t n_total, const std::vector<size_t>&, Eigen::MatrixXcd&);
+    local_op(const std::vector<size_t>&, Eigen::MatrixXcd&);
 
     void evaluate(machine::rbm&, const Eigen::MatrixXcd&,
                   const Eigen::MatrixXcd&) final;

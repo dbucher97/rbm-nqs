@@ -30,7 +30,7 @@ class bond_op : public local_op_chain {
     std::vector<Eigen::MatrixXcd> ops_;
 
    public:
-    bond_op(size_t n_total, const std::vector<lattice::bond>&,
+    bond_op(const std::vector<lattice::bond>&,
             const std::vector<Eigen::MatrixXcd>&);
 };
 }  // namespace operators

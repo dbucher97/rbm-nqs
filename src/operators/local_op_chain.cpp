@@ -31,10 +31,11 @@ local_op_chain::local_op_chain(const std::vector<local_op>& ops)
 
 void local_op_chain::evaluate(machine::rbm& rbm, const Eigen::MatrixXcd& state,
                               const Eigen::MatrixXcd& thetas) {
-    result_.setZero();
+    auto& result = get_result_();
+    result.setZero();
     for (auto& op : ops_) {
         op.evaluate(rbm, state, thetas);
-        result_ += op.get_result();
+        result += op.get_result();
     }
 }
 

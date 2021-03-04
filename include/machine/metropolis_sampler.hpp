@@ -33,7 +33,8 @@ class metropolis_sampler : public abstract_sampler {
     using Base = abstract_sampler;
 
    public:
-    metropolis_sampler(rbm&, std::mt19937&, size_t = 5, size_t = 100);
+    metropolis_sampler(rbm&, std::mt19937&, size_t = 1, size_t = 5,
+                       size_t = 100);
 
     virtual void sample(size_t) override;
 
@@ -46,11 +47,13 @@ class metropolis_sampler : public abstract_sampler {
    private:
     std::mt19937& rng_;
 
-    size_t step_size_, warmup_steps_;
+    size_t n_chains_, step_size_, warmup_steps_;
 
     std::uniform_int_distribution<size_t> f_dist_;
 
     std::uniform_real_distribution<double> u_dist_{0, 1};
+
+    void sample_chain(size_t);
 };
 
 }  // namespace machine

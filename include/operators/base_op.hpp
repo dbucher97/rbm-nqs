@@ -18,6 +18,8 @@
  */
 #pragma once
 
+#include <omp.h>
+
 #include <Eigen/Dense>
 #include <algorithm>
 #include <iostream>
@@ -28,23 +30,32 @@
 namespace operators {
 
 class base_op {
+    size_t r_, c_;
+    std::vector<Eigen::MatrixXcd> result_;
+
    protected:
-    Eigen::MatrixXcd result_;
+    inline Eigen::MatrixXcd& get_result_() {
+        return result_[omp_get_thread_num()];
+    }
 
    public:
-    base_op(size_t r = 1, size_t c = 1) : result_(r, c) {}
+    base_op(size_t r = 1, size_t c = 1)
+        : r_{r}, c_{c}, result_(omp_get_max_threads()) {
+        for (size_t i = 0; i < result_.size(); i++)
+            result_[i] = Eigen::MatrixXcd(r_, c_);
+    }
     virtual ~base_op() = default;
 
     virtual void evaluate(machine::rbm&, const Eigen::MatrixXcd&,
                           const Eigen::MatrixXcd&) = 0;
 
-    bool is_scalar() const {
-        return result_.cols() == 1 && result_.rows() == 1;
-    }
-    bool is_vector() const { return result_.cols() == 1; }
-    size_t rows() const { return result_.rows(); }
-    size_t cols() const { return result_.cols(); }
+    bool is_scalar() const { return r_ == 1 && c_ == 1; }
+    bool is_vector() const { return c_ == 1; }
+    size_t rows() const { return r_; }
+    size_t cols() const { return c_; }
 
-    const Eigen::MatrixXcd& get_result() const { return result_; }
+    const Eigen::MatrixXcd& get_result() const {
+        return result_[omp_get_thread_num()];
+    }
 };
 }  // namespace operators

@@ -26,13 +26,13 @@
 
 using namespace operators;
 
-bond_op::bond_op(size_t n_total, const std::vector<lattice::bond>& bonds,
+bond_op::bond_op(const std::vector<lattice::bond>& bonds,
                  const std::vector<Eigen::MatrixXcd>& ops)
     : Base{}, ops_{} {
     for (auto& op : ops) {
         ops_.push_back(op);
     }
     for (auto& bond : bonds) {
-        push_back({n_total, {bond.a, bond.b}, ops_[bond.type]});
+        push_back({{bond.a, bond.b}, ops_[bond.type]});
     }
 }

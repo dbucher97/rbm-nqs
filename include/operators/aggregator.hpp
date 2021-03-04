@@ -31,15 +31,18 @@ class aggregator {
     const base_op& op_;
     Eigen::MatrixXcd result_;
 
+    virtual Eigen::MatrixXcd aggregate_();
+
     aggregator(const base_op&, size_t, size_t, bool = false);
 
    public:
     aggregator(const base_op&, bool = false);
     virtual ~aggregator() = default;
 
-    virtual void aggregate();
+    void aggregate(double = 1);
 
-    Eigen::MatrixXcd& get_result(double);
+    Eigen::MatrixXcd& get_result();
+    void finalize(double);
 
     void set_zero() { result_.setZero(); }
 };
@@ -49,19 +52,19 @@ class prod_aggregator : public aggregator {
 
     const base_op& scalar_;
 
+    virtual Eigen::MatrixXcd aggregate_() override;
+
    public:
     prod_aggregator(const base_op&, const base_op&);
-
-    virtual void aggregate() override;
 };
 
 class outer_aggregator : public aggregator {
     using Base = aggregator;
 
+    virtual Eigen::MatrixXcd aggregate_() override;
+
    public:
     outer_aggregator(const base_op&);
-
-    virtual void aggregate() override;
 };
 
 }  // namespace operators

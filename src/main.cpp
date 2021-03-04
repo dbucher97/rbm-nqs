@@ -19,16 +19,17 @@
 
 // #include <omp.h>
 
+#include <omp.h>
+
 #include <Eigen/Dense>
+#include <chrono>
 #include <complex>
 #include <iostream>
 #include <random>
-#include <unordered_map>
 //
-
 #include <lattice/honeycomb.hpp>
+#include <machine/metropolis_sampler.hpp>
 #include <machine/rbm.hpp>
-#include <machine/sampler.hpp>
 #include <model/kitaev.hpp>
 #include <operators/aggregator.hpp>
 #include <operators/bond_op.hpp>
@@ -46,33 +47,49 @@ using namespace Eigen;
 //     os << " " << sa.cv;
 //     return os;
 // }
+//
+//
+//
+static int x = 5;
+int f(int j) { return x * j; }
 
 int main() {
+    omp_set_num_threads(8);
+    Eigen::setNbThreads(1);
+
     std::mt19937 rng{345214534L};
-    model::kitaev km{8, {-1, -1, -1}};
+    model::kitaev km{2, {-1, -1, -1}};
     operators::base_op& H = km.get_hamiltonian();
     operators::aggregator Hagg{H, true};
     // operators::prod_aggregator Hagg2{H, H};
 
-    machine::rbm rbm{2, km.get_lattice()};
+    machine::rbm rbm{4, km.get_lattice()};
     rbm.initialize_weights(rng, 0.01);
 
-    machine::sampler sampler{rbm, rng};
+    machine::metropolis_sampler sampler{rbm, rng, 8};
     optimizer::stochastic_reconfiguration sr{
-        rbm, sampler, km.get_hamiltonian(), 0.01, 1, 1e-4};
+        rbm, sampler, km.get_hamiltonian(), 0.005, 1, 1e-1};
     sr.register_observables();
+
     size_t n_samples = 100;
-    // sampler.sample(10, 1, 0);
-    for (int i = 0; i < 1000; i++) {
-        sampler.sample(n_samples, 5, 100);
-        sr.optimize(n_samples);
+    size_t n_epochs = 100;
+    double t_sample = 0, t_optim = 0;
+
+    for (size_t i = 0; i < n_epochs; i++) {
+        auto a = std::chrono::system_clock::now();
+        sampler.sample(n_samples);
+        auto b = std::chrono::system_clock::now();
+        sr.optimize();
+        auto c = std::chrono::system_clock::now();
+        t_sample += (b - a).count();
+        t_optim += (c - b).count();
         // n_samples++;
     }
-    // machine::sampler sampler2{rbm, rng};
-    // sampler2.register_op(&H);
-    // sampler2.register_agg(&Hagg);
-    // sampler2.sample(10000, 10, 100);
-    // std::cout << Hagg.get_result(10000) << std::endl;
-
+    std::cout << t_sample / n_epochs << ", " << t_optim / n_epochs << std::endl;
+    // machine::metropolis_sampler sampler2{rbm, rng, 8, 10,
+    // 100}; sampler2.register_op(&H); sampler2.register_agg(&Hagg);
+    // sampler2.sample(10000);
+    // std::cout << Hagg.get_result() / rbm.n_visible << std::endl;
+    //
     return 0;
 }

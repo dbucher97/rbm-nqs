@@ -22,8 +22,8 @@
 #include <complex>
 #include <vector>
 //
+#include <machine/abstract_sampler.hpp>
 #include <machine/rbm.hpp>
-#include <machine/sampler.hpp>
 #include <operators/aggregator.hpp>
 #include <operators/base_op.hpp>
 #include <operators/derivative_op.hpp>
@@ -32,18 +32,18 @@ namespace optimizer {
 
 class stochastic_reconfiguration {
    public:
-    stochastic_reconfiguration(machine::rbm&, machine::sampler&,
+    stochastic_reconfiguration(machine::rbm&, machine::abstract_sampler&,
                                operators::base_op&, double lr = 0.001,
                                double k0 = 100, double kmin = 1e-4,
                                double m = 0.9);
 
     void register_observables();
 
-    void optimize(size_t);
+    void optimize();
 
    private:
     machine::rbm& rbm_;
-    machine::sampler& sampler_;
+    machine::abstract_sampler& sampler_;
     operators::base_op& hamiltonian_;
     operators::derivative_op derivative_;
 

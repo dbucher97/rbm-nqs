@@ -14,17 +14,23 @@ INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
 CPPFLAGS ?= $(INC_FLAGS) -MMD -MP -Wall -std=c++14
 
+OMP = -fopenmp
+ifeq ($(notdir $(CXX)), clang++)
+LDFLAGS += -L/usr/local/opt/llvm/lib/
+endif
+
+
 all: $(BUILD_DIR)/$(TARGET_EXEC)
 
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
 	@echo "[ LD ] $@ $(LDFLAGS)"
-	@$(CXX) $(OBJS) -o $@ $(LDFLAGS)
+	@$(CXX) $(OMP) $(OBJS) -o $@ $(LDFLAGS)
 
 # c++ source
 $(BUILD_DIR)/%.cpp.o: %.cpp
 	@$(MKDIR_P) $(dir $@)
 	@echo "[ $(notdir $(CXX)) ] $<"
-	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	@$(CXX) $(OMP) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 
 .PHONY: all clean

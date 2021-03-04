@@ -22,6 +22,4 @@ using namespace model;
 
 kitaev::kitaev(size_t size, const std::array<double, 3>& J)
     : lat{size},
-      hamiltonian{lat.n_total,
-                  lat.get_bonds(),
-                  {J[0] * sxsx, J[1] * sysy, J[2] * szsz}} {}
+      hamiltonian{lat.get_bonds(), {J[0] * sxsx, J[1] * sysy, J[2] * szsz}} {}

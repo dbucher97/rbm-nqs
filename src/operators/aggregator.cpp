@@ -17,6 +17,8 @@
  *
  */
 
+#include <omp.h>
+
 #include <Eigen/Dense>
 #include <stdexcept>
 //
@@ -32,15 +34,21 @@ aggregator::aggregator(const base_op& op, size_t r, size_t c, bool real)
 aggregator::aggregator(const base_op& op, bool real)
     : aggregator{op, op.rows(), op.cols(), real} {}
 
-Eigen::MatrixXcd& aggregator::get_result(double num) {
+void aggregator::finalize(double num) {
     if (real_) {
         result_ = result_.real();
     }
     result_ /= num;
-    return result_;
 }
 
-void aggregator::aggregate() { result_ += op_.get_result(); }
+Eigen::MatrixXcd& aggregator::get_result() { return result_; }
+
+Eigen::MatrixXcd aggregator::aggregate_() { return op_.get_result(); }
+
+void aggregator::aggregate(double weight) {
+#pragma omp critical
+    result_ += weight * aggregate_();
+}
 
 prod_aggregator::prod_aggregator(const base_op& op, const base_op& scalar)
     : Base{op}, scalar_{scalar} {
@@ -49,8 +57,8 @@ prod_aggregator::prod_aggregator(const base_op& op, const base_op& scalar)
     }
 }
 
-void prod_aggregator::aggregate() {
-    result_ += scalar_.get_result()(0, 0) * op_.get_result().conjugate();
+Eigen::MatrixXcd prod_aggregator::aggregate_() {
+    return scalar_.get_result()(0, 0) * op_.get_result().conjugate();
 }
 
 outer_aggregator::outer_aggregator(const base_op& op)
@@ -61,6 +69,6 @@ outer_aggregator::outer_aggregator(const base_op& op)
     }
 }
 
-void outer_aggregator::aggregate() {
-    result_ += op_.get_result().conjugate() * op_.get_result().transpose();
+Eigen::MatrixXcd outer_aggregator::aggregate_() {
+    return op_.get_result().conjugate() * op_.get_result().transpose();
 }

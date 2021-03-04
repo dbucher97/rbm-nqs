@@ -22,8 +22,8 @@
 #include <complex>
 #include <vector>
 //
+#include <machine/abstract_sampler.hpp>
 #include <machine/rbm.hpp>
-#include <machine/sampler.hpp>
 #include <operators/base_op.hpp>
 #include <operators/derivative_op.hpp>
 #include <optimizer/stochastic_reconfiguration.hpp>
@@ -31,7 +31,7 @@
 using namespace optimizer;
 
 stochastic_reconfiguration::stochastic_reconfiguration(
-    machine::rbm& rbm, machine::sampler& sampler,
+    machine::rbm& rbm, machine::abstract_sampler& sampler,
     operators::base_op& hamiltonian, double lr, double k0, double kmin,
     double m)
     : rbm_{rbm},
@@ -53,12 +53,12 @@ void stochastic_reconfiguration::register_observables() {
     sampler_.register_aggs({&a_h_, &a_d_, &a_dh_, &a_dd_});
 }
 
-void stochastic_reconfiguration::optimize(size_t steps) {
-    auto& h = a_h_.get_result(steps);
+void stochastic_reconfiguration::optimize() {
+    auto& h = a_h_.get_result();
     std::cout << h / rbm_.n_visible << std::endl;
-    auto& d = a_d_.get_result(steps);
-    auto& dh = a_dh_.get_result(steps);
-    auto& dd = a_dd_.get_result(steps);
+    auto& d = a_d_.get_result();
+    auto& dh = a_dh_.get_result();
+    auto& dd = a_dd_.get_result();
     Eigen::MatrixXcd F = dh - d.conjugate() * h(0);
     Eigen::MatrixXcd S = dd - d.conjugate() * d.transpose();
 

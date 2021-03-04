@@ -31,15 +31,16 @@ derivative_op::derivative_op(size_t n_alpha, size_t n_sym)
 
 void derivative_op::evaluate(machine::rbm& rbm, const Eigen::MatrixXcd& state,
                              const Eigen::MatrixXcd& thetas) {
-    result_.setZero();
-    result_(0) = state.sum();
+    auto& result = get_result_();
+    result.setZero();
+    result(0) = state.sum();
     Eigen::MatrixXcd tanh = thetas.array().tanh();
-    result_.block(1, 0, rbm.n_alpha, 1) = tanh.rowwise().sum();
+    result.block(1, 0, rbm.n_alpha, 1) = tanh.rowwise().sum();
     auto& symm = rbm.get_symmetry();
     size_t n_tot = rbm.n_visible * rbm.n_alpha;
     for (size_t s = 0; s < symm.size(); s++) {
         Eigen::MatrixXcd x = (symm[s] * state) * tanh.col(s).transpose();
-        result_.block(1 + rbm.n_alpha, 0, n_tot, 1) +=
+        result.block(1 + rbm.n_alpha, 0, n_tot, 1) +=
             Eigen::Map<Eigen::MatrixXcd>(x.data(), n_tot, 1);
     }
 }

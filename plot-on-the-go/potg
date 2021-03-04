@@ -18,22 +18,44 @@
 
 import fileinput
 import matplotlib.pyplot as plt
+import argparse
+
+
+def parse_line(line):
+    line = line.strip()
+    if(line.startswith('(')):
+        line, _ = line.strip('()').split(',')
+    return float(line)
+
+
+parser = argparse.ArgumentParser(description='Plot stdin values live.')
+parser.add_argument('-r', '--reference', type=float)
+parser.add_argument('-i', '--input', type=str, default='-')
+parser.add_argument('other', nargs='*')
+args = parser.parse_args()
+
+othervals = []
+for o in args.other:
+    with open(o, 'r') as f:
+        othervals.append([parse_line(l) for l in f])
 
 vals = []
 
 plt.ion()
-for line in fileinput.input():
-    plt.clf()
+for line in fileinput.input(args.input):
     print(line, end='')
-    line = line.strip()
-    if(line.startswith('(')):
-        line, _ = line.strip('()').split(',')
-    vals.append(float(line))
-    plt.plot(vals)
+    plt.clf()
+    vals.append(parse_line(line))
+    plt.plot(vals, 'k', linewidth=2)
+    if args.reference is not None:
+        plt.axhline(y=args.reference, color='r', linestyle='--')
+    for other in othervals:
+        plt.polot(other[:len(val)])
     plt.draw()
     plt.pause(0.001)
 
 plt.ioff()
 plt.clf()
 plt.plot(vals)
+plt.scatter(len(vals)-1, vals[-1], color='orange')
 plt.show()
