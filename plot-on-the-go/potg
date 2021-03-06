@@ -22,10 +22,13 @@ import argparse
 
 
 def parse_line(line):
-    line = line.strip()
-    if(line.startswith('(')):
-        line, _ = line.strip('()').split(',')
-    return float(line)
+    try:
+        line = line.strip()
+        if(line.startswith('(')):
+            line, _ = line.strip('()').split(',')
+        return float(line)
+    except ValueError:
+        return 0
 
 
 parser = argparse.ArgumentParser(description='Plot stdin values live.')
@@ -46,11 +49,12 @@ for line in fileinput.input(args.input):
     print(line, end='')
     plt.clf()
     vals.append(parse_line(line))
-    plt.plot(vals, 'k', linewidth=2)
     if args.reference is not None:
         plt.axhline(y=args.reference, color='r', linestyle='--')
     for other in othervals:
-        plt.polot(other[:len(val)])
+        x = min(len(vals), len(other))
+        plt.plot(other[:x])
+    plt.plot(vals, 'k', linewidth=2)
     plt.draw()
     plt.pause(0.001)
 

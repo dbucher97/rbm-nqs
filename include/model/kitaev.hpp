@@ -41,7 +41,10 @@ static const Eigen::Matrix4cd szsz((Eigen::Matrix4cd() << 1, 0, 0, 0, 0, -1, 0,
 class kitaev {
    public:
     kitaev(size_t size, double J) : kitaev(size, {J, J, J}) {}
-    kitaev(size_t size, const std::array<double, 3>& J);
+    kitaev(size_t size, const std::array<double, 3>& J)
+        : lat{size},
+          hamiltonian{lat.get_bonds(),
+                      {J[0] * sxsx, J[1] * sysy, J[2] * szsz}} {}
 
     operators::base_op& get_hamiltonian() { return hamiltonian; }
     lattice::bravais& get_lattice() { return lat; };

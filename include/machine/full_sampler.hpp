@@ -1,4 +1,5 @@
 /**
+ * include/machine/full_sampler.hpp
  * Copyright (c) 2021 David Bucher <David.Bucher@physik.lmu.de>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,10 +17,29 @@
  *
  */
 
-#include <model/kitaev.hpp>
+#pragma once
 
-using namespace model;
+#include <gmp.h>
 
-kitaev::kitaev(size_t size, const std::array<double, 3>& J)
-    : lat{size},
-      hamiltonian{lat.get_bonds(), {J[0] * sxsx, J[1] * sysy, J[2] * szsz}} {}
+#include <Eigen/Dense>
+//
+#include <machine/abstract_sampler.hpp>
+#include <machine/rbm.hpp>
+
+namespace machine {
+
+class full_sampler : public abstract_sampler {
+    using Base = abstract_sampler;
+
+    size_t bits_parallel_;
+
+    void get_state(mpz_t&, Eigen::MatrixXcd&);
+    void get_flips(mpz_t&, std::vector<size_t>&, Eigen::MatrixXcd&);
+
+   public:
+    full_sampler(rbm&, size_t);
+
+    virtual void sample(size_t = 0) override;
+};
+
+}  // namespace machine

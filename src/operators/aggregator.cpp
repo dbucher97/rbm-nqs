@@ -46,8 +46,9 @@ Eigen::MatrixXcd& aggregator::get_result() { return result_; }
 Eigen::MatrixXcd aggregator::aggregate_() { return op_.get_result(); }
 
 void aggregator::aggregate(double weight) {
+    Eigen::MatrixXcd x = weight * aggregate_();
 #pragma omp critical
-    result_ += weight * aggregate_();
+    result_ += x;
 }
 
 prod_aggregator::prod_aggregator(const base_op& op, const base_op& scalar)

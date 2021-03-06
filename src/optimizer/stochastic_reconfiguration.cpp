@@ -26,14 +26,15 @@
 #include <machine/rbm.hpp>
 #include <operators/base_op.hpp>
 #include <operators/derivative_op.hpp>
+#include <optimizer/plugin.hpp>
 #include <optimizer/stochastic_reconfiguration.hpp>
 
 using namespace optimizer;
 
 stochastic_reconfiguration::stochastic_reconfiguration(
     machine::rbm& rbm, machine::abstract_sampler& sampler,
-    operators::base_op& hamiltonian, double lr, double k0, double kmin,
-    double m)
+    operators::base_op& hamiltonian, double lr, double lrmin, double lrm,
+    double k0, double kmin, double m)
     : rbm_{rbm},
       sampler_{sampler},
       hamiltonian_{hamiltonian},
@@ -42,8 +43,11 @@ stochastic_reconfiguration::stochastic_reconfiguration(
       a_d_{derivative_},
       a_dh_{derivative_, hamiltonian_},
       a_dd_{derivative_},
+      plug_{nullptr},
       n_total_{1 + rbm.n_alpha * (1 + rbm.get_symmetry().size())},
       lr_{lr},
+      lrmin_{lrmin},
+      lrm_{lrm},
       m_{m},
       kmin_{kmin},
       kp_{k0} {}
@@ -59,6 +63,7 @@ void stochastic_reconfiguration::optimize() {
     auto& d = a_d_.get_result();
     auto& dh = a_dh_.get_result();
     auto& dd = a_dd_.get_result();
+    // std::cout << d << std::endl;
     Eigen::MatrixXcd F = dh - d.conjugate() * h(0);
     Eigen::MatrixXcd S = dd - d.conjugate() * d.transpose();
 
@@ -70,22 +75,25 @@ void stochastic_reconfiguration::optimize() {
             reg_min_ = true;
         }
     }
+    if (!lr_min_) {
+        lr_ *= lrm_;
+        if (lr_ < lrmin_) {
+            lr_ = lrmin_;
+            lr_min_ = true;
+        }
+    }
     Eigen::MatrixXcd dw =
-        lr_ * S.completeOrthogonalDecomposition().pseudoInverse() * F;
-    // Eigen::MatrixXcd dw = lr_ * F;
+        S.completeOrthogonalDecomposition().pseudoInverse() * F;
 
-    // dws_.push_back(Eigen::MatrixXcd(dw));
-    //
-    // Eigen::MatrixXcd dwp(dw);
-    // dwp.setZero();
-    // double f = 1.;
-    // for (size_t i = dws_.size() - 1; i < dws_.size(); i--) {
-    //     f *= 0.5;
-    //     if (f > 1e-6) {
-    //         dwp += f * dws_[i];
-    //     } else
-    //         break;
-    // }
+    if (!plug_) {
+        dw *= lr_;
+    } else {
+        dw = lr_ * plug_->apply(dw);
+    }
+    // std::cout << " " << dw.norm() << std::endl;
 
     rbm_.update_weights(dw);
 }
+
+void stochastic_reconfiguration::set_plugin(base_plugin* plug) { plug_ = plug; }
+size_t stochastic_reconfiguration::get_n_total() { return n_total_; }

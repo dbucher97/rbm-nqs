@@ -18,7 +18,7 @@ OMP = -fopenmp
 ifeq ($(notdir $(CXX)), clang++)
 LDFLAGS += -L/usr/local/opt/llvm/lib/
 endif
-
+LDFLAGS += -L/usr/local/lib/ -lgmp
 
 all: $(BUILD_DIR)/$(TARGET_EXEC)
 

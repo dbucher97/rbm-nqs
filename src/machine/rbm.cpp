@@ -78,12 +78,14 @@ Eigen::MatrixXcd rbm::get_thetas(const Eigen::MatrixXcd& state) const {
 void rbm::update_thetas(const Eigen::MatrixXcd& state,
                         const std::vector<size_t>& flips,
                         Eigen::MatrixXcd& thetas) const {
+    Eigen::MatrixXcd state2 = state;
     for (auto& f : flips) {
         for (size_t s = 0; s < symmetry_.size(); s++) {
             thetas.col(s) -=
                 2 * weights_.transpose().col(symmetry_[s].indices()(f)) *
-                state(f);
+                state2(f);
         }
+        state2(f) *= -1;
     }
 }
 
