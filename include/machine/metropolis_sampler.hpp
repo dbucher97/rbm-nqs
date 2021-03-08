@@ -23,7 +23,7 @@
 #include <vector>
 //
 #include <machine/abstract_sampler.hpp>
-#include <machine/rbm.hpp>
+#include <machine/rbm_base.hpp>
 #include <operators/aggregator.hpp>
 #include <operators/base_op.hpp>
 
@@ -33,7 +33,7 @@ class metropolis_sampler : public abstract_sampler {
     using Base = abstract_sampler;
 
    public:
-    metropolis_sampler(rbm&, std::mt19937&, size_t = 1, size_t = 5,
+    metropolis_sampler(rbm_base&, std::mt19937&, size_t = 1, size_t = 5,
                        size_t = 100);
 
     virtual void sample(size_t) override;

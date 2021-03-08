@@ -28,7 +28,7 @@
 
 using namespace machine;
 
-metropolis_sampler::metropolis_sampler(rbm& rbm, std::mt19937& rng,
+metropolis_sampler::metropolis_sampler(rbm_base& rbm, std::mt19937& rng,
                                        size_t n_chains, size_t step_size,
                                        size_t warmup_steps)
     : Base{rbm},

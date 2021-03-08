@@ -20,7 +20,7 @@
 #include <Eigen/Dense>
 #include <vector>
 //
-#include <machine/rbm.hpp>
+#include <machine/rbm_base.hpp>
 #include <operators/local_op.hpp>
 #include <operators/local_op_chain.hpp>
 
@@ -29,7 +29,8 @@ using namespace operators;
 local_op_chain::local_op_chain(const std::vector<local_op>& ops)
     : Base{}, ops_{ops} {}
 
-void local_op_chain::evaluate(machine::rbm& rbm, const Eigen::MatrixXcd& state,
+void local_op_chain::evaluate(machine::rbm_base& rbm,
+                              const Eigen::MatrixXcd& state,
                               const Eigen::MatrixXcd& thetas) {
     auto& result = get_result_();
     result.setZero();

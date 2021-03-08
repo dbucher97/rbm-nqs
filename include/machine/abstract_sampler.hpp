@@ -24,7 +24,7 @@
 #include <random>
 #include <vector>
 //
-#include <machine/rbm.hpp>
+#include <machine/rbm_base.hpp>
 #include <operators/aggregator.hpp>
 #include <operators/base_op.hpp>
 
@@ -32,13 +32,13 @@ namespace machine {
 
 class abstract_sampler {
    protected:
-    rbm& rbm_;
+    rbm_base& rbm_;
 
     std::vector<operators::base_op*> ops_;
     std::vector<operators::aggregator*> aggs_;
 
    public:
-    abstract_sampler(rbm&);
+    abstract_sampler(rbm_base&);
     virtual ~abstract_sampler() = default;
 
     virtual void sample(size_t) = 0;

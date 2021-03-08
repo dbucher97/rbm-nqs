@@ -21,7 +21,7 @@
 #include <cmath>
 #include <iostream>
 //
-#include <machine/rbm.hpp>
+#include <machine/rbm_base.hpp>
 #include <operators/local_op.hpp>
 
 using namespace operators;
@@ -29,7 +29,7 @@ using namespace operators;
 local_op::local_op(const std::vector<size_t>& acts_on, Eigen::MatrixXcd& op)
     : Base{}, acts_on_{acts_on}, op_{op} {}
 
-void local_op::evaluate(machine::rbm& rbm, const Eigen::MatrixXcd& state,
+void local_op::evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
                         const Eigen::MatrixXcd& thetas) {
     auto& result = get_result_();
     result.setZero();

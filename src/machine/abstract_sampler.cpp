@@ -23,7 +23,7 @@
 
 using namespace machine;
 
-abstract_sampler::abstract_sampler(rbm& rbm) : rbm_{rbm} {}
+abstract_sampler::abstract_sampler(rbm_base& rbm) : rbm_{rbm} {}
 
 void abstract_sampler::register_ops(
     const std::vector<operators::base_op*>& ops) {

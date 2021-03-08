@@ -17,18 +17,18 @@
  *
  */
 
-#include <gmp.h>
+// #include <gmp.h>
 #include <omp.h>
 
 #include <Eigen/Dense>
 #include <cmath>
 //
 #include <machine/full_sampler.hpp>
-#include <machine/rbm.hpp>
+#include <machine/rbm_base.hpp>
 
 using namespace machine;
 
-full_sampler::full_sampler(rbm& rbm_, size_t bp)
+full_sampler::full_sampler(rbm_base& rbm_, size_t bp)
     : Base{rbm_}, bits_parallel_{bp} {}
 
 void full_sampler::sample(size_t) {
@@ -36,27 +36,21 @@ void full_sampler::sample(size_t) {
         agg->set_zero();
     }
     size_t b_len = (size_t)std::pow(2, bits_parallel_);
-    mpz_t max;
-    mpz_init(max);
-    mpz_set_ui(max, 1);
-    mpz_mul_2exp(max, max, rbm_.n_visible);
+    size_t max = (size_t)std::pow(2, rbm_.n_visible - bits_parallel_);
 
     double p_total = 0;
 
 #pragma omp parallel for
     for (size_t b = 0; b < b_len; b++) {
-        mpz_t n, n_last;
-        mpz_init2(n, rbm_.n_visible);
-        mpz_init2(n_last, rbm_.n_visible);
-        mpz_set_ui(n, b);
+        size_t x = 0;
+        size_t x_last = 0;
+        size_t flip;
 
         Eigen::MatrixXcd state(rbm_.n_visible, 1);
-        get_state(n, state);
+        get_state(b, state);
         Eigen::MatrixXcd thetas = rbm_.get_thetas(state);
 
-        std::vector<size_t> flips;
-
-        while (mpz_cmp(n, max) < 0) {
+        for (size_t i = 1; i <= max; i++) {
             auto psi = rbm_.psi(state, thetas);
             double p = std::pow(std::abs(psi), 2);
 #pragma omp critical
@@ -67,39 +61,27 @@ void full_sampler::sample(size_t) {
             for (auto agg : aggs_) {
                 agg->aggregate(p);
             }
-
-            mpz_set(n_last, n);
-            mpz_add_ui(n, n, b_len);
-            mpz_xor(n_last, n, n_last);
-            get_flips(n_last, flips, state);
-            rbm_.update_thetas(state, flips, thetas);
-            for (auto f : flips) {
-                state(f) *= -1;
+            if (i != max) {
+                // gray_code
+                x = i ^ (i >> 1);
+                flip = std::log2l(x ^ x_last) + bits_parallel_;
+                x_last = x;
+                rbm_.update_thetas(state, {flip}, thetas);
+                state(flip) *= -1;
             }
         }
-
-        mpz_clear(n);
-        mpz_clear(n_last);
     }
-    mpz_clear(max);
     for (auto agg : aggs_) {
         agg->finalize(p_total);
     }
 }
 
-void full_sampler::get_state(mpz_t& n, Eigen::MatrixXcd& state) {
+void full_sampler::get_state(size_t n, Eigen::MatrixXcd& state) {
     state.setConstant(1);
     for (size_t i = 0; i < rbm_.n_visible; i++) {
-        if (mpz_tstbit(n, i)) state(i) = -1;
+        if (test_bit(n, i)) state(i) = -1;
     }
 }
 
-void full_sampler::get_flips(mpz_t& x, std::vector<size_t>& flips,
-                             Eigen::MatrixXcd& state) {
-    flips.clear();
-    for (size_t i = 0; i < rbm_.n_visible; i++) {
-        if (mpz_tstbit(x, i)) {
-            flips.push_back(i);
-        }
-    }
-}
+bool full_sampler::test_bit(size_t s, size_t i) { return (s >> i) & 1; }
+

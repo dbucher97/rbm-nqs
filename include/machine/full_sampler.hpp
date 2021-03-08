@@ -19,12 +19,12 @@
 
 #pragma once
 
-#include <gmp.h>
+// #include <gmp.h>
 
 #include <Eigen/Dense>
 //
 #include <machine/abstract_sampler.hpp>
-#include <machine/rbm.hpp>
+#include <machine/rbm_base.hpp>
 
 namespace machine {
 
@@ -33,11 +33,12 @@ class full_sampler : public abstract_sampler {
 
     size_t bits_parallel_;
 
-    void get_state(mpz_t&, Eigen::MatrixXcd&);
-    void get_flips(mpz_t&, std::vector<size_t>&, Eigen::MatrixXcd&);
+    void get_state(size_t, Eigen::MatrixXcd&);
+
+    inline bool test_bit(size_t, size_t);
 
    public:
-    full_sampler(rbm&, size_t);
+    full_sampler(rbm_base&, size_t);
 
     virtual void sample(size_t = 0) override;
 };

@@ -21,7 +21,7 @@
 #include <Eigen/Dense>
 #include <vector>
 //
-#include <machine/rbm.hpp>
+#include <machine/rbm_base.hpp>
 #include <operators/base_op.hpp>
 
 namespace operators {
@@ -30,9 +30,9 @@ class derivative_op : public base_op {
     using Base = base_op;
 
    public:
-    derivative_op(size_t n_alpha, size_t n_symmetry);
+    derivative_op(size_t);
 
-    virtual void evaluate(machine::rbm&, const Eigen::MatrixXcd&,
+    virtual void evaluate(machine::rbm_base&, const Eigen::MatrixXcd&,
                           const Eigen::MatrixXcd&) override;
 };
 

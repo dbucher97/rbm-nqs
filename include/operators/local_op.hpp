@@ -20,7 +20,7 @@
 #include <Eigen/Dense>
 #include <vector>
 //
-#include <machine/rbm.hpp>
+#include <machine/rbm_base.hpp>
 #include <operators/base_op.hpp>
 
 namespace operators {
@@ -36,7 +36,7 @@ class local_op : public base_op {
    public:
     local_op(const std::vector<size_t>&, Eigen::MatrixXcd&);
 
-    void evaluate(machine::rbm&, const Eigen::MatrixXcd&,
+    void evaluate(machine::rbm_base&, const Eigen::MatrixXcd&,
                   const Eigen::MatrixXcd&) final;
 };
 

@@ -21,26 +21,16 @@
 #include <functional>
 #include <vector>
 //
-#include <machine/rbm.hpp>
+#include <machine/rbm_base.hpp>
 #include <operators/derivative_op.hpp>
 
 using namespace operators;
 
-derivative_op::derivative_op(size_t n_alpha, size_t n_sym)
-    : Base{1 + n_alpha * (1 + n_sym)} {}
+derivative_op::derivative_op(size_t n_params) : Base{n_params} {}
 
-void derivative_op::evaluate(machine::rbm& rbm, const Eigen::MatrixXcd& state,
+void derivative_op::evaluate(machine::rbm_base& rbm,
+                             const Eigen::MatrixXcd& state,
                              const Eigen::MatrixXcd& thetas) {
     auto& result = get_result_();
-    result.setZero();
-    result(0) = state.sum();
-    Eigen::MatrixXcd tanh = thetas.array().tanh();
-    result.block(1, 0, rbm.n_alpha, 1) = tanh.rowwise().sum();
-    auto& symm = rbm.get_symmetry();
-    size_t n_tot = rbm.n_visible * rbm.n_alpha;
-    for (size_t s = 0; s < symm.size(); s++) {
-        Eigen::MatrixXcd x = (symm[s] * state) * tanh.col(s).transpose();
-        result.block(1 + rbm.n_alpha, 0, n_tot, 1) +=
-            Eigen::Map<Eigen::MatrixXcd>(x.data(), n_tot, 1);
-    }
+    result = rbm.derivative(state, thetas);
 }

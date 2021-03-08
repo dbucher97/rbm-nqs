@@ -23,7 +23,7 @@
 #include <vector>
 //
 #include <machine/abstract_sampler.hpp>
-#include <machine/rbm.hpp>
+#include <machine/rbm_base.hpp>
 #include <operators/base_op.hpp>
 #include <operators/derivative_op.hpp>
 #include <optimizer/plugin.hpp>
@@ -32,19 +32,19 @@
 using namespace optimizer;
 
 stochastic_reconfiguration::stochastic_reconfiguration(
-    machine::rbm& rbm, machine::abstract_sampler& sampler,
+    machine::rbm_base& rbm, machine::abstract_sampler& sampler,
     operators::base_op& hamiltonian, double lr, double lrmin, double lrm,
     double k0, double kmin, double m)
     : rbm_{rbm},
       sampler_{sampler},
       hamiltonian_{hamiltonian},
-      derivative_{rbm.n_alpha, rbm.get_symmetry().size()},
+      derivative_{rbm.n_params},
       a_h_{hamiltonian_},
       a_d_{derivative_},
       a_dh_{derivative_, hamiltonian_},
       a_dd_{derivative_},
       plug_{nullptr},
-      n_total_{1 + rbm.n_alpha * (1 + rbm.get_symmetry().size())},
+      n_total_{rbm.n_params},
       lr_{lr},
       lrmin_{lrmin},
       lrm_{lrm},

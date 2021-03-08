@@ -26,39 +26,44 @@
 
 namespace machine {
 
-class rbm {
+class rbm_base {
+   protected:
+    rbm_base(size_t, size_t, lattice::bravais&);
+
    public:
     const size_t n_alpha;
     const size_t n_visible;
+    const size_t n_params;
 
-    rbm(size_t, lattice::bravais&);
+    rbm_base(size_t, lattice::bravais&);
+    virtual ~rbm_base() = default;
 
     Eigen::MatrixXcd& get_weights() { return weights_; }
     Eigen::MatrixXcd& get_h_bias() { return h_bias_; }
-    std::complex<double>& get_v_bias() { return v_bias_; }
-    std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>&
-    get_symmetry() {
-        return symmetry_;
-    };
-    size_t symmetry_size() const { return symmetry_.size(); };
+    Eigen::MatrixXcd& get_v_bias() { return v_bias_; }
 
     void initialize_weights(std::mt19937&, double, double = -1.);
 
     void update_weights(const Eigen::MatrixXcd&);
 
-    std::complex<double> psi(const Eigen::MatrixXcd& state,
-                             const Eigen::MatrixXcd&);
+    virtual std::complex<double> psi(const Eigen::MatrixXcd& state,
+                                     const Eigen::MatrixXcd&) const = 0;
 
-    // New functions devised from paper
-    Eigen::MatrixXcd get_thetas(const Eigen::MatrixXcd& state) const;
+    virtual Eigen::MatrixXcd get_thetas(
+        const Eigen::MatrixXcd& state) const = 0;
 
-    void update_thetas(const Eigen::MatrixXcd& state,
-                       const std::vector<size_t>& flips,
-                       Eigen::MatrixXcd& thetas) const;
+    virtual void update_thetas(const Eigen::MatrixXcd& state,
+                               const std::vector<size_t>& flips,
+                               Eigen::MatrixXcd& thetas) const = 0;
 
-    std::complex<double> log_psi_over_psi(
+    virtual std::complex<double> log_psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& updated_thetas) const;
+        const Eigen::MatrixXcd& thetas,
+        Eigen::MatrixXcd& updated_thetas) const = 0;
+
+    virtual Eigen::MatrixXcd derivative(
+        const Eigen::MatrixXcd& state,
+        const Eigen::MatrixXcd& thetas) const = 0;
 
     std::complex<double> log_psi_over_psi(const Eigen::MatrixXcd& state,
                                           const std::vector<size_t>& flips,
@@ -81,15 +86,17 @@ class rbm {
     bool flips_accepted(double prob, const Eigen::MatrixXcd& state,
                         const std::vector<size_t>& flips) const;
 
-   private:
+   protected:
     lattice::bravais& lattice_;
 
     Eigen::MatrixXcd weights_;
     Eigen::MatrixXcd h_bias_;
-    std::complex<double> v_bias_;
+    Eigen::MatrixXcd v_bias_;
 
-    std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
-        symmetry_;
+    const size_t n_vb_;
+
+    // std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
+    //     symmetry_;
 };
 
 }  // namespace machine

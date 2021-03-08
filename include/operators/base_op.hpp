@@ -25,7 +25,7 @@
 #include <iostream>
 #include <vector>
 //
-#include <machine/rbm.hpp>
+#include <machine/rbm_base.hpp>
 
 namespace operators {
 
@@ -46,7 +46,7 @@ class base_op {
     }
     virtual ~base_op() = default;
 
-    virtual void evaluate(machine::rbm&, const Eigen::MatrixXcd&,
+    virtual void evaluate(machine::rbm_base&, const Eigen::MatrixXcd&,
                           const Eigen::MatrixXcd&) = 0;
 
     bool is_scalar() const { return r_ == 1 && c_ == 1; }
