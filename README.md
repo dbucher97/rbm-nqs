@@ -27,6 +27,6 @@ make doc
 
 ### Theoretical Backgorund
 
-'''math
+```math
 | \psi\rangle = \sum\_{\{\sigma\}}\psi{\sigma}|\sigma\rangle
-'''
+```
