@@ -19,14 +19,18 @@
 import fileinput
 import matplotlib.pyplot as plt
 import argparse
+import math
+import numpy as np
 
 
 def parse_line(line):
+    ret = []
     try:
-        line = line.strip()
-        if(line.startswith('(')):
-            line, _ = line.strip('()').split(',')
-        return float(line)
+        vals = line.strip().split(',')
+        if(len(vals) == 1):
+            return float(vals[0])
+        else:
+            return [float(val) for val in vals]
     except ValueError:
         return 0
 
@@ -40,26 +44,45 @@ args = parser.parse_args()
 othervals = []
 for o in args.other:
     with open(o, 'r') as f:
-        othervals.append([parse_line(l) for l in f])
+        othervals.append(np.array([parse_line(l) for l in f if not
+                                   l.startswith('#')]))
 
 vals = []
 
 plt.ion()
+fig, ax1 = plt.subplots()
+ax2 = ax1.twinx()
+plt.show()
 for line in fileinput.input(args.input):
     print(line, end='')
-    plt.clf()
+    if(line.startswith('#')):
+        continue
+    ax1.cla()
     vals.append(parse_line(line))
+    v = np.array(vals)
+    if len(v.shape) > 1:
+        v0 = v[:, 0]
+    else:
+        v0 = v
     if args.reference is not None:
-        plt.axhline(y=args.reference, color='r', linestyle='--')
-    for other in othervals:
-        x = min(len(vals), len(other))
-        plt.plot(other[:x])
-    plt.plot(vals, 'k', linewidth=2)
+        ax1.axhline(y=args.reference, color='r', linestyle='--')
+
+    #  for other in othervals:
+    #      x = min(len(vals), len(other))
+    #      plt.plot(other[:x])
+    ax1.plot(v0, 'k', linewidth=2)
+    if len(v.shape) > 1:
+        ax2.cla()
+        for vi in v[:, 1:].T:
+            ax2.plot(vi)
+            ax2.set_ylim((0, 1))
+
+    if args.reference is not None:
+        ax1.set_ylim((args.reference - 0.05, v0[0] + 0.05))
     plt.draw()
     plt.pause(0.001)
 
-plt.ioff()
-plt.clf()
-plt.plot(vals)
-plt.scatter(len(vals)-1, vals[-1], color='orange')
-plt.show()
+#  plt.ioff()
+#  plt.clf()
+#  plt.plot(vals, 'k', linewidth=2)
+#  plt.show()

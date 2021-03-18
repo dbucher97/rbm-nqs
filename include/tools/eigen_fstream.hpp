@@ -1,5 +1,4 @@
 /**
- * include/machine/full_sampler.hpp
  * Copyright (c) 2021 David Bucher <David.Bucher@physik.lmu.de>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,30 +18,8 @@
 
 #pragma once
 
-// #include <gmp.h>
-
 #include <Eigen/Dense>
-//
-#include <machine/abstract_sampler.hpp>
-#include <machine/rbm_base.hpp>
+#include <fstream>
 
-namespace machine {
-
-class full_sampler : public abstract_sampler {
-    using Base = abstract_sampler;
-
-    size_t bits_parallel_;
-
-   protected:
-    void get_state(size_t, Eigen::MatrixXcd&);
-
-    inline bool test_bit(size_t s, size_t i) { return (s >> i) & 1; };
-
-   public:
-    full_sampler(rbm_base&, size_t);
-
-    virtual void sample(size_t j = 0) override { sample(false); };
-    virtual void sample(bool);
-};
-
-}  // namespace machine
+std::ofstream& operator<<(std::ofstream& file, Eigen::MatrixXcd& mat);
+std::ifstream& operator>>(std::ifstream& file, Eigen::MatrixXcd& mat);

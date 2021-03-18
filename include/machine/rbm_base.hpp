@@ -35,6 +35,8 @@ class rbm_base {
     const size_t n_visible;
     const size_t n_params;
 
+    void interrupt(int);
+
     rbm_base(size_t, lattice::bravais&);
     virtual ~rbm_base() = default;
 
@@ -47,23 +49,20 @@ class rbm_base {
     void update_weights(const Eigen::MatrixXcd&);
 
     virtual std::complex<double> psi(const Eigen::MatrixXcd& state,
-                                     const Eigen::MatrixXcd&) const = 0;
+                                     const Eigen::MatrixXcd&) const;
 
-    virtual Eigen::MatrixXcd get_thetas(
-        const Eigen::MatrixXcd& state) const = 0;
+    virtual Eigen::MatrixXcd get_thetas(const Eigen::MatrixXcd& state) const;
 
     virtual void update_thetas(const Eigen::MatrixXcd& state,
                                const std::vector<size_t>& flips,
-                               Eigen::MatrixXcd& thetas) const = 0;
+                               Eigen::MatrixXcd& thetas) const;
 
     virtual std::complex<double> log_psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const Eigen::MatrixXcd& thetas,
-        Eigen::MatrixXcd& updated_thetas) const = 0;
+        const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& updated_thetas) const;
 
-    virtual Eigen::MatrixXcd derivative(
-        const Eigen::MatrixXcd& state,
-        const Eigen::MatrixXcd& thetas) const = 0;
+    virtual Eigen::MatrixXcd derivative(const Eigen::MatrixXcd& state,
+                                        const Eigen::MatrixXcd& thetas) const;
 
     std::complex<double> log_psi_over_psi(const Eigen::MatrixXcd& state,
                                           const std::vector<size_t>& flips,
@@ -86,6 +85,12 @@ class rbm_base {
     bool flips_accepted(double prob, const Eigen::MatrixXcd& state,
                         const std::vector<size_t>& flips) const;
 
+    bool save(const std::string&);
+
+    bool load(const std::string&);
+
+    size_t get_n_updates() { return n_updates_; }
+
    protected:
     lattice::bravais& lattice_;
 
@@ -94,6 +99,8 @@ class rbm_base {
     Eigen::MatrixXcd v_bias_;
 
     const size_t n_vb_;
+
+    size_t n_updates_;
 
     // std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
     //     symmetry_;

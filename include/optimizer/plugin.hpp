@@ -53,7 +53,7 @@ class momentum_plugin : public base_plugin {
     Eigen::MatrixXcd m_;
 
    public:
-    momentum_plugin(size_t l, double alpha);
+    momentum_plugin(size_t l, double alpha = 0.1);
 
     virtual Eigen::MatrixXcd apply(Eigen::MatrixXcd&) override;
 };

@@ -45,16 +45,20 @@ void metropolis_sampler::sample(size_t total_samples) {
     }
     size_t samples_per_chain = total_samples / n_chains_;
     size_t residue = total_samples - samples_per_chain * n_chains_;
+    acceptance_rate_ = 0;
 #pragma omp parallel for
     for (size_t c = 0; c < n_chains_; c++) {
-        sample_chain(samples_per_chain + (c == 0 ? residue : 0));
+        double ar = sample_chain(samples_per_chain + (c == 0 ? residue : 0));
+#pragma omp critical
+        acceptance_rate_ += ar;
     }
+    acceptance_rate_ /= n_chains_;
     for (auto agg : aggs_) {
         agg->finalize(total_samples);
     }
 }
 
-void metropolis_sampler::sample_chain(size_t total_samples) {
+double metropolis_sampler::sample_chain(size_t total_samples) {
     size_t total_steps = total_samples * step_size_ + warmup_steps_;
 
     // Initilaize state
@@ -65,11 +69,18 @@ void metropolis_sampler::sample_chain(size_t total_samples) {
 
     // Retrieve thetas for state
     Eigen::MatrixXcd thetas = rbm_.get_thetas(state);
+    size_t ar = 0;
 
     // Do the Metropolis sampling
     for (size_t step = 0; step < total_steps; step++) {
         std::vector<size_t> flips = {f_dist_(rng_)};
+        if (u_dist_(rng_) < 0.5) {
+            size_t flip2 = f_dist_(rng_);
+            while (flip2 == flips[0]) flip2 = f_dist_(rng_);
+            flips.push_back(flip2);
+        }
         if (rbm_.flips_accepted(u_dist_(rng_), state, flips, thetas)) {
+            ar++;
             for (auto& flip : flips) state(flip) *= -1;
         }
         if ((step >= warmup_steps_) &&
@@ -80,7 +91,9 @@ void metropolis_sampler::sample_chain(size_t total_samples) {
             for (auto agg : aggs_) {
                 agg->aggregate();
             }
+            // thetas = rbm_.get_thetas(state);
         }
     }
+    return ar / (double)total_steps;
 }
 

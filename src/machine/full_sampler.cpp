@@ -31,7 +31,7 @@ using namespace machine;
 full_sampler::full_sampler(rbm_base& rbm_, size_t bp)
     : Base{rbm_}, bits_parallel_{bp} {}
 
-void full_sampler::sample(size_t) {
+void full_sampler::sample(bool print) {
     for (auto agg : aggs_) {
         agg->set_zero();
     }
@@ -39,6 +39,8 @@ void full_sampler::sample(size_t) {
     size_t max = (size_t)std::pow(2, rbm_.n_visible - bits_parallel_);
 
     double p_total = 0;
+
+    Eigen::MatrixXcd vec(static_cast<size_t>(1 << rbm_.n_visible), 1);
 
 #pragma omp parallel for
     for (size_t b = 0; b < b_len; b++) {
@@ -53,6 +55,15 @@ void full_sampler::sample(size_t) {
         for (size_t i = 1; i <= max; i++) {
             auto psi = rbm_.psi(state, thetas);
             double p = std::pow(std::abs(psi), 2);
+            if (print) {
+                size_t l = 0;
+                for (size_t j = 0; j < rbm_.n_visible; j++) {
+                    if (std::real(state(j)) > 0) {
+                        l += (1 << j);
+                    }
+                }
+                vec(l) = psi;
+            }
 #pragma omp critical
             { p_total += p; }
             for (auto op : ops_) {
@@ -69,7 +80,15 @@ void full_sampler::sample(size_t) {
                 rbm_.update_thetas(state, {flip}, thetas);
                 state(flip) *= -1;
             }
+            // double x = i / (double)max;
+            //             if ((int)(x * 1000) % 100 == 0) {
+            // #pragma omp critical
+            //                 std::cout << i << std::endl;
+            //             }
         }
+    }
+    if (print) {
+        std::cout << vec / std::sqrt(p_total) << std::endl;
     }
     for (auto agg : aggs_) {
         agg->finalize(p_total);
@@ -82,6 +101,3 @@ void full_sampler::get_state(size_t n, Eigen::MatrixXcd& state) {
         if (test_bit(n, i)) state(i) = -1;
     }
 }
-
-bool full_sampler::test_bit(size_t s, size_t i) { return (s >> i) & 1; }
-

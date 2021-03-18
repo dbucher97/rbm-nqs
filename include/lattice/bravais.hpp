@@ -33,6 +33,9 @@ struct bond {
     const size_t type;
 };
 
+/**
+ * \Bravais class
+ */
 class bravais {
    public:
     const size_t n_uc, n_dim, n_basis, n_coordination, n_total_uc, n_total;

@@ -27,28 +27,49 @@
 using namespace operators;
 
 aggregator::aggregator(const base_op& op, size_t r, size_t c, bool real)
-    : real_{real}, op_{op}, result_(r, c) {
+    : real_{real}, result_(r, c), variance_(r, c), op_{op} {
     result_.setZero();
 }
 
 aggregator::aggregator(const base_op& op, bool real)
     : aggregator{op, op.rows(), op.cols(), real} {}
 
+void aggregator::set_zero() {
+    result_.setZero();
+    if (track_variance_) {
+        variance_.setZero();
+    }
+}
+
 void aggregator::finalize(double num) {
     if (real_) {
         result_ = result_.real();
     }
     result_ /= num;
+    if (track_variance_) {
+        variance_ /= num;
+        variance_ -= (Eigen::MatrixXcd)result_.array().pow(2);
+    }
 }
 
 Eigen::MatrixXcd& aggregator::get_result() { return result_; }
+Eigen::MatrixXcd& aggregator::get_variance() { return variance_; }
 
 Eigen::MatrixXcd aggregator::aggregate_() { return op_.get_result(); }
 
 void aggregator::aggregate(double weight) {
     Eigen::MatrixXcd x = weight * aggregate_();
+//     if (x.size() == 1) {
+// #pragma omp critical
+//         std::cout << x << std::endl;
+//     }
 #pragma omp critical
     result_ += x;
+    if (track_variance_) {
+        Eigen::MatrixXcd xx = x.array().pow(2) / weight;
+#pragma omp critical
+        variance_ += xx;
+    }
 }
 
 prod_aggregator::prod_aggregator(const base_op& op, const base_op& scalar)

@@ -1,2 +1,9 @@
 build/
+docs/
+tsf-out/
 .DS_Store
+*.ipynb
+*.txt
+*.log
+*.rbm
+!trained/*.rbm

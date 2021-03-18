@@ -4,6 +4,8 @@ BUILD_DIR ?= build
 SRC_DIRS ?= src
 INC_DIRS ?= include
 
+DESTDIR ?= /usr/local/bin/
+
 SRCS := $(shell find $(SRC_DIRS) -name *.cpp -type f)
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 DEPS := $(OBJS:.o=.d)
@@ -18,9 +20,13 @@ OMP = -fopenmp
 ifeq ($(notdir $(CXX)), clang++)
 LDFLAGS += -L/usr/local/opt/llvm/lib/
 endif
-LDFLAGS += -L/usr/local/lib/ -lgmp
+LDFLAGS += -lboost_program_options
 
 all: $(BUILD_DIR)/$(TARGET_EXEC)
+
+install: all
+	cp $(BUILD_DIR)/$(TARGET_EXEC) $(DESTDIR)/$(TARGET_EXEC)
+	cp plot-on-the-go/potg $(DESTDIR)/potg
 
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
 	@echo "[ LD ] $@ $(LDFLAGS)"
@@ -31,7 +37,6 @@ $(BUILD_DIR)/%.cpp.o: %.cpp
 	@$(MKDIR_P) $(dir $@)
 	@echo "[ $(notdir $(CXX)) ] $<"
 	@$(CXX) $(OMP) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
-
 
 .PHONY: all clean
 

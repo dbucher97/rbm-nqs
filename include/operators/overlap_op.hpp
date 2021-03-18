@@ -15,42 +15,34 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
 #include <Eigen/Dense>
 #include <complex>
-#include <random>
+#include <string>
 #include <vector>
 //
-#include <machine/abstract_sampler.hpp>
 #include <machine/rbm_base.hpp>
-#include <operators/aggregator.hpp>
 #include <operators/base_op.hpp>
 
-namespace machine {
+namespace operators {
 
-class metropolis_sampler : public abstract_sampler {
-    using Base = abstract_sampler;
+class overlap_op : public base_op {
+    using Base = base_op;
+    Eigen::MatrixXcd state_vec_;
+    size_t n_vis_;
+
+    std::complex<double> get_psi(const Eigen::MatrixXcd& state);
+
+    void fill_vec(const std::string& file);
 
    public:
-    metropolis_sampler(rbm_base&, std::mt19937&, size_t = 1, size_t = 5,
-                       size_t = 100);
+    overlap_op(const std::string& file, size_t);
 
-    virtual void sample(size_t) override;
-
-    double get_acceptance_rate() { return acceptance_rate_; }
-
-   private:
-    std::mt19937& rng_;
-
-    size_t n_chains_, step_size_, warmup_steps_;
-    double acceptance_rate_;
-
-    std::uniform_int_distribution<size_t> f_dist_;
-
-    std::uniform_real_distribution<double> u_dist_{0, 1};
-
-    double sample_chain(size_t);
+    virtual void evaluate(machine::rbm_base&, const Eigen::MatrixXcd&,
+                          const Eigen::MatrixXcd&) override;
 };
 
-}  // namespace machine
+}  // namespace operators
+

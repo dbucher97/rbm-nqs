@@ -18,39 +18,23 @@
 #pragma once
 
 #include <Eigen/Dense>
-#include <complex>
-#include <random>
-#include <vector>
+#include <fstream>
+#include <string>
 //
-#include <machine/abstract_sampler.hpp>
 #include <machine/rbm_base.hpp>
-#include <operators/aggregator.hpp>
 #include <operators/base_op.hpp>
 
-namespace machine {
-
-class metropolis_sampler : public abstract_sampler {
-    using Base = abstract_sampler;
+namespace operators {
+class store_state : public base_op {
+    using Base = base_op;
+    std::ofstream file_;
 
    public:
-    metropolis_sampler(rbm_base&, std::mt19937&, size_t = 1, size_t = 5,
-                       size_t = 100);
+    store_state(const std::string&);
 
-    virtual void sample(size_t) override;
+    void evaluate(machine::rbm_base&, const Eigen::MatrixXcd&,
+                  const Eigen::MatrixXcd&) final;
 
-    double get_acceptance_rate() { return acceptance_rate_; }
-
-   private:
-    std::mt19937& rng_;
-
-    size_t n_chains_, step_size_, warmup_steps_;
-    double acceptance_rate_;
-
-    std::uniform_int_distribution<size_t> f_dist_;
-
-    std::uniform_real_distribution<double> u_dist_{0, 1};
-
-    double sample_chain(size_t);
+    void close() { file_.close(); }
 };
-
-}  // namespace machine
+}  // namespace operators

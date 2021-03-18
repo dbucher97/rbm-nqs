@@ -26,10 +26,12 @@ namespace operators {
 
 class aggregator {
     bool real_;
+    bool track_variance_ = false;
+    Eigen::MatrixXcd result_;
+    Eigen::MatrixXcd variance_;
 
    protected:
     const base_op& op_;
-    Eigen::MatrixXcd result_;
 
     virtual Eigen::MatrixXcd aggregate_();
 
@@ -40,11 +42,13 @@ class aggregator {
     virtual ~aggregator() = default;
 
     void aggregate(double = 1);
+    void track_variance() { track_variance_ = true; }
 
     Eigen::MatrixXcd& get_result();
+    Eigen::MatrixXcd& get_variance();
     void finalize(double);
 
-    void set_zero() { result_.setZero(); }
+    void set_zero();
 };
 
 class prod_aggregator : public aggregator {

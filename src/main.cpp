@@ -19,17 +19,29 @@
 
 // #include <omp.h>
 
+#include <fcntl.h>
 #include <omp.h>
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <termios.h>
+#include <unistd.h>
 
 #include <Eigen/Dense>
 #include <chrono>
 #include <complex>
+#include <csignal>
+#include <cstdio>
+#include <fstream>
 #include <iostream>
+#include <memory>
 #include <random>
+#include <sstream>
 //
 #include <lattice/honeycomb.hpp>
+#include <machine/exact_sampler.hpp>
 #include <machine/full_sampler.hpp>
 #include <machine/metropolis_sampler.hpp>
+#include <machine/rbm_base.hpp>
 #include <machine/rbm_symmetry.hpp>
 #include <model/kitaev.hpp>
 #include <operators/aggregator.hpp>
@@ -37,74 +49,141 @@
 #include <operators/derivative_op.hpp>
 #include <operators/local_op.hpp>
 #include <operators/local_op_chain.hpp>
+#include <operators/overlap_op.hpp>
+#include <operators/store_state.hpp>
 #include <optimizer/plugin.hpp>
 #include <optimizer/stochastic_reconfiguration.hpp>
+#include <tools/ini.hpp>
+#include <tools/logger.hpp>
 
 using namespace Eigen;
 
-// std::ostream& operator<<(std::ostream& os, const machine::sample_t& sa) {
-//     for (size_t i = 0; i < sa.vis.size(); i++) {
-//         os << (sa.vis[i] ? "↑" : "↓");
-//     }
-//     os << " " << sa.cv;
-//     return os;
-// }
-//
-//
-//
-static int x = 5;
-int f(int j) { return x * j; }
+volatile static bool g_interrupt = false;
+volatile static bool g_saved = false;
 
-int main() {
-    omp_set_num_threads(8);
+void interrupt(int sig) {
+    g_interrupt = sig == SIGINT;
+    while (!g_saved) {
+        usleep(100);
+    }
+    exit(0);
+}
+
+void progress_bar(size_t i, size_t n_epochs, double energy) {
+    double progress = i / (double)n_epochs;
+    int digs = (int)std::log10(n_epochs) - (int)std::log10(i);
+    if (i == 0) digs = (int)std::log10(n_epochs);
+    std::cout << "\rEpochs: (" << std::string(digs, ' ') << i << "/" << n_epochs
+              << ") ";
+    struct winsize size;
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &size);
+    int plen = size.ws_col - (2 * (int)std::log10(n_epochs) + 35);
+    int p = (int)(plen * progress + 0.5);
+    int m = plen - p;
+    std::cout << "[" << std::string(p, '#') << std::string(m, ' ') << "]";
+    std::cout << std::showpoint;
+    std::cout << " Energy: " << energy;
+    std::cout << std::flush;
+}
+
+int main(int argc, char* argv[]) {
+    int rc = ini::load(argc, argv);
+    if (rc != 0) {
+        return rc;
+    }
+
+    logger::init();
+
+    omp_set_num_threads(ini::n_threads);
     Eigen::setNbThreads(1);
 
-    std::mt19937 rng{34521434L};
-    model::kitaev km{2, {-1, -1, -1}};
-    operators::base_op& H = km.get_hamiltonian();
-    operators::aggregator Hagg{H, true};
-    // operators::prod_aggregator Hagg2{H, H};
+    std::mt19937 rng{static_cast<std::mt19937::result_type>(ini::seed)};
+    model::kitaev km{ini::n_cells, ini::J};
 
-    machine::rbm_symmetry rbm{3, km.get_lattice()};
-    rbm.initialize_weights(rng, 0.001);
-
-    // operators::derivative_op D{rbm.n_alpha, rbm.get_symmetry().size()};
-    // operators::aggregator Dagg{D};
-
-    // machine::full_sampler sampler{rbm, 3};
-    machine::metropolis_sampler sampler{rbm, rng, 8};
-
-    //
-    optimizer::stochastic_reconfiguration sr{
-        rbm, sampler, km.get_hamiltonian(), 0.05, 0.03, 0.99, 0.1, 1e-4, 0.9};
-    sr.register_observables();
-    // optimizer::adam_plugin p{sr.get_n_total()};
-    // sr.set_plugin(&p);
-
-    size_t n_samples = 400;
-    size_t n_epochs = 400;
-    double t_sample = 0, t_optim = 0;
-
-    for (size_t i = 0; i < n_epochs; i++) {
-        auto a = std::chrono::system_clock::now();
-        sampler.sample(n_samples);
-        auto b = std::chrono::system_clock::now();
-        Eigen::setNbThreads(0);
-        sr.optimize();
-        Eigen::setNbThreads(1);
-        auto c = std::chrono::system_clock::now();
-        t_sample += std::chrono::duration_cast<std::chrono::milliseconds>(b - a)
-                        .count();
-        t_optim += std::chrono::duration_cast<std::chrono::milliseconds>(c - b)
-                       .count();
-        // n_samples++;
+    std::unique_ptr<machine::rbm_base> rbm;
+    switch (ini::rbm) {
+        case ini::rbm_t::BASIC:
+            rbm = std::make_unique<machine::rbm_base>(ini::n_hidden,
+                                                      km.get_lattice());
+            break;
+        case ini::rbm_t::SYMMETRY:
+            rbm = std::make_unique<machine::rbm_symmetry>(ini::n_hidden,
+                                                          km.get_lattice());
+            break;
+        default:
+            return 1;
     }
-    std::cout << t_sample / n_epochs << ", " << t_optim / n_epochs << std::endl;
-    machine::full_sampler sampler2{rbm, 3};
-    sampler2.register_op(&H);
-    sampler2.register_agg(&Hagg);
-    sampler2.sample();
-    std::cout << Hagg.get_result() / rbm.n_visible << std::endl;
-    //
+    if (ini::rbm_force || !rbm->load(ini::name)) {
+        rbm->initialize_weights(rng, ini::rbm_weights, ini::rbm_weights_imag);
+    }
+
+    std::unique_ptr<machine::abstract_sampler> sampler;
+    switch (ini::sa_type) {
+        case ini::sampler_t::FULL:
+            sampler = std::make_unique<machine::full_sampler>(
+                *rbm, ini::sa_full_n_parallel_bits);
+            break;
+        case ini::sampler_t::METROPOLIS:
+            sampler = std::make_unique<machine::metropolis_sampler>(
+                *rbm, rng, ini::sa_metropolis_n_chains,
+                ini::sa_metropolis_n_steps_per_sample,
+                ini::sa_metropolis_n_warmup_steps);
+            break;
+        default:
+            return 1;
+    }
+
+    optimizer::stochastic_reconfiguration sr{
+        *rbm, *sampler, km.get_hamiltonian(), ini::sr_lr, ini::sr_reg};
+    sr.register_observables();
+    std::unique_ptr<optimizer::base_plugin> p;
+    if (ini::sr_plugin.length() > 0) {
+        if (ini::sr_plugin == "adam") {
+            p = std::make_unique<optimizer::adam_plugin>(rbm->n_params);
+        } else if (ini::sr_plugin == "momentum") {
+            p = std::make_unique<optimizer::momentum_plugin>(rbm->n_params);
+        } else {
+            return 1;
+        }
+        sr.set_plugin(p.get());
+    }
+
+    if (ini::train) {
+        // Start getchar non-block
+        struct termios oldt, newt;
+        int oldf;
+        tcgetattr(STDIN_FILENO, &oldt);
+        newt = oldt;
+        newt.c_lflag &= ~(ICANON | ECHO);
+        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+        oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+        fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+        // End getchar non-block
+
+        progress_bar(0, ini::n_epochs, -1);
+        int ch = 0;
+        for (size_t i = 0; i < ini::n_epochs && ch != ''; i++) {
+            sampler->sample(ini::sa_n_samples);
+            Eigen::setNbThreads(0);
+            sr.optimize();
+            Eigen::setNbThreads(1);
+            logger::newline();
+            progress_bar(i + 1, ini::n_epochs,
+                         sr.get_current_energy() / rbm->n_visible);
+            ch = getchar();
+        }
+
+        // Start getchar non-block
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+        fcntl(STDIN_FILENO, F_SETFL, oldf);
+        // End getchar non-block
+
+        std::cout << std::endl;
+        rbm->save(ini::name);
+
+    } else {
+        std::cout << "nothing to do!" << std::endl;
+    }
+
     return 0;
 }

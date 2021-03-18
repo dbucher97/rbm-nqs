@@ -28,23 +28,36 @@
 #include <operators/base_op.hpp>
 #include <operators/derivative_op.hpp>
 #include <optimizer/plugin.hpp>
+#include <tools/ini.hpp>
 
 namespace optimizer {
+
+class decay_t {
+    const double initial, min, decay;
+    double value;
+    bool min_reached = false;
+
+   public:
+    decay_t(double initial, double min, double decay, size_t = 0);
+    decay_t(double initial) : decay_t{initial, initial, 1.} {}
+    decay_t(const ini::decay_t& other, size_t = 0);
+    double get();
+    void reset();
+};
 
 class stochastic_reconfiguration {
    public:
     stochastic_reconfiguration(machine::rbm_base&, machine::abstract_sampler&,
-                               operators::base_op&, double lr = 0.001,
-                               double lrmin = 1e-3, double lrm = 0.99,
-                               double k0 = 1, double kmin = 1e-2,
-                               double m = 0.95);
+                               operators::base_op&, const ini::decay_t&,
+                               const ini::decay_t&);
 
     void register_observables();
 
     void optimize();
 
     void set_plugin(base_plugin* plug);
-    size_t get_n_total();
+
+    double get_current_energy();
 
    private:
     machine::rbm_base& rbm_;
@@ -57,20 +70,9 @@ class stochastic_reconfiguration {
     operators::prod_aggregator a_dh_;
     operators::outer_aggregator a_dd_;
 
-    base_plugin* plug_;
+    decay_t lr_;
+    decay_t kp_;
 
-    size_t n_total_;
-
-    double lr_;
-    double lrmin_;
-    double lrm_;
-    double m_;
-    double kmin_;
-    double kp_;
-
-    bool reg_min_ = false;
-    bool lr_min_ = true;
-
-    std::vector<Eigen::MatrixXcd> dws_ = {};
+    base_plugin* plug_ = nullptr;
 };
 }  // namespace optimizer
