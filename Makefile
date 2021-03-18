@@ -43,6 +43,9 @@ $(BUILD_DIR)/%.cpp.o: %.cpp
 clean:
 	$(RM) -r $(BUILD_DIR)
 
+doc:
+	doxygen Doxyfile
+
 -include $(DEPS)
 
 MKDIR_P ?= mkdir -p

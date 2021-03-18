@@ -30,11 +30,30 @@ namespace lattice {
 
 class honeycomb : public bravais {
    private:
-    size_t _count_occurances(size_t, const std::vector<size_t>&) const;
+    /**
+     * @brief Counts the number of occurances of one site in the hightlights
+     * vector.
+     *
+     * @todo Move to bravais class, since it must be useful in general for all
+     * print lattice methods.
+     *
+     * @param site_idx Site index.
+     * @param highlights Vector of site indices, aka hightlights.
+     *
+     * @return Number of occurances.
+     */
+    size_t count_occurances_(size_t site_idx,
+                             const std::vector<size_t>& highlights) const;
 
    public:
     using Base = bravais;
-    honeycomb(size_t);
+
+    /**
+     * @brief Constructor of the Honeycomb lattice.
+     *
+     * @param n_uc Number of unitcells in one direction.
+     */
+    honeycomb(size_t n_uc);
 
     virtual std::vector<size_t> nns(size_t) const override;
 

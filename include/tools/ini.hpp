@@ -19,6 +19,7 @@
 
 #include <boost/any.hpp>
 #include <string>
+#include <vector>
 
 namespace ini {
 struct decay_t {
