@@ -28,5 +28,5 @@ make doc
 ### Theoretical Backgorund
 
 ```math
-| \psi\rangle = \sum_{\{\sigma\}}\psi{\sigma}|\sigma\rangle
+| \psi\rangle = \sum_{\{\sigma\}}\psi( \sigma )|\sigma\rangle
 ```
