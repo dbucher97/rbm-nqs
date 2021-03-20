@@ -44,7 +44,11 @@ clean:
 	$(RM) -r $(BUILD_DIR)
 
 doc:
-	doxygen Doxyfile
+	mv README.md README.md.tmp
+	./.md2dox
+	cd docs && make html && cd ..
+	mv README.md.tmp README.md
+
 
 -include $(DEPS)
 

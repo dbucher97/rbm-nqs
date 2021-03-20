@@ -1,5 +1,4 @@
-/**
- * include/model/kitaev.hpp
+/*
  * Copyright (c) 2021 David Bucher <David.Bucher@physik.lmu.de>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -28,15 +27,9 @@
 #include <operators/bond_op.hpp>
 
 namespace model {
-static const Eigen::Matrix4cd sxsx((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, 1,
-                                    0, 0, 1, 0, 0, 1, 0, 0, 0)
-                                       .finished());
-static const Eigen::Matrix4cd sysy((Eigen::Matrix4cd() << 0, 0, 0, -1, 0, 0, 1,
-                                    0, 0, 1, 0, 0, -1, 0, 0, 0)
-                                       .finished());
-static const Eigen::Matrix4cd szsz((Eigen::Matrix4cd() << 1, 0, 0, 0, 0, -1, 0,
-                                    0, 0, 0, -1, 0, 0, 0, 0, 1)
-                                       .finished());
+extern Eigen::Matrix4cd sxsx;
+extern Eigen::Matrix4cd sysy;
+extern Eigen::Matrix4cd szsz;
 
 class kitaev {
    public:

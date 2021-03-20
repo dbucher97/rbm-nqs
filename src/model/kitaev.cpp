@@ -17,26 +17,17 @@
  */
 
 #include <Eigen/Dense>
-#include <vector>
 //
-#include <machine/rbm_base.hpp>
-#include <operators/local_op.hpp>
-#include <operators/local_op_chain.hpp>
+#include <model/kitaev.hpp>
 
-using namespace operators;
-
-local_op_chain::local_op_chain(const std::vector<local_op>& ops)
-    : Base{}, ops_{ops} {}
-
-void local_op_chain::evaluate(machine::rbm_base& rbm,
-                              const Eigen::MatrixXcd& state,
-                              const Eigen::MatrixXcd& thetas) {
-    auto& result = get_result_();
-    result.setZero();
-    for (auto& op : ops_) {
-        op.evaluate(rbm, state, thetas);
-        result += op.get_result();
-    }
-}
-
-void local_op_chain::push_back(local_op op) { ops_.push_back(op); }
+namespace model {
+Eigen::Matrix4cd sxsx =
+    ((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
+         .finished());
+Eigen::Matrix4cd sysy =
+    ((Eigen::Matrix4cd() << 0, 0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, 0)
+         .finished());
+Eigen::Matrix4cd szsz =
+    ((Eigen::Matrix4cd() << 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1)
+         .finished());
+}  // namespace model

@@ -1,4 +1,4 @@
-/**
+/*
  * src/optimizer/stochastic_reconfiguration.cpp
  * Copyright (c) 2021 David Bucher <David.Bucher@physik.lmu.de>
  *

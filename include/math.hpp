@@ -1,5 +1,4 @@
-/**
- * include/math.hpp
+/*
  * Copyright (c) 2021 David Bucher <David.Bucher@physik.lmu.de>
  *
  * This program is free software: you can redistribute it and/or modify

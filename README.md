@@ -30,3 +30,7 @@ make doc
 ```math
 | \psi\rangle = \sum_{\{\sigma\}}\psi( \sigma )|\sigma\rangle
 ```
+
+```math
+Test
+```

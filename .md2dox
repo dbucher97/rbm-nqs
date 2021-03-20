@@ -1,0 +1,6 @@
+#! /usr/bin/env sh
+
+perl -0pe '
+s/\$`([^`]*)`\$/\\f\$\1\\f\$/g;
+s/^```math([^`]*)```/\\f[\1\\f]/gm
+' README.md.tmp > README.md
