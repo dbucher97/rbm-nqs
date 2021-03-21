@@ -29,28 +29,58 @@
 
 namespace machine {
 
+/**
+ * @brief A Metropolis sampler for the RBM. Capable of doing Metropolis
+ * sampling with a numnber of Markov chains.
+ */
 class metropolis_sampler : public abstract_sampler {
     using Base = abstract_sampler;
 
+    std::mt19937& rng_;  ///< Referenec to the RNG;
+
+    size_t n_chains_;      ///< Number of chains.
+    size_t step_size_;     ///< The steps taken between two samples
+    size_t warmup_steps_;  ///< The number of steps in the beginning before
+                           ///< sampling.
+
+    double acceptance_rate_;  ///< The acceptance rate of all chains
+
+    std::uniform_int_distribution<size_t>
+        f_dist_;  ///< The flip distribution, which bit should get flipped
+
+    std::uniform_real_distribution<double> u_dist_{
+        0, 1};  ///< Uniform distribution for accepting a new state.
+
+    /**
+     * @brief Sample a Markov chain.
+     *
+     * @param n_samples Nmber of samples which this chain generates.
+     *
+     * @return Acceptance rate of this chain.
+     */
+    double sample_chain(size_t n_samples);
+
    public:
-    metropolis_sampler(rbm_base&, std::mt19937&, size_t = 1, size_t = 5,
-                       size_t = 100);
+    /**
+     * @brief The Metropolis sampler constructor.
+     *
+     * @param rbm The RBM reference.
+     * @param rng The RNG reference.
+     * @param n_chains The number of Markov chains
+     * @param size_t The steps taken between two samples
+     * @param size_t The warmup steps before sampling
+     */
+    metropolis_sampler(rbm_base& rbm, std::mt19937& rng, size_t n_chains = 1,
+                       size_t step_size = 5, size_t warmup_steps = 100);
 
     virtual void sample(size_t) override;
 
+    /**
+     * @brief Returns the acceptance rate.
+     *
+     * @return accepance rate.
+     */
     double get_acceptance_rate() { return acceptance_rate_; }
-
-   private:
-    std::mt19937& rng_;
-
-    size_t n_chains_, step_size_, warmup_steps_;
-    double acceptance_rate_;
-
-    std::uniform_int_distribution<size_t> f_dist_;
-
-    std::uniform_real_distribution<double> u_dist_{0, 1};
-
-    double sample_chain(size_t);
 };
 
 }  // namespace machine

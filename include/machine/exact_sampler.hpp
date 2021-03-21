@@ -29,6 +29,10 @@
 
 namespace machine {
 
+/**
+ * @brief Not yet functional
+ * @todo
+ */
 class exact_sampler : public full_sampler {
     using Base = full_sampler;
 

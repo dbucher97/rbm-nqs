@@ -27,22 +27,43 @@
 
 namespace machine {
 
+/**
+ * @brief The RBM implementation which impies the lattice translational
+ * symmetry. Inherits from RMB Base and is used the same way.
+ */
 class rbm_symmetry : public rbm_base {
     using Base = rbm_base;
+
+    /**
+     * @brief The vector of Permutations Matrices which are eqivalent to the
+     * translational symmetry of the lattice.
+     */
+    std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
+        symmetry_;
 
    public:
     rbm_symmetry(size_t, lattice::bravais&);
 
+    /**
+     * @brief Returns the symmtery permutations.
+     *
+     * @return The Reference to the Symmetry Permutations vector.
+     */
     std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>&
     get_symmetry() {
         return symmetry_;
     };
+
+    /**
+     * @brief Returns the number of total symmtery permutations.
+     *
+     * @return number of symmtery permutations.
+     */
     size_t symmetry_size() const { return symmetry_.size(); };
 
     virtual std::complex<double> psi(const Eigen::MatrixXcd& state,
                                      const Eigen::MatrixXcd&) const override;
 
-    // New functions devised from paper
     virtual Eigen::MatrixXcd get_thetas(
         const Eigen::MatrixXcd& state) const override;
 
@@ -58,10 +79,6 @@ class rbm_symmetry : public rbm_base {
     virtual Eigen::MatrixXcd derivative(
         const Eigen::MatrixXcd& state,
         const Eigen::MatrixXcd& thetas) const override;
-
-   private:
-    std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
-        symmetry_;
 };
 
 }  // namespace machine

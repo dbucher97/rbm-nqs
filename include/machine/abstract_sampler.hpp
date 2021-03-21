@@ -27,26 +27,80 @@
 #include <operators/aggregator.hpp>
 #include <operators/base_op.hpp>
 
+/**
+ * @brief namespace machine hosts the classes related to the restricted
+ * boltzmann machine and the sampling
+ */
 namespace machine {
 
+/**
+ * @brief abstract_sampler is the base class to the samplers. It is capable
+ * of registering operators and aggregators and stores the RBM base class.
+ */
 class abstract_sampler {
    protected:
-    rbm_base& rbm_;
+    rbm_base& rbm_;  ///< The RBM reference
 
-    std::vector<operators::base_op*> ops_;
-    std::vector<operators::aggregator*> aggs_;
+    std::vector<operators::base_op*> ops_;      ///< The vector of operators
+    std::vector<operators::aggregator*> aggs_;  ///< The vector of aggregators
+
+    /**
+     * @brief Abstract sampler constructor.
+     *
+     * @param rbm The RBM object reference.
+     */
+    abstract_sampler(rbm_base& rbm);
 
    public:
-    abstract_sampler(rbm_base&);
+    /**
+     * @brief default vitual destructor.
+     */
     virtual ~abstract_sampler() = default;
 
-    virtual void sample(size_t) = 0;
+    /**
+     * @brief The sample function
+     *
+     * @param n_samples number of samples wich should be done; ignore if not
+     * needed.
+     */
+    virtual void sample(size_t n_samples) = 0;
 
-    void register_ops(const std::vector<operators::base_op*>&);
-    void register_op(operators::base_op*);
+    /**
+     * @brief Register a list of operators.
+     *
+     * @param ops A vector of operator pointers.
+     */
+    void register_ops(const std::vector<operators::base_op*>& ops);
+
+    /**
+     * @brief Register one operator.
+     *
+     * @param op A pointer to an operator.
+     */
+    void register_op(operators::base_op* op);
+
+    /**
+     * @brief Clear the registered operators.
+     */
     void clear_ops();
-    void register_aggs(const std::vector<operators::aggregator*>&);
-    void register_agg(operators::aggregator*);
+
+    /**
+     * @brief Register a list of aggregators.
+     *
+     * @param aggs A vector of aggregator pointers.
+     */
+    void register_aggs(const std::vector<operators::aggregator*>& aggs);
+
+    /**
+     * @brief Register one aggregator.
+     *
+     * @param agg The aggregator pointer.
+     */
+    void register_agg(operators::aggregator* agg);
+
+    /**
+     * @brief Clear the registered aggregators.
+     */
     void clear_aggs();
 };
 
