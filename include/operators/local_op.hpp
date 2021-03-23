@@ -25,16 +25,41 @@
 
 namespace operators {
 
+/**
+ * @brief Local operator acting on only a few sites.
+ */
 class local_op : public base_op {
     using Base = base_op;
-    std::vector<size_t> acts_on_;
-    Eigen::MatrixXcd& op_;
+    std::vector<size_t> acts_on_;  ///< List of site indices operator acts on.
+    Eigen::MatrixXcd& op_;  ///< Operator Matrix of size `2**len(acts_on_)`.
 
-    size_t get_local_psi(const Eigen::MatrixXcd&);
-    std::vector<size_t> get_flips(size_t);
+    /**
+     * @brief Returns the local quantum state of the selected sites. Since a
+     * local psi derived from a z-basis state has only one non-zero entry at
+     * index `loc`, returning only `loc` is sufficient.
+     *
+     * @param state Input state.
+     *
+     * @return The non-zero index `loc`.
+     */
+    size_t get_local_psi(const Eigen::MatrixXcd& state);
+
+    /**
+     * @brief Fills the vector flips with indices where bits of `loc` are 1.
+     *
+     * @param loc A integer where the sites to flip are 1.
+     * @param flips A vector of site indices will be cleared and refilled.
+     */
+    void get_flips(size_t loc, std::vector<size_t>& flips);
 
    public:
-    local_op(const std::vector<size_t>&, Eigen::MatrixXcd&);
+    /**
+     * @brief Local Operator constructor.
+     *
+     * @param acts_on Vector of site indices, the operator acts on.
+     * @param op Operator Matrix of size `2**len(acts_on)`
+     */
+    local_op(const std::vector<size_t>& acts_on, Eigen::MatrixXcd& op);
 
     void evaluate(machine::rbm_base&, const Eigen::MatrixXcd&,
                   const Eigen::MatrixXcd&) final;

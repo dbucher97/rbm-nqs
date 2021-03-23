@@ -28,9 +28,12 @@ using namespace operators;
 bond_op::bond_op(const std::vector<lattice::bond>& bonds,
                  const std::vector<Eigen::MatrixXcd>& ops)
     : Base{}, ops_{} {
+    // Copy operators
     for (auto& op : ops) {
         ops_.push_back(op);
     }
+    // Push every bond with corresponding operator into the local operator
+    // chain.
     for (auto& bond : bonds) {
         push_back({{bond.a, bond.b}, ops_[bond.type]});
     }

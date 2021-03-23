@@ -28,17 +28,41 @@
 
 namespace operators {
 
+/**
+ * @brief Calculates the overlap of a RBM state with a quantum state from a
+ * file.
+ */
 class overlap_op : public base_op {
     using Base = base_op;
-    Eigen::MatrixXcd state_vec_;
-    size_t n_vis_;
+    Eigen::MatrixXcd
+        state_vec_;  ///< The state vector of the loaded quantum state.
+    size_t n_vis_;   ///< Number of spins.
 
+    /**
+     * @brief Returns the \psi(\sigma) of the loaded quantum state
+     *
+     * @param state The current state.
+     *
+     * @return \psi(\sigma) of the loaded quantum state.
+     */
     std::complex<double> get_psi(const Eigen::MatrixXcd& state);
 
+    /**
+     * @brief Fills the `state_vec_` from a file.
+     *
+     * @param file Name of the file.
+     */
     void fill_vec(const std::string& file);
 
    public:
-    overlap_op(const std::string& file, size_t);
+    /**
+     * @brief Overlap operator constructor.
+     *
+     * @param file Filename of the quantum state (stored as a list of complex
+     * numebers).
+     * @param n_visible Number of sites.
+     */
+    overlap_op(const std::string& file, size_t n_visible);
 
     virtual void evaluate(machine::rbm_base&, const Eigen::MatrixXcd&,
                           const Eigen::MatrixXcd&) override;

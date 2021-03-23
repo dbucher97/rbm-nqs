@@ -26,11 +26,20 @@
 
 namespace operators {
 
+/**
+ * @brief Derivative operator calculates the derivative of the RBM with respect
+ * to the parameters.
+ */
 class derivative_op : public base_op {
     using Base = base_op;
 
    public:
-    derivative_op(size_t);
+    /**
+     * @brief Derivative operator constructor
+     *
+     * @param n_params Number of parameters needed for initialization.
+     */
+    derivative_op(size_t n_params);
 
     virtual void evaluate(machine::rbm_base&, const Eigen::MatrixXcd&,
                           const Eigen::MatrixXcd&) override;

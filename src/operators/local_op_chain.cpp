@@ -35,8 +35,12 @@ void local_op_chain::evaluate(machine::rbm_base& rbm,
     result.setZero();
     for (auto& op : ops_) {
         op.evaluate(rbm, state, thetas);
+        // sum up local operator results.
         result += op.get_result();
     }
 }
 
-void local_op_chain::push_back(local_op op) { ops_.push_back(op); }
+void local_op_chain::push_back(local_op op) {
+    // Push baack wrapper
+    ops_.push_back(op);
+}

@@ -25,16 +25,29 @@
 #include <operators/base_op.hpp>
 
 namespace operators {
+/**
+ * @brief This operator does not evalueate something, but it plugs into the
+ * operator interface to store the states to a file. It will be a list of all
+ * the states sampled.
+ */
 class store_state : public base_op {
     using Base = base_op;
-    std::ofstream file_;
+    std::ofstream file_;  ///< Output filestream.
 
    public:
-    store_state(const std::string&);
+    /**
+     * @brief Store State constructor
+     *
+     * @param filename Name of the file to store the states to.
+     */
+    store_state(const std::string& filename);
 
     void evaluate(machine::rbm_base&, const Eigen::MatrixXcd&,
                   const Eigen::MatrixXcd&) final;
 
-    void close() { file_.close(); }
+    /**
+     * @brief Destructor closes output stream.
+     */
+    void ~store_state() { file_.close(); }
 };
 }  // namespace operators

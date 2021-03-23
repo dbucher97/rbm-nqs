@@ -21,6 +21,7 @@
 #include <model/kitaev.hpp>
 
 namespace model {
+// Definition of the 2 site Pauli matrices.
 Eigen::Matrix4cd sxsx =
     ((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
          .finished());

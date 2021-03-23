@@ -35,9 +35,12 @@ overlap_op::overlap_op(const std::string& file, size_t n_visible)
 
 void overlap_op::fill_vec(const std::string& file) {
     std::complex<double> x;
+    // Open the infile.
     std::ifstream filestream(file);
     for (size_t i = 0; i < static_cast<size_t>(1 << n_vis_); i++) {
+        // Read the complex value from infile
         filestream >> x;
+        // Store that value in the state vector.
         state_vec_(i) = x;
     }
 }
@@ -45,18 +48,22 @@ void overlap_op::fill_vec(const std::string& file) {
 void overlap_op::evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
                           const Eigen::MatrixXcd& thetas) {
     auto& result = get_result_();
+    // Get the loaded psi for the state.
     std::complex<double> psi_gs = get_psi(state);
+    // Get the RBM psi for the state.
     std::complex<double> psi = rbm.psi(state, thetas);
+    // Calculate the overlap of psi with the state.
     result(0) = psi_gs / psi;
+    // evaluate 1/p for normalization of the overlap.
     result(1) = 1 / std::pow(std::abs(psi), 2);
 }
 
 std::complex<double> overlap_op::get_psi(const Eigen::MatrixXcd& s) {
     size_t loc = 0;
     for (size_t i = 0; i < n_vis_; i++) {
-        if (std::real(s(i)) > 0) {
-            loc += (1 << i);
-        }
+        // Set bit `i` of `loc` to 1 if site `i` is -1.
+        loc += ((s(i) < 0) << i);
     }
+    // Return psi of that state
     return state_vec_(loc);
 }

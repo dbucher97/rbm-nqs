@@ -27,6 +27,7 @@ abstract_sampler::abstract_sampler(rbm_base& rbm) : rbm_{rbm} {}
 
 void abstract_sampler::register_ops(
     const std::vector<operators::base_op*>& ops) {
+    // Push the ops into local vector
     ops_.reserve(ops.size());
     for (auto op : ops) {
         ops_.push_back(op);
@@ -41,6 +42,7 @@ void abstract_sampler::clear_ops() { ops_.clear(); }
 
 void abstract_sampler::register_aggs(
     const std::vector<operators::aggregator*>& aggs) {
+    // Push the aggs into local vector
     aggs_.reserve(aggs.size());
     for (auto agg : aggs) {
         aggs_.push_back(agg);

@@ -26,16 +26,29 @@
 
 namespace operators {
 
+/**
+ * @brief A sum of local operators.
+ */
 class local_op_chain : public base_op {
     using Base = base_op;
-    std::vector<local_op> ops_;
+    std::vector<local_op> ops_;  ///< The list of local opertors
 
    public:
+    /**
+     * @brief Local Operator Chain constructor
+     *
+     * @param ops A vector of local operators (Default: {}).
+     */
     local_op_chain(const std::vector<local_op>& ops = std::vector<local_op>{});
 
     virtual void evaluate(machine::rbm_base&, const Eigen::MatrixXcd&,
                           const Eigen::MatrixXcd&) override;
 
+    /**
+     * @brief Push back another local operator.
+     *
+     * @param local_op The operator to add to the chain.
+     */
     void push_back(local_op);
 };
 }  // namespace operators

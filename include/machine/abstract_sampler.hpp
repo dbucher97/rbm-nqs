@@ -66,6 +66,11 @@ class abstract_sampler {
     virtual void sample(size_t n_samples) = 0;
 
     /**
+     * @brief Log message (needs to be invoked after optimization log).
+     */
+    virtual void log() {}
+
+    /**
      * @brief Register a list of operators.
      *
      * @param ops A vector of operator pointers.

@@ -75,6 +75,8 @@ class metropolis_sampler : public abstract_sampler {
 
     virtual void sample(size_t) override;
 
+    virtual void log() override;
+
     /**
      * @brief Returns the acceptance rate.
      *

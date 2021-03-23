@@ -31,6 +31,10 @@ namespace machine {
  * used.
  */
 class rbm_base {
+   public:
+    const size_t n_alpha;    ///< Number of hidden units.
+    const size_t n_visible;  ///< Number of visible units.
+    const size_t n_params;   ///< Number of total parameters.
    protected:
     lattice::bravais& lattice_;  ///< Reference to the Lattice.
 
@@ -53,10 +57,6 @@ class rbm_base {
     rbm_base(size_t n_alpha, size_t n_vb, lattice::bravais& lattice);
 
    public:
-    const size_t n_alpha;    ///< Number of hidden units.
-    const size_t n_visible;  ///< Number of visible units.
-    const size_t n_params;   ///< Number of total parameters.
-
     /**
      * @brief Constructor for the base RBM withoud symmtry.
      *

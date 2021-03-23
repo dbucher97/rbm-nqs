@@ -25,12 +25,23 @@
 
 namespace operators {
 
+/**
+ * @brief Bond operator, is a operator only acting on a list of `lattice::bonds`
+ * between two sites. Each bond can be associated with an operator by the bond
+ * type attribute. Bond type is an index to the operators list.
+ */
 class bond_op : public local_op_chain {
     using Base = local_op_chain;
-    std::vector<Eigen::MatrixXcd> ops_;
+    std::vector<Eigen::MatrixXcd> ops_;  ///< List of operators.
 
    public:
-    bond_op(const std::vector<lattice::bond>&,
-            const std::vector<Eigen::MatrixXcd>&);
+    /**
+     * @brief Bond operator constructor.
+     *
+     * @param bonds List of `lattice::bonds`.
+     * @param ops List of bond type operators.
+     */
+    bond_op(const std::vector<lattice::bond>& bonds,
+            const std::vector<Eigen::MatrixXcd>& ops);
 };
 }  // namespace operators

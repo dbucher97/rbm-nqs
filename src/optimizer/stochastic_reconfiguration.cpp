@@ -89,7 +89,8 @@ void stochastic_reconfiguration::optimize() {
 
     logger::log(std::real(h(0)) / rbm_.n_visible, "Energy");
     logger::log(std::real(a_h_.get_variance()(0)) / rbm_.n_visible,
-                "Energy variance");
+                "EnergyVariance");
+    sampler_.log();
 
     Eigen::MatrixXcd F = dh - d.conjugate() * h(0);
     Eigen::MatrixXcd S = dd - d.conjugate() * d.transpose();

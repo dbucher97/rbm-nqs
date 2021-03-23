@@ -26,27 +26,51 @@
 #include <operators/base_op.hpp>
 #include <operators/bond_op.hpp>
 
+/**
+ * @brief Namespace for the physical models.
+ */
 namespace model {
-extern Eigen::Matrix4cd sxsx;
-extern Eigen::Matrix4cd sysy;
-extern Eigen::Matrix4cd szsz;
 
+extern Eigen::Matrix4cd sxsx;  ///< 2 site Pauli-x operator
+extern Eigen::Matrix4cd sysy;  ///< 2 site Pauli-y operator
+extern Eigen::Matrix4cd szsz;  ///< 2 site Pauli-z operator
+
+/**
+ * @brief The Honeycomb Kitaev Model.
+ */
 class kitaev {
+    lattice::honeycomb lat;          ///< Honeycomb lattice object.
+    operators::bond_op hamiltonian;  ///< Bond Operator Hamiltonian object.
    public:
+    /**
+     * @brief Kitaev model consturctor.
+     *
+     * @param size Number of unitcells in one direction.
+     * @param J the coupling in all three directions
+     */
     kitaev(size_t size, double J) : kitaev(size, {J, J, J}) {}
+    /**
+     * @brief Kitaev model constructor.
+     *
+     * @param size Number of unitcells in one direction.
+     * @param J Array of coupling constant {J_x, J_y, J_z}..
+     */
     kitaev(size_t size, const std::array<double, 3>& J)
         : lat{size},
-          // hamiltonian{lat.get_bonds(),
-          //             {J[0] * (sysy + szsz), J[1] * (sxsx + szsz),
-          //              J[2] * (sxsx + sysy)}} {}
           hamiltonian{lat.get_bonds(),
                       {J[0] * sxsx, J[1] * sysy, J[2] * szsz}} {}
 
+    /**
+     * @brief Hamiltonian constructor
+     *
+     * @return Reference to the `bond_op` Hamiltonian.
+     */
     operators::base_op& get_hamiltonian() { return hamiltonian; }
+    /**
+     * @brief Lattice getter
+     *
+     * @return Reference to the `honeycomb` lattice.
+     */
     lattice::bravais& get_lattice() { return lat; };
-
-   private:
-    lattice::honeycomb lat;
-    operators::bond_op hamiltonian;
 };
 }  // namespace model

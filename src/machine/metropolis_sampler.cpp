@@ -25,6 +25,7 @@
 //
 #include <machine/metropolis_sampler.hpp>
 #include <operators/base_op.hpp>
+#include <tools/logger.hpp>
 
 using namespace machine;
 
@@ -39,20 +40,30 @@ metropolis_sampler::metropolis_sampler(rbm_base& rbm, std::mt19937& rng,
       f_dist_{0, rbm.n_visible - 1} {}
 
 void metropolis_sampler::sample(size_t total_samples) {
-    // initialize aggs
+    // Initialize aggregators
     for (auto agg : aggs_) {
         agg->set_zero();
     }
+
+    // Divide the `total_samples` between the chains.
     size_t samples_per_chain = total_samples / n_chains_;
     size_t residue = total_samples - samples_per_chain * n_chains_;
+
+    // Initialize acceptance_rate
     acceptance_rate_ = 0;
+
+    // Run the chains in parallel.
 #pragma omp parallel for
     for (size_t c = 0; c < n_chains_; c++) {
         double ar = sample_chain(samples_per_chain + (c == 0 ? residue : 0));
+        // Accumulate acceptance_rate
 #pragma omp critical
         acceptance_rate_ += ar;
     }
+    // Average acceptance rate.
     acceptance_rate_ /= n_chains_;
+
+    // Finalize aggregators
     for (auto agg : aggs_) {
         agg->finalize(total_samples);
     }
@@ -60,8 +71,9 @@ void metropolis_sampler::sample(size_t total_samples) {
 
 double metropolis_sampler::sample_chain(size_t total_samples) {
     size_t total_steps = total_samples * step_size_ + warmup_steps_;
+    size_t ar = 0;
 
-    // Initilaize state
+    // Initilaize random state
     Eigen::MatrixXcd state(rbm_.n_visible, 1);
     for (size_t i = 0; i < rbm_.n_visible; i++) {
         state(i) = u_dist_(rng_) < 0.5 ? 1 : -1;
@@ -69,31 +81,45 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
 
     // Retrieve thetas for state
     Eigen::MatrixXcd thetas = rbm_.get_thetas(state);
-    size_t ar = 0;
 
     // Do the Metropolis sampling
     for (size_t step = 0; step < total_steps; step++) {
+        // Get the flips vector by randomly selecting one site.
         std::vector<size_t> flips = {f_dist_(rng_)};
+        // With probability 1/2 flip a second site. This scheme needs further
+        // analysis
         if (u_dist_(rng_) < 0.5) {
             size_t flip2 = f_dist_(rng_);
             while (flip2 == flips[0]) flip2 = f_dist_(rng_);
             flips.push_back(flip2);
         }
+
+        // try to accept flips, if flips are accepted, thetas are automatically
+        // updated and state needs updating.
         if (rbm_.flips_accepted(u_dist_(rng_), state, flips, thetas)) {
             ar++;
             for (auto& flip : flips) state(flip) *= -1;
         }
+
+        // If a sample is required
         if ((step >= warmup_steps_) &&
             ((step - warmup_steps_) % step_size_ == 0)) {
+            // Evaluate oprators
             for (auto op : ops_) {
                 op->evaluate(rbm_, state, thetas);
             }
+            // Evaluate aggregators
             for (auto agg : aggs_) {
                 agg->aggregate();
             }
             // thetas = rbm_.get_thetas(state);
         }
     }
+
+    // Normalize acceptance rate
     return ar / (double)total_steps;
 }
 
+void metropolis_sampler::log() {
+    logger::log(acceptance_rate_, "AccetpanceRate");
+}

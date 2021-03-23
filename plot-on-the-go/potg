@@ -56,7 +56,7 @@ for line in fileinput.input(args.input):
     if(line.startswith('#')):
         continue
     ax1.cla()
-    vals.append(parse_line(line))
+    vals.append(parse_line(line)[:len(vals[-1])])
     v = np.array(vals)
     if len(v.shape) > 1:
         v0 = v[:, 0]

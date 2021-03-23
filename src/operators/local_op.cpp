@@ -31,30 +31,28 @@ local_op::local_op(const std::vector<size_t>& acts_on, Eigen::MatrixXcd& op)
 
 void local_op::evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
                         const Eigen::MatrixXcd& thetas) {
+    // Get the result of the current thread
     auto& result = get_result_();
     result.setZero();
-    size_t loc = get_local_psi(state);
 
+    // The next two lines are basicelly Op |\psi>, since |\psi> has only one
+    // non-zero element, which is one.
+    size_t loc = get_local_psi(state);
     Eigen::MatrixXcd res = op_.col(loc);
 
-    // std::cout << state.transpose() << " ";
-    // for (auto& a : acts_on_) {
-    //     std::cout << a << ",";
-    // }
-    // std::cout << " " << loc << " " << res.transpose() << " ";
+    // Initialize the flips vector.
+    std::vector<size_t> flips;
 
     for (size_t i = 0; i < static_cast<size_t>(res.size()); i++) {
         if (std::abs(res(i)) > 1e-12) {
-            // std::cout << ((i == loc) ? "true" : "false") << " ";
             if (i == loc) {
+                // Diagonal operator contribution
                 result(0) += res(i);
             } else {
-                // std::cout << i << ";" << loc << "=" << (size_t)(i ^ loc)
-                //           << " ...";
-                auto flips = get_flips(i ^ loc);
-                // for (auto& f : flips_) {
-                //     std::cout << f << ",";
-                // }
+                // Off diagonal elements.
+                // Get the flips to get from `loc` to `i` and calculate the
+                // `psi_over_psi` local weight.
+                get_flips(i ^ loc, flips);
                 result(0) += res(i) * rbm.psi_over_psi(state, flips, thetas);
             }
         }
@@ -64,17 +62,18 @@ void local_op::evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
 size_t local_op::get_local_psi(const Eigen::MatrixXcd& s) {
     size_t loc = 0;
     for (size_t i = 0; i < acts_on_.size(); i++) {
-        loc += ((std::abs(s(acts_on_[i]) - 1.) > 1e-12) << i);
+        // set bit `i` of `loc` to one if acted on site `i` is -1.
+        loc += ((s(acts_on_[i]) < 0) << i);
     }
     return loc;
 }
 
-std::vector<size_t> local_op::get_flips(size_t loc) {
-    std::vector<size_t> flips;
+void local_op::get_flips(size_t loc, std::vector<size_t>& flips) {
+    flips.clear();
     for (size_t i = 0; i < acts_on_.size(); i++) {
+        // if bit `i` of `loc` is 1, flip acted on site `i`.
         if ((loc >> i & 1)) {
             flips.push_back(acts_on_[i]);
         }
     }
-    return flips;
 }
