@@ -76,6 +76,11 @@ class rbm_symmetry : public rbm_base {
         const Eigen::MatrixXcd& thetas,
         Eigen::MatrixXcd& updated_thetas) const override;
 
+    virtual std::complex<double> psi_over_psi_alt(
+        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+        const Eigen::MatrixXcd& thetas,
+        Eigen::MatrixXcd& updated_thetas) const override;
+
     virtual Eigen::MatrixXcd derivative(
         const Eigen::MatrixXcd& state,
         const Eigen::MatrixXcd& thetas) const override;

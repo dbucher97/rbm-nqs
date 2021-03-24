@@ -16,6 +16,10 @@
  *
  */
 
+#ifndef ALTERNATIVE_POP
+#define ALTERNATIVE_POP
+#endif
+
 #include <cmath>
 #include <complex>
 #include <fstream>
@@ -141,6 +145,48 @@ bool rbm_base::flips_accepted(double prob, const Eigen::MatrixXcd& state,
     return flips_accepted(prob, state, flips, thetas);
 }
 
+std::complex<double> rbm_base::psi_over_psi_alt(
+    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+    const Eigen::MatrixXcd& thetas) const {
+    // Wrapper for `psi_over_psi_alt` with no `new_thetas`, copy `thets`
+    Eigen::MatrixXcd new_thetas = thetas;
+    return psi_over_psi_alt(state, flips, thetas, new_thetas);
+}
+
+std::complex<double> rbm_base::psi_over_psi_alt(
+    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips) const {
+    // Wrapper for `psi_over_psi_alt` with no `thetas`, calculate `thetas`.
+    Eigen::MatrixXcd thetas = get_thetas(state);
+    return psi_over_psi_alt(state, flips, thetas);
+}
+
+bool rbm_base::flips_accepted_alt(double prob, const Eigen::MatrixXcd& state,
+                                  const std::vector<size_t>& flips,
+                                  Eigen::MatrixXcd& thetas) const {
+    // First copy the old thetas
+    Eigen::MatrixXcd new_thetas = thetas;
+
+    // Calculate the acceptance value
+    double a = std::pow(
+        std::abs(psi_over_psi_alt(state, flips, thetas, new_thetas)), 2);
+
+    // accept with given probability
+    if (prob < a) {
+        // Update the thetas
+        thetas = new_thetas;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool rbm_base::flips_accepted_alt(double prob, const Eigen::MatrixXcd& state,
+                                  const std::vector<size_t>& flips) const {
+    // Wrapper for `flips_accepted` with no `thetas`, calculate `thetas`.
+    Eigen::MatrixXcd thetas = get_thetas(state);
+    return flips_accepted_alt(prob, state, flips, thetas);
+}
+
 bool rbm_base::save(const std::string& name) {
     // Open the output stream
     std::ofstream output{name + ".rbm", std::ios::binary};
@@ -239,4 +285,23 @@ Eigen::MatrixXcd rbm_base::derivative(const Eigen::MatrixXcd& state,
     result.block(n_vb_ + n_alpha, 0, n_alpha * n_visible, 1) =
         Eigen::Map<Eigen::MatrixXcd>(x.data(), n_alpha * n_visible, 1);
     return result;
+}
+
+std::complex<double> rbm_base::psi_over_psi_alt(
+    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+    const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& updated_thetas) const {
+    if (flips.empty()) return 1.;
+
+    std::cout << "alt" << std::endl;
+
+    std::complex<double> ret = 1;
+    // Claculate the visible bias part, calcels out for all not flipped sites.
+    for (auto& f : flips) ret *= std::exp(-2. * state(f) * v_bias_(f));
+
+    // Update the thetas with the flips
+    update_thetas(state, flips, updated_thetas);
+
+    ret *= (updated_thetas.array().cosh() / thetas.array().cosh()).prod();
+
+    return ret;
 }

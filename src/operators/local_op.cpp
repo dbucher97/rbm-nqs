@@ -53,7 +53,12 @@ void local_op::evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
                 // Get the flips to get from `loc` to `i` and calculate the
                 // `psi_over_psi` local weight.
                 get_flips(i ^ loc, flips);
-                result(0) += res(i) * rbm.psi_over_psi(state, flips, thetas);
+                result(0) +=
+#ifndef ALT_POP
+                    res(i) * rbm.psi_over_psi(state, flips, thetas);
+#else
+                    res(i) * rbm.psi_over_psi_alt(state, flips, thetas);
+#endif
             }
         }
     }
@@ -63,7 +68,7 @@ size_t local_op::get_local_psi(const Eigen::MatrixXcd& s) {
     size_t loc = 0;
     for (size_t i = 0; i < acts_on_.size(); i++) {
         // set bit `i` of `loc` to one if acted on site `i` is -1.
-        loc += ((s(acts_on_[i]) < 0) << i);
+        loc += ((std::real(s(acts_on_[i])) < 0) << i);
     }
     return loc;
 }

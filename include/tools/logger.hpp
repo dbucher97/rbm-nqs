@@ -23,55 +23,122 @@
 #include <string>
 //
 
+/**
+ * @brief A logger singleton class. `init` needs to be called to open the
+ * output stream.
+ */
 class logger {
-    std::ofstream out;
-    std::ostringstream buffer;
-    std::ostringstream header;
-    bool first_line = true;
+    std::ofstream out;          ///< output file stream.
+    std::ostringstream buffer;  ///< stringstream line buffer.
+    std::ostringstream header;  ///< stringstream header buffer.
+    bool first_line = true;     ///< is the first line, flag for header.
 
    public:
+    /**
+     * @brief Returns the logger instance
+     *
+     * @return Reference to the logger instance.
+     */
     static logger& get() {
         static logger _instance;
         return _instance;
     }
+
+    /**
+     * @brief Destructor of the reference instance.
+     */
     ~logger();
 
+    /**
+     * @brief init instance method.
+     */
     void init_();
+    /**
+     * @brief write a line to the log.
+     *
+     * @param std::string The line.
+     */
     void writeln(const std::string&);
+    /**
+     * @brief newline instance method.
+     */
     void newline_();
 
+    /**
+     * @brief log message instance method.
+     *
+     * @tparam T type of message.
+     * @param t message to log.
+     */
     template <typename T>
     void log_(const T& t) {
         buffer << t << ", ";
     }
 
+    /**
+     * @brief log message with header instance method.
+     *
+     * @tparam T type of message.
+     * @param t message to log.
+     * @param name header name.
+     */
     template <typename T>
     void log_(const T& t, const std::string& name) {
+        // if first line, log to header buffer
         if (first_line) {
             header << name << ", ";
         }
         buffer << t << ", ";
     }
 
+    /**
+     * @brief log message static method.
+     *
+     * @tparam T type of message.
+     * @param t message to log.
+     */
     template <typename T>
     static void log(const T& t) {
         get().log_(t);
     }
 
+    /**
+     * @brief log message with header static method.
+     *
+     * @tparam T type of message.
+     * @param t message to log.
+     * @param name header name.
+     */
     template <typename T>
     static void log(const T& t, const std::string& name) {
         get().log_(t, name);
     }
 
+    /**
+     * @brief newline static method
+     */
     static void newline() { get().newline_(); }
+    /**
+     * @brief init static method
+     */
     static void init() { get().init_(); }
 
    private:
+    // Private constructors and assign operator to allow only for singleton.
     logger() {}
     logger(const logger&);
     logger& operator=(const logger&);
 };
 
+/**
+ * @brief `<<` wrapper for logger.
+ *
+ * @tparam T typename of message to log.
+ * @param l logger instance reference.
+ * @param t message to log.
+ *
+ * @return logger instance reference.
+ */
 template <typename T>
 logger& operator<<(logger& l, const T& t) {
     l.log_(t);

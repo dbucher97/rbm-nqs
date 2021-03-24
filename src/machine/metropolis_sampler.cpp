@@ -88,7 +88,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
         std::vector<size_t> flips = {f_dist_(rng_)};
         // With probability 1/2 flip a second site. This scheme needs further
         // analysis
-        if (u_dist_(rng_) < 0.5) {
+        if (u_dist_(rng_) > acceptance_rate_) {
             size_t flip2 = f_dist_(rng_);
             while (flip2 == flips[0]) flip2 = f_dist_(rng_);
             flips.push_back(flip2);
@@ -96,7 +96,11 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
 
         // try to accept flips, if flips are accepted, thetas are automatically
         // updated and state needs updating.
+#ifndef ALT_POP
         if (rbm_.flips_accepted(u_dist_(rng_), state, flips, thetas)) {
+#else
+        if (rbm_.flips_accepted_alt(u_dist_(rng_), state, flips, thetas)) {
+#endif
             ar++;
             for (auto& flip : flips) state(flip) *= -1;
         }

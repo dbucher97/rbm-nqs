@@ -78,6 +78,23 @@ std::complex<double> rbm_symmetry::log_psi_over_psi(
     return ret;
 }
 
+std::complex<double> rbm_symmetry::psi_over_psi_alt(
+    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+    const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& updated_thetas) const {
+    if (flips.empty()) return 1.;
+
+    // Just adjusted for the single v_bias
+    std::complex<double> ret = 1;
+    for (auto& f : flips) ret *= std::exp(-2. * state(f) * v_bias_(0));
+
+    // Same as base class
+    update_thetas(state, flips, updated_thetas);
+
+    ret *= (updated_thetas.array().cosh() / thetas.array().cosh()).prod();
+
+    return ret;
+}
+
 Eigen::MatrixXcd rbm_symmetry::derivative(
     const Eigen::MatrixXcd& state, const Eigen::MatrixXcd& thetas) const {
     Eigen::MatrixXcd result = Eigen::MatrixXcd::Zero(n_params, 1);

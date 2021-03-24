@@ -17,32 +17,61 @@
  */
 #pragma once
 
+#define LNCOSH_CUTOFF 12  // 16.7
+
 #include <Eigen/Dense>
 #include <cmath>
 #include <complex>
 
-static const double ln2 = std::log(2);
+static const double ln2 = std::log(2);  ///< log(2) stored.
 
+/**
+ * @brief Calculates lncosh for a real value.
+ *
+ * @param x val
+ *
+ * @return ln(cosh(x))
+ */
 static double lncosh(double x) {
     x = std::abs(x);
-    if (x > 16.7) {
+    // for x larger than the specified value, a linear approximation is more
+    // than sufficient
+    if (x > LNCOSH_CUTOFF) {
         return x - ln2;
     } else {
         return std::log(std::cosh(x));
     }
 }
 
+/**
+ * @brief Calculates lncosh for a complex value.
+ *
+ * @param x val
+ *
+ * @return ln(cosh(x))
+ */
 static std::complex<double> lncosh(std::complex<double> x) {
     const double xr = x.real();
     const double xi = x.imag();
 
+    // Calculate the real lncosh
     std::complex<double> ret = lncosh(xr);
+
+    // Calculate the complete lncosh with tanh, sin, which do not go to
+    // infinity with real values.
     ret += std::log(
         std::complex<double>(std::cos(xi), std::tanh(xr) * std::sin(xi)));
 
     return ret;
 }
 
+/**
+ * @brief A `MatrixXcd` wrapper for lncosh, applying lncosh to all elements.
+ *
+ * @param x The reference to the matrix.
+ *
+ * @return MatrixXcd result.
+ */
 static Eigen::MatrixXcd lncosh(const Eigen::MatrixXcd& x) {
     Eigen::MatrixXcd ret(x.rows(), x.cols());
     for (size_t i = 0; i < static_cast<size_t>(ret.size()); i++) {

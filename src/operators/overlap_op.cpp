@@ -62,7 +62,7 @@ std::complex<double> overlap_op::get_psi(const Eigen::MatrixXcd& s) {
     size_t loc = 0;
     for (size_t i = 0; i < n_vis_; i++) {
         // Set bit `i` of `loc` to 1 if site `i` is -1.
-        loc += ((s(i) < 0) << i);
+        loc += ((std::real(s(i)) < 0) << i);
     }
     // Return psi of that state
     return state_vec_(loc);

@@ -21,6 +21,7 @@
 #include <tools/logger.hpp>
 
 logger::~logger() {
+    // Close file on destruct.
     if (out.is_open()) {
         out.flush();
         out.close();
@@ -31,6 +32,8 @@ void logger::init_() {
     std::string filename = ini::name + ".log";
     std::ifstream file{filename};
     std::cout << "Logging to '" << filename << "'!" << std::endl;
+
+    // Append to file if log already exists and no force is demanded.
     if (file.good() && !ini::rbm_force)
         out = std::ofstream(filename, std::ios::app);
     else
@@ -38,6 +41,7 @@ void logger::init_() {
 }
 
 void logger::writeln(const std::string& str) {
+    // Write to output stream if open otherwise log to cout.
     if (out.is_open()) {
         out << str << std::endl;
     } else {
@@ -46,6 +50,8 @@ void logger::writeln(const std::string& str) {
 }
 
 void logger::newline_() {
+    // Remove the last 2 to characters from the line (', ').
+    // Write the header line first if `first_line`, also add '#'.
     std::string s;
     if (first_line) {
         s = header.str();
@@ -61,6 +67,7 @@ void logger::newline_() {
         s.pop_back();
         s.pop_back();
     }
+    // Write string and reset buffer.
     writeln(s);
     buffer.str(std::string());
 }

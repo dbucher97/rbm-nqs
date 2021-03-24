@@ -48,6 +48,6 @@ class store_state : public base_op {
     /**
      * @brief Destructor closes output stream.
      */
-    void ~store_state() { file_.close(); }
+    ~store_state() { file_.close(); }
 };
 }  // namespace operators

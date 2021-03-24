@@ -28,7 +28,9 @@
 
 namespace ini {
 
-// Porgram
+// Program variables
+
+// Program
 size_t seed = 421390484L;
 size_t n_threads = 8;
 std::string name = "";
@@ -67,6 +69,8 @@ size_t n_epochs = 600;
 
 void ini::parse_ini_file(int argc, char* argv[]) {
     namespace po = boost::program_options;
+    // Try to load only ini file from command line options, ignore all other
+    // options.
     po::options_description desc("Allowed options");
     desc.add_options()("infile,i", po::value(&ini_file), "ini file for params");
     po::variables_map vm;
@@ -89,6 +93,7 @@ void ini::parse_ini_file(int argc, char* argv[]) {
 int ini::load(int argc, char* argv[]) {
     namespace po = boost::program_options;
     try {
+        // Define all options
         parse_ini_file(argc, argv);
         po::options_description desc("Allowed options");
         // clang-format off
@@ -127,6 +132,7 @@ int ini::load(int argc, char* argv[]) {
         po::variables_map vm;
         po::store(po::parse_command_line(argc, argv, desc), vm);
 
+        // Also parse ini file if available.
         if (ini_file.length() > 0) {
             std::ifstream config_stream(ini_file);
             po::store(po::parse_config_file(config_stream, desc), vm);
@@ -139,6 +145,7 @@ int ini::load(int argc, char* argv[]) {
             return 1;
         }
 
+        // Generate a name `n[n_cells]_h[rbm.n_hidden]` if not set.
         if (!vm.count("name")) {
             std::ostringstream oss;
             oss << "n" << n_cells << "_h" << n_hidden;
@@ -190,6 +197,7 @@ void ini::validate(boost::any& v, const std::vector<std::string>& values,
                    ini::decay_t*, int) {
     std::vector<std::string> vals;
 
+    // Split all strings by comma, for better support of ini loading.
     for (std::string s : values) {
         size_t pos = 0;
         std::string token;
@@ -202,6 +210,8 @@ void ini::validate(boost::any& v, const std::vector<std::string>& values,
     }
     ini::decay_t t;
     t.initial = std::stod(vals[0]);
+    // if size of string is 3 load min and decay, otherwise set min and decay
+    // to inital and 1. for a constant val.
     if (vals.size() == 3) {
         t.min = std::stod(vals[1]);
         t.decay = std::stod(vals[2]);

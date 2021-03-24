@@ -38,7 +38,7 @@ void store_state::evaluate(machine::rbm_base& rbm,
     // print state vecotr as 1 <=> +1, 0 <=> -1.
 #pragma omp critical
     for (size_t i = 0; i < rbm.n_visible; i++) {
-        file_ << state(i) > 0 ? '1' : '0');
+        file_ << (std::real(state(i)) > 0 ? '1' : '0');
     }
     file_ << "\n";
 }

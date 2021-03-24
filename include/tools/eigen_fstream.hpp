@@ -21,5 +21,22 @@
 #include <Eigen/Dense>
 #include <fstream>
 
+/**
+ * @brief `ofstream` wrapper for saving a `Eigen::Matrix`.
+ *
+ * @param file `ofstream` reference.
+ * @param mat reference to the Matrix.
+ *
+ * @return `ofstream` reference.
+ */
 std::ofstream& operator<<(std::ofstream& file, Eigen::MatrixXcd& mat);
+
+/**
+ * @brief `ifstream` wrapper for loading a `Eigen::Matrix`.
+ *
+ * @param file `ifstream` reference.
+ * @param mat reference to the Matrix.
+ *
+ * @return `ifstream` reference.
+ */
 std::ifstream& operator>>(std::ifstream& file, Eigen::MatrixXcd& mat);

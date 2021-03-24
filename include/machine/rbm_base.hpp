@@ -18,6 +18,8 @@
 
 #pragma once
 
+#define ALT_POP
+
 #include <Eigen/Dense>
 #include <complex>
 #include <random>
@@ -249,6 +251,80 @@ class rbm_base {
     bool flips_accepted(double prob, const Eigen::MatrixXcd& state,
                         const std::vector<size_t>& flips) const;
 
+    /**
+     * @brief Alternative Version: Computes the ratio of \psi with some spins
+     * flipped to the \psi with no spins flipped. Direct calculation, without
+     * `log_psi_over_psi`.
+     *
+     * @param state The current state.
+     * @param flips The vector of indices of spins to flip.
+     * @param thetas The precalculated thetas.
+     * @param updated_thetas A updated thetas reference to spare the reupdating
+     * of the thetas if a flip combination was accepted.
+     *
+     * @return returns the ratio \psi(\sigma')/\psi(\sigma)
+     */
+    virtual std::complex<double> psi_over_psi_alt(
+        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+        const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& updated_thetas) const;
+
+    /**
+     * @brief Alternative Version: Computes ratio of \psi with some spins
+     * flipped to the \psi with no spins flipped. Direct computation, without
+     * using `log_psi_over_psi`.
+     *
+     * @param state The current state.
+     * @param flips The vector of indices of spins to flip.
+     * @param thetas The precalculated thetas.
+     *
+     * @return returns the ratio \psi(\sigma')/\psi(\sigma)
+     */
+    std::complex<double> psi_over_psi_alt(const Eigen::MatrixXcd& state,
+                                          const std::vector<size_t>& flips,
+                                          const Eigen::MatrixXcd& thetas) const;
+
+    /**
+     * @brief Alternative Version: Computes ratio of \psi with some spins
+     * flipped to the \psi with no spins flipped. Direct computation, without
+     * using `log_psi_over_psi`.
+     *
+     * @param state The current state.
+     * @param flips The vector of indices of spins to flip.
+     *
+     * @return returns the ratio \psi(\sigma')/\psi(\sigma)
+     */
+    std::complex<double> psi_over_psi_alt(
+        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips) const;
+
+    /**
+     * @brief Alternative Version: Computes the acceptance value of a specific
+     * flip combination and accepts the flip if `prob` is smaller than the
+     * acceptance value.
+     *
+     * @param prob Random double between zero and one.
+     * @param state The current state.
+     * @param flips The vector of proposed spin flips.
+     * @param thetas The precalculated \thetas.
+     *
+     * @return A bool if proposed flips have been accepted.
+     */
+    bool flips_accepted_alt(double prob, const Eigen::MatrixXcd& state,
+                            const std::vector<size_t>& flips,
+                            Eigen::MatrixXcd& thetas) const;
+
+    /**
+     * @brief Alternative Version: Computes the acceptance value of a specific
+     * flip combination and accepts the flip if `prob` is smaller than the
+     * acceptance value.
+     *
+     * @param prob Random double between zero and one.
+     * @param state The current state.
+     * @param flips The vector of proposed spin flips.
+     *
+     * @return A bool if proposed flips have been accepted.
+     */
+    bool flips_accepted_alt(double prob, const Eigen::MatrixXcd& state,
+                            const std::vector<size_t>& flips) const;
     /**
      * @brief Saves the current state to the file '`name`.rbm'.
      *

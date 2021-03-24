@@ -40,7 +40,10 @@ adam_plugin::adam_plugin(size_t l, double beta1, double beta2, double eps)
 }
 
 Eigen::MatrixXcd adam_plugin::apply(Eigen::MatrixXcd& dw) {
+    // Calcualte the Adam optimization,
+    // see https://en.wikipedia.org/wiki/Stochastic_gradient_descent#Adam
     m_ = beta1_ * m_ + (1 - beta1_) * dw;
+    // Split second moment into real and imaginary part.
     wr_ = beta2_ * wr_ +
           (1 - beta2_) * (Eigen::MatrixXd)(dw.real().array().pow(2));
     wi_ = beta2_ * wi_ +
@@ -60,6 +63,7 @@ momentum_plugin::momentum_plugin(size_t l, double alpha)
 }
 
 Eigen::MatrixXcd momentum_plugin::apply(Eigen::MatrixXcd& dw) {
+    // Do the momentum update step.
     m_ = alpha_ * m_ + dw;
     return m_;
 }

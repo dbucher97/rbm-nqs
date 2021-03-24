@@ -20,8 +20,6 @@
 #include <Eigen/Dense>
 #include <cmath>
 #include <complex>
-#include <vector>
-//
 #include <machine/abstract_sampler.hpp>
 #include <machine/rbm_base.hpp>
 #include <operators/base_op.hpp>
@@ -29,6 +27,7 @@
 #include <optimizer/plugin.hpp>
 #include <optimizer/stochastic_reconfiguration.hpp>
 #include <tools/logger.hpp>
+#include <vector>
 
 using namespace optimizer;
 
@@ -45,6 +44,7 @@ decay_t::decay_t(const ini::decay_t& other, size_t offset)
     : decay_t{other.initial, other.min, other.decay, offset} {}
 
 double decay_t::get() {
+    // Decay current value if is not min.
     if (!min_reached) {
         value *= decay;
         if (value < min) {
@@ -67,43 +67,54 @@ stochastic_reconfiguration::stochastic_reconfiguration(
     : rbm_{rbm},
       sampler_{sampler},
       hamiltonian_{hamiltonian},
+      // Initialze derivative operator.
       derivative_{rbm.n_params},
+      // Initialize the aggregators.
       a_h_{hamiltonian_},
       a_d_{derivative_},
       a_dh_{derivative_, hamiltonian_},
       a_dd_{derivative_},
+      // Initialize the learning rate and regularization.
       lr_{lr, rbm_.get_n_updates()},
       kp_{kp, rbm_.get_n_updates()} {}
 
 void stochastic_reconfiguration::register_observables() {
+    // Register operators and aggregators
     sampler_.register_ops({&hamiltonian_, &derivative_});
     a_h_.track_variance();
     sampler_.register_aggs({&a_h_, &a_d_, &a_dh_, &a_dd_});
 }
 
 void stochastic_reconfiguration::optimize() {
+    // Get the result
     auto& h = a_h_.get_result();
     auto& d = a_d_.get_result();
     auto& dh = a_dh_.get_result();
     auto& dd = a_dd_.get_result();
 
+    // Log energy, energy variance and sampler properties.
     logger::log(std::real(h(0)) / rbm_.n_visible, "Energy");
     logger::log(std::real(a_h_.get_variance()(0)) / rbm_.n_visible,
                 "EnergyVariance");
     sampler_.log();
 
+    // Calculate the gradient descent and the covariance matrix.
     Eigen::MatrixXcd F = dh - d.conjugate() * h(0);
     Eigen::MatrixXcd S = dd - d.conjugate() * d.transpose();
 
+    // Add regularization.
     S += kp_.get() * Eigen::MatrixXcd::Identity(rbm_.n_params, rbm_.n_params);
+    // Calculate dw.
     Eigen::MatrixXcd dw = S.completeOrthogonalDecomposition().solve(F);
 
+    // Apply plugin if set
     if (!plug_) {
         dw *= lr_.get();
     } else {
         dw = lr_.get() * plug_->apply(dw);
     }
 
+    // Update the weights.
     rbm_.update_weights(dw);
 }
 

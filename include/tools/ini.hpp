@@ -21,20 +21,82 @@
 #include <string>
 #include <vector>
 
+/**
+ * @brief The `ini` namespace storing the configuration of the project, every
+ * setting is stored as a `extern` attribute in the namespace, this allows for
+ * global access to those attributes.
+ * The config loading and command line options are handled by
+ * `boost_program_options`.
+ */
 namespace ini {
+/**
+ * @brief Decay type with only initial, min, decay values without logic.
+ */
 struct decay_t {
     double initial;
     double min;
     double decay;
 };
 
+/**
+ * @brief RBM Type enum
+ */
 enum rbm_t { BASIC, SYMMETRY };
+/**
+ * @brief Sampler Type enum
+ */
 enum sampler_t { FULL, METROPOLIS, EXACT };
 
-extern std::istream& operator>>(std::istream&, rbm_t&);
-extern std::istream& operator>>(std::istream&, sampler_t&);
-extern void validate(boost::any&, const std::vector<std::string>&, decay_t*,
-                     int);
+/**
+ * @brief `istream` wrapper for loading RBM type.
+ *
+ * @param input `istream` reference.
+ * @param rbm `rbm_t` reference.
+ *
+ * @return `istream` reference.
+ */
+extern std::istream& operator>>(std::istream& input, rbm_t& rbm);
+/**
+ * @brief `istream` wrapper for loading Sampler type.
+ *
+ * @param input `istream` reference.
+ * @param sampler `sampler_t` reference.
+ *
+ * @return `istream` reference.
+ */
+extern std::istream& operator>>(std::istream& input, sampler_t& sampler);
+/**
+ * @brief Loads an `decay_t` with a string vector from `boost_program_options`.
+ *
+ * @param f will be the decay_t object
+ * @param strs vector of strings to load from
+ * @param decay_t Don't know, copied from StackOverflow 🙃...
+ * @param int
+ */
+extern void validate(boost::any& f, const std::vector<std::string>& strs,
+                     decay_t*, int);
+
+/**
+ * @brief Checks if a ini file is specified in the command line options, if
+ * this is the case `load` also reads the `ini` file.
+ *
+ * @param argc Argument count
+ * @param argv[] Arguments
+ */
+void parse_ini_file(int argc, char* argv[]);
+/**
+ * @brief Loads the configuration form the command line options and/or ini
+ * file.
+ *
+ * @param argc Argument count
+ * @param argv[] Arguments
+ *
+ * @return return code.
+ */
+int load(int argc, char* argv[]);
+
+// All the configuration variables:
+
 // Programm
 extern size_t seed;
 extern size_t n_threads;
@@ -69,8 +131,5 @@ extern decay_t sr_reg;
 
 // Train
 extern size_t n_epochs;
-
-void parse_ini_file(int argc, char* argv[]);
-int load(int argc, char* argv[]);
 
 }  // namespace ini
