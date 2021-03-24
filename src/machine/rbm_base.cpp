@@ -16,10 +16,6 @@
  *
  */
 
-#ifndef ALTERNATIVE_POP
-#define ALTERNATIVE_POP
-#endif
-
 #include <cmath>
 #include <complex>
 #include <fstream>
