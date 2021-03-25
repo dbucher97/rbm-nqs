@@ -63,7 +63,11 @@ void full_sampler::sample(bool keep_state) {
         // Do the spin flips according to gray codes and evalueate observables
         for (size_t i = 1; i <= max; i++) {
             // Get the \psi of the current state and calculate probability
+#ifndef ALT_POP
             auto psi = rbm_.psi(state, thetas);
+#else
+            auto psi = rbm_.psi_alt(state, thetas);
+#endif
             double p = std::pow(std::abs(psi), 2);
 
             // If keep state store \psi into the state vector

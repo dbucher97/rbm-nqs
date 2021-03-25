@@ -44,7 +44,6 @@ for o in args.other:
     with open(o, 'r') as f:
         othervals.append(np.array([parse_line(l) for l in f if not
                                    l.startswith('#')]))
-
 vals = []
 
 plt.ion()
@@ -65,20 +64,27 @@ for line in fileinput.input(args.input):
     if args.reference is not None:
         ax1.axhline(y=args.reference, color='r', linestyle='--')
 
-    #  for other in othervals:
-    #      x = min(len(vals), len(other))
-    #      plt.plot(other[:x])
-    ax1.plot(v0, 'k', linewidth=2)
+    for other in othervals:
+        x = min(len(vals), len(other))
+        ax1.plot(other[:x])
+
+    ax1.set_xlabel('Iteration')
+    ax1.set_ylabel('Energy per site')
+    ax2.set_ylabel('Energy Variance (gray) / Acceptance Rate (green)')
+    shps = ['gray', 'green', 'orange']
     if len(v.shape) > 1:
         ax2.cla()
+        shi = 0
         for vi in v[:, 1:].T:
-            ax2.plot(vi)
+            ax2.plot(vi, color=shps[shi], linestyle=':')
             ax2.set_ylim((0, 1))
+            shi += 1
+    ax1.plot(v0, 'k', linewidth=2)
 
     if args.reference is not None:
         ax1.set_ylim((args.reference - 0.05, v0[0] + 0.05))
     plt.draw()
-    plt.pause(0.001)
+    plt.pause(0.0001)
 
 #  plt.ioff()
 #  plt.clf()

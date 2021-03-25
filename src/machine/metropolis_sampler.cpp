@@ -88,7 +88,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
         std::vector<size_t> flips = {f_dist_(rng_)};
         // With probability 1/2 flip a second site. This scheme needs further
         // analysis
-        if (u_dist_(rng_) > acceptance_rate_) {
+        if (u_dist_(rng_) > 0.5) {
             size_t flip2 = f_dist_(rng_);
             while (flip2 == flips[0]) flip2 = f_dist_(rng_);
             flips.push_back(flip2);

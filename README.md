@@ -16,21 +16,3 @@ based systems. To build the code, simply run
 ```
 make
 ```
-
-The documentation is built upon `Doxygen` and can be built by running
-
-```
-make doc
-```
-
-### Training the RBM
-
-### Theoretical Backgorund
-
-```math
-| \psi\rangle = \sum_{\{\sigma\}}\psi( \sigma )|\sigma\rangle
-```
-
-```math
-Test
-```

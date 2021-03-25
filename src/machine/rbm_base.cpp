@@ -1,4 +1,20 @@
 /*
+ *            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+ *                    Version 2, December 2004
+ *
+ * Copyright (C) 2021 David Bucher <David.Bucher@physik.lmu.de>
+ *
+ * Everyone is permitted to copy and distribute verbatim or modified
+ * copies of this license document, and changing it is allowed as long
+ * as the name is changed.
+ *
+ *            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+ *   TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+ *
+ *  0. You just DO WHAT THE FUCK YOU WANT TO.
+ */
+
+/*
  * Copyright (c) 2021 David Bucher <David.Bucher@physik.lmu.de>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -230,6 +246,13 @@ std::complex<double> rbm_base::psi(const Eigen::MatrixXcd& state,
     // Calculate the \psi with `thetas`
     std::complex<double> cosh_part = lncosh(thetas).sum();
     return std::exp(cosh_part) * (v_bias_.array() * state.array()).exp().prod();
+}
+
+std::complex<double> rbm_base::psi_alt(const Eigen::MatrixXcd& state,
+                                       const Eigen::MatrixXcd& thetas) const {
+    // Calculate the \psi with `thetas`
+    std::complex<double> cosh_part = thetas.array().cosh().prod();
+    return cosh_part * (v_bias_.array() * state.array()).exp().prod();
 }
 
 Eigen::MatrixXcd rbm_base::get_thetas(const Eigen::MatrixXcd& state) const {

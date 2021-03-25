@@ -252,6 +252,17 @@ class rbm_base {
                         const std::vector<size_t>& flips) const;
 
     /**
+     * @brief Get the \psi(\sigma) form the RBM. Alternative version
+     *
+     * @param state The \sigma or the z-basis state.
+     * @param thetas The pre calculated angles \theta, see the paper.
+     *
+     * @return \psi(\sigma)
+     */
+    virtual std::complex<double> psi_alt(const Eigen::MatrixXcd& state,
+                                         const Eigen::MatrixXcd& thetas) const;
+
+    /**
      * @brief Alternative Version: Computes the ratio of \psi with some spins
      * flipped to the \psi with no spins flipped. Direct calculation, without
      * `log_psi_over_psi`.
