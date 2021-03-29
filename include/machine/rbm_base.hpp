@@ -360,6 +360,13 @@ class rbm_base {
      * @return `n_updates_`.
      */
     size_t get_n_updates() { return n_updates_; }
+
+    /**
+     * @brief Lattice getter.
+     *
+     * @return lattice reference.
+     */
+    lattice::bravais& get_lattice() { return lattice_; }
 };
 
 }  // namespace machine

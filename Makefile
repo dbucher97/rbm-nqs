@@ -22,11 +22,11 @@ LDFLAGS += -L/usr/local/opt/llvm/lib/
 endif
 LDFLAGS += -lboost_program_options
 
-all: $(BUILD_DIR)/$(TARGET_EXEC)
-
 install: all
 	cp $(BUILD_DIR)/$(TARGET_EXEC) $(DESTDIR)/$(TARGET_EXEC)
 	cp plot-on-the-go/potg $(DESTDIR)/potg
+
+all: $(BUILD_DIR)/$(TARGET_EXEC)
 
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
 	@echo "[ LD ] $@ $(LDFLAGS)"
@@ -38,7 +38,7 @@ $(BUILD_DIR)/%.cpp.o: %.cpp
 	@echo "[ $(notdir $(CXX)) ] $<"
 	@$(CXX) $(OMP) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-.PHONY: all clean
+.PHONY: install all clean
 
 clean:
 	$(RM) -r $(BUILD_DIR)

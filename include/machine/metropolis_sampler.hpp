@@ -43,7 +43,8 @@ class metropolis_sampler : public abstract_sampler {
     size_t warmup_steps_;  ///< The number of steps in the beginning before
                            ///< sampling.
 
-    double acceptance_rate_;  ///< The acceptance rate of all chains
+    double acceptance_rate_ = 0;  ///< The acceptance rate of all chains
+    double single_flip_prob_;     ///< The probability for a single flip
 
     std::uniform_int_distribution<size_t>
         f_dist_;  ///< The flip distribution, which bit should get flipped

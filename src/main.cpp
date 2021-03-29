@@ -85,7 +85,45 @@ void progress_bar(size_t i, size_t n_epochs, double energy) {
     std::cout << std::flush;
 }
 
+std::vector<size_t> to_indices(const MatrixXcd& vec) {
+    std::vector<size_t> ret;
+    for (size_t v = 0; v < vec.size(); v++) {
+        if (std::real(vec(v)) > 0) ret.push_back(v);
+    }
+    return ret;
+}
+void test_symmetry() {
+    model::kitaev km{4, -1};
+    auto& lattice = km.get_lattice();
+    MatrixXcd vec(lattice.n_total, 1);
+    vec.setConstant(-1);
+    vec(0) = 1;
+    vec(1) = 1;
+    vec(2) = 1;
+    vec(8) = 1;
+
+    auto symm = lattice.construct_symmetry();
+    for (auto& s : symm) {
+        lattice.print_lattice(to_indices(s * vec));
+    }
+    exit(0);
+}
+
+void debug() {
+    MatrixXcd x(10, 1);
+    for (int i = 0; i < 10; i++) {
+        x(i) = i;
+    }
+    MatrixXcd z(2, 1);
+    z(0) = 1;
+    z(1) = 10;
+    auto y = Map<MatrixXcd>(x.data(), 2, 5).rowwise().sum();
+    std::cout << y << std::endl;
+}
+
 int main(int argc, char* argv[]) {
+    debug();
+    exit(0);
     int rc = ini::load(argc, argv);
     if (rc != 0) {
         return rc;

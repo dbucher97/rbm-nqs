@@ -311,8 +311,6 @@ std::complex<double> rbm_base::psi_over_psi_alt(
     const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& updated_thetas) const {
     if (flips.empty()) return 1.;
 
-    std::cout << "alt" << std::endl;
-
     std::complex<double> ret = 1;
     // Claculate the visible bias part, calcels out for all not flipped sites.
     for (auto& f : flips) ret *= std::exp(-2. * state(f) * v_bias_(f));

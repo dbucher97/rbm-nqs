@@ -37,6 +37,7 @@ metropolis_sampler::metropolis_sampler(rbm_base& rbm, std::mt19937& rng,
       n_chains_{n_chains},
       step_size_{step_size},
       warmup_steps_{warmup_steps},
+      single_flip_prob_{1.},
       f_dist_{0, rbm.n_visible - 1} {}
 
 void metropolis_sampler::sample(size_t total_samples) {
@@ -51,6 +52,7 @@ void metropolis_sampler::sample(size_t total_samples) {
 
     // Initialize acceptance_rate
     acceptance_rate_ = 0;
+    single_flip_prob_ *= 0.996;
 
     // Run the chains in parallel.
 #pragma omp parallel for
@@ -75,23 +77,41 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
 
     // Initilaize random state
     Eigen::MatrixXcd state(rbm_.n_visible, 1);
+    size_t ups = 0;
     for (size_t i = 0; i < rbm_.n_visible; i++) {
-        state(i) = u_dist_(rng_) < 0.5 ? 1 : -1;
+        state(i) = u_dist_(rng_) < 0.5 ? 1. : -1.;
+        ups += (state(i) == 1.);
     }
+    // if (ups % 2 == 1) {
+    //     state(0) *= -1;
+    // }
+
+    auto bonds = rbm_.get_lattice().get_bonds();
+    std::uniform_int_distribution<size_t> b_dist(0, bonds.size() - 1);
 
     // Retrieve thetas for state
     Eigen::MatrixXcd thetas = rbm_.get_thetas(state);
 
+    std::vector<size_t> flips;
+
     // Do the Metropolis sampling
     for (size_t step = 0; step < total_steps; step++) {
         // Get the flips vector by randomly selecting one site.
-        std::vector<size_t> flips = {f_dist_(rng_)};
+        flips.clear();
         // With probability 1/2 flip a second site. This scheme needs further
         // analysis
-        if (u_dist_(rng_) > 0.5) {
-            size_t flip2 = f_dist_(rng_);
-            while (flip2 == flips[0]) flip2 = f_dist_(rng_);
-            flips.push_back(flip2);
+        // flips.push_back(f_dist_(rng_));
+        // if (u_dist_(rng_) < 0.5) {
+        //     size_t flips2 = f_dist_(rng_);
+        //     while (flips[0] == flips2) {
+        //         flips2 = f_dist_(rng_);
+        //     }
+        //     flips.push_back(flips2);
+        // }
+        auto& b = bonds[b_dist(rng_)];
+        std::vector<size_t> flips = {b.a, b.b};
+        if (u_dist_(rng_) < 0.5) {
+            flips.pop_back();
         }
 
         // try to accept flips, if flips are accepted, thetas are automatically
