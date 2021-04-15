@@ -24,13 +24,16 @@
 using namespace lattice;
 
 bravais::bravais(size_t n_uc, size_t n_dim, size_t n_basis,
-                 size_t n_coordination)
+                 size_t n_coordination, size_t n_uc_b, size_t h_shift)
     : n_uc{n_uc},
       n_dim{n_dim},
       n_basis{n_basis},
       n_coordination{n_coordination},
-      n_total_uc{static_cast<size_t>(std::pow(n_uc, n_dim))},
-      n_total{n_total_uc * n_basis} {}
+      n_total_uc{n_uc_b == 0 ? static_cast<size_t>(std::pow(n_uc, n_dim))
+                             : n_uc * n_uc_b},
+      n_total{n_total_uc * n_basis},
+      n_uc_b{n_uc_b == 0 ? n_uc : n_uc_b},
+      h_shift{h_shift} {}
 
 size_t bravais::uc_idx(size_t idx) const { return idx / n_basis; }
 
@@ -56,21 +59,41 @@ size_t bravais::idx(std::vector<size_t>&& idxs, size_t b_idx) const {
 
 size_t bravais::up(size_t uc_idx, size_t dir) const {
     // Calculate the total index shift.
-    size_t shift = static_cast<size_t>(std::pow(n_uc, dir + 1));
+    size_t shift = static_cast<size_t>(std::pow(n_uc, dir)) * n_uc_b;
     // Get the offset of the last samlle dimension.
     size_t offset = uc_idx / shift;
+    // use n_uc_b for first dim.
+    size_t n_uc2 = dir == 0 ? n_uc_b : n_uc;
+    // Check if overflow happened for h shift
+    size_t overflow = (uc_idx + shift / n_uc2) / shift;
     // Shift unitcell along a dimension.
-    uc_idx = (uc_idx + shift / n_uc) % shift;
+    uc_idx = (uc_idx + shift / n_uc2) % shift;
     // Get the complete unitcell index together with previous dimension.
-    return shift * offset + uc_idx;
+    size_t ret = shift * offset + uc_idx;
+    if (overflow && h_shift && dir == 1) {
+        for (size_t i = 0; i < h_shift; i++) {
+            ret = down(ret);
+        }
+    }
+    return ret;
 }
 size_t bravais::down(size_t uc_idx, size_t dir) const {
     // Calculate the total index shift.
-    size_t shift = static_cast<size_t>(std::pow(n_uc, dir + 1));
+    size_t shift = static_cast<size_t>(std::pow(n_uc, dir)) * n_uc_b;
     // Get the offset of the last samlle dimension.
     size_t offset = uc_idx / shift;
+    // use n_uc_b for first dim.
+    size_t n_uc2 = dir == 0 ? n_uc_b : n_uc;
+    // Check if overflow happened for h shift
+    size_t overflow = (uc_idx + (n_uc2 - 1) * shift / n_uc2) / shift;
     // Shift unitcell along a dimension.
-    uc_idx = (uc_idx + (n_uc - 1) * shift / n_uc) % shift;
+    uc_idx = (uc_idx + (n_uc2 - 1) * shift / n_uc2) % shift;
     // Get the complete unitcell index together with previous dimension.
-    return shift * offset + uc_idx;
+    size_t ret = shift * offset + uc_idx;
+    if (!overflow && h_shift && dir == 1) {
+        for (size_t i = 0; i < h_shift; i++) {
+            ret = up(ret);
+        }
+    }
+    return ret;
 }

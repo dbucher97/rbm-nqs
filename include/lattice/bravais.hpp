@@ -17,6 +17,8 @@
  */
 #pragma once
 
+// #define FULL_SYMMETRY
+
 #include <Eigen/Dense>
 #include <memory>
 #include <vector>
@@ -52,6 +54,8 @@ class bravais {
     const size_t n_coordination;  ///< Coordination number.
     const size_t n_total_uc;      ///< Number of total unitcells in lattice.
     const size_t n_total;         ///< Number of total spins in lattice.
+    const size_t n_uc_b;          ///< Number of unitcells in second direction.
+    const size_t h_shift;  ///< Horizontal shift on vertical periodic boundary.
 
    protected:
     /**
@@ -61,8 +65,12 @@ class bravais {
      * @param n_dim Number of spatial dimensions.
      * @param n_basis Basis number.
      * @param n_coordination Coordination numnber.
+     * @param n_uc_b Number of unitcells in second direction.
+     * @param h_shift horizontal unitcell shift when going over a periodic.
+     * boundary
      */
-    bravais(size_t n_uc, size_t n_dim, size_t n_basis, size_t n_coordination);
+    bravais(size_t n_uc, size_t n_dim, size_t n_basis, size_t n_coordination,
+            size_t n_uc_b = 0, size_t h_shift = 0);
 
    public:
     /**

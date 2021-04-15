@@ -32,7 +32,7 @@ namespace operators {
  */
 class bond_op : public local_op_chain {
     using Base = local_op_chain;
-    std::vector<Eigen::MatrixXcd> ops_;  ///< List of operators.
+    std::vector<Eigen::MatrixXcd> bops_;  ///< List of operators.
 
    public:
     /**

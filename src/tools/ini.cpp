@@ -58,9 +58,14 @@ size_t sa_full_n_parallel_bits = 3;
 std::string sa_exact_gs_file = "";
 
 // Optimizer
-std::string sr_plugin = "";
-decay_t sr_lr = {0.001, 0.001, 1.};
-decay_t sr_reg = {1, 1e-4, 0.9};
+optimizer_t opt_type = SR;
+std::string opt_plugin = "";
+decay_t opt_lr = {0.001, 0.001, 1.};
+decay_t opt_sr_reg = {1, 1e-4, 0.9};
+double opt_adam_beta1 = 0.9;
+double opt_adam_beta2 = 0.999;
+double opt_adam_eps = 1e-8;
+double opt_mom_alpha = 0.3;
 
 // Train
 size_t n_epochs = 600;
@@ -99,35 +104,40 @@ int ini::load(int argc, char* argv[]) {
         // clang-format off
     desc.add_options()
     // Program
-    ("help,h", "produce help message")
-    ("train", po::bool_switch(&train), "train the RBM")
-    ("seed", po::value(&seed), "seed of the rng")
-    ("infile,i", po::value<std::string>(), "ini file for params")
-    ("name,n", po::value(&name), "set name of current rbm")
-    ("n_threads,t", po::value(&n_threads), "set number of omp threads")
+    ("help,h",                                "produce help message")
+    ("train",                                 po::bool_switch(&train),                      "train the RBM")
+    ("seed",                                  po::value(&seed),                             "seed of the rng")
+    ("infile,i",                              po::value<std::string>(),                     "ini file for params")
+    ("name,n",                                po::value(&name),                             "set name of current rbm")
+    ("n_threads,t",                           po::value(&n_threads),                        "set number of omp threads")
     // Model
-    ("model.n_cells,c", po::value(&n_cells), "set number of unit cells in one dimension")
-    ("model.J", po::value(&J), "Interaction coefficient")
+    ("model.n_cells,c",                       po::value(&n_cells),                          "set number of unit cells in one dimension")
+    ("model.J",                               po::value(&J),                                "Interaction coefficient")
     // RBM
-    ("rbm.type", po::value(&rbm), "set rbm type")
-    ("rbm.n_hidden", po::value(&n_hidden), "set number of hidden units")
-    ("rbm.force,f", po::bool_switch(&rbm_force), "force retraining of RBM")
-    ("rbm.weights", po::value(&rbm_weights), "set stddev for weights initialization")
-    ("rbm.weights_imag", po::value(&rbm_weights_imag), "set stddev for imag weights initialization (if not set = rbm.weights)")
+    ("rbm.type",                              po::value(&rbm),                              "set rbm type")
+    ("rbm.n_hidden",                          po::value(&n_hidden),                         "set number of hidden units")
+    ("rbm.force,f",                           po::bool_switch(&rbm_force),                  "force retraining of RBM")
+    ("rbm.weights",                           po::value(&rbm_weights),                      "set stddev for weights initialization")
+    ("rbm.weights_imag",                      po::value(&rbm_weights_imag),                 "set stddev for imag weights initialization (if not set = rbm.weights)")
     // Sampler
-    ("sampler.type", po::value(&sa_type), "set sampler type")
-    ("sampler.n_samples", po::value(&sa_n_samples), "set sampler n sampler (metropolis only)")
-    ("sampler.full.n_parallel_bits", po::value(&sa_full_n_parallel_bits), "set number of bits executed in parallel in full sampling")
-    ("sampler.metropolis.n_chains", po::value(&sa_metropolis_n_chains), "set number of MCMC chains in Metropolis sampling")
-    ("sampler.metropolis.n_warmup_steps", po::value(&sa_metropolis_n_warmup_steps), "set number of MCMC warmup steps")
+    ("sampler.type",                          po::value(&sa_type),                          "set sampler type")
+    ("sampler.n_samples",                     po::value(&sa_n_samples),                     "set sampler n sampler (metropolis only)")
+    ("sampler.full.n_parallel_bits",          po::value(&sa_full_n_parallel_bits),          "set number of bits executed in parallel in full sampling")
+    ("sampler.metropolis.n_chains",           po::value(&sa_metropolis_n_chains),           "set number of MCMC chains in Metropolis sampling")
+    ("sampler.metropolis.n_warmup_steps",     po::value(&sa_metropolis_n_warmup_steps),     "set number of MCMC warmup steps")
     ("sampler.metropolis.n_steps_per_sample", po::value(&sa_metropolis_n_steps_per_sample), "set number of MCMC steps between a sample")
-    ("sampler.exact.gs_file", po::value(&sa_exact_gs_file), "set file of ground state for exact sampling")
+    ("sampler.exact.gs_file",                 po::value(&sa_exact_gs_file),                 "set file of ground state for exact sampling")
     // Optimizer
-    ("stochastic_reconfiguration.learning_rate,l", po::value(&sr_lr)->multitoken(), "set learning rate optionally with decay factor")
-    ("stochastic_reconfiguration.regularization,r", po::value(&sr_reg)->multitoken(), "set regularization diagonal shift decay rate optionally with decay factor")
-    ("stochastic_reconfiguration.plugin", po::value(&sr_plugin), "set optional plugin for SR adam/momentum")
+    ("optimizer.type",                        po::value(&opt_type),                         "set optimizer type")
+    ("optimizer.learning_rate,l",             po::value(&opt_lr)->multitoken(),             "set learning rate optionally with decay factor")
+    ("optimizer.sr.regularization,r",         po::value(&opt_sr_reg)->multitoken(),         "set regularization diagonal shift decay rate optionally with decay factor")
+    ("optimizer.plugin",                      po::value(&opt_plugin),                       "set optional plugin for SR adam/momentum")
+    ("optimizer.adam.beta1",                  po::value(&opt_adam_beta1),                   "set ADAM plug beta1")
+    ("optimizer.adam.beta2",                  po::value(&opt_adam_beta2),                   "set ADAM plug beta2")
+    ("optimizer.adam.eps",                    po::value(&opt_adam_eps),                     "set ADAM plug eps")
+    ("optimizer.mom.alpha",                   po::value(&opt_mom_alpha),                    "set momentum plug alpha")
     // Train
-    ("n_epochs,e", po::value(&n_epochs), "set number of epochs for training");
+    ("n_epochs,e",                            po::value(&n_epochs),                         "set number of epochs for training");
         // clang-format on
         po::variables_map vm;
         po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -189,6 +199,20 @@ std::istream& ini::operator>>(std::istream& is, ini::sampler_t& sa) {
         sa = ini::sampler_t::METROPOLIS;
     } else {
         throw std::runtime_error("Sampler Type '" + token + "' not available!");
+    }
+    return is;
+}
+
+std::istream& ini::operator>>(std::istream& is, ini::optimizer_t& opt) {
+    std::string token;
+    is >> token;
+    if (token == "SR") {
+        opt = ini::optimizer_t::SR;
+    } else if (token == "SGD") {
+        opt = ini::optimizer_t::SGD;
+    } else {
+        throw std::runtime_error("Optimizer Type '" + token +
+                                 "' not available!");
     }
     return is;
 }

@@ -31,58 +31,21 @@
 
 using namespace optimizer;
 
-decay_t::decay_t(double initial, double min, double decay, size_t offset)
-    : initial{initial},
-      min{min},
-      decay{decay},
-      value{std::pow(decay, offset) * initial} {
-    if (decay == 1.) {
-        min_reached = true;
-    }
-}
-decay_t::decay_t(const ini::decay_t& other, size_t offset)
-    : decay_t{other.initial, other.min, other.decay, offset} {}
-
-double decay_t::get() {
-    // Decay current value if is not min.
-    if (!min_reached) {
-        value *= decay;
-        if (value < min) {
-            min_reached = true;
-            value = min;
-        }
-    }
-    return value;
-}
-
-void decay_t::reset() {
-    value = initial;
-    min_reached = decay == 1.;
-}
-
 stochastic_reconfiguration::stochastic_reconfiguration(
     machine::rbm_base& rbm, machine::abstract_sampler& sampler,
     operators::base_op& hamiltonian, const ini::decay_t& lr,
     const ini::decay_t& kp)
-    : rbm_{rbm},
-      sampler_{sampler},
-      hamiltonian_{hamiltonian},
-      // Initialze derivative operator.
-      derivative_{rbm.n_params},
-      // Initialize the aggregators.
-      a_h_{hamiltonian_},
-      a_d_{derivative_},
+    : Base{rbm, sampler, hamiltonian, lr},
+      // Initialize SR aggregators
       a_dh_{derivative_, hamiltonian_},
       a_dd_{derivative_},
-      // Initialize the learning rate and regularization.
-      lr_{lr, rbm_.get_n_updates()},
+      // Initialize the regularization.
       kp_{kp, rbm_.get_n_updates()} {}
 
 void stochastic_reconfiguration::register_observables() {
     // Register operators and aggregators
-    sampler_.register_ops({&hamiltonian_, &derivative_});
-    a_h_.track_variance();
-    sampler_.register_aggs({&a_h_, &a_d_, &a_dh_, &a_dd_});
+    Base::register_observables();
+    sampler_.register_aggs({&a_dh_, &a_dd_});
 }
 
 void stochastic_reconfiguration::optimize() {
@@ -96,6 +59,7 @@ void stochastic_reconfiguration::optimize() {
     logger::log(std::real(h(0)) / rbm_.n_visible, "Energy");
     logger::log(std::real(a_h_.get_variance()(0)) / rbm_.n_visible,
                 "EnergyVariance");
+    // logger::log(std::abs(std::imag(h(0))), "EnergyImag");
     sampler_.log();
 
     // Calculate the gradient descent and the covariance matrix.
@@ -113,13 +77,9 @@ void stochastic_reconfiguration::optimize() {
     } else {
         dw = lr_.get() * plug_->apply(dw);
     }
+    // dw.real() /= 2.;
 
     // Update the weights.
     rbm_.update_weights(dw);
 }
 
-void stochastic_reconfiguration::set_plugin(base_plugin* plug) { plug_ = plug; }
-
-double stochastic_reconfiguration::get_current_energy() {
-    return std::real(a_h_.get_result()(0));
-}

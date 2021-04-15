@@ -37,12 +37,14 @@
 #include <sstream>
 //
 #include <lattice/honeycomb.hpp>
-#include <machine/exact_sampler.hpp>
+#include <lattice/honeycombS3.hpp>
+#include <machine/file_psi.hpp>
 #include <machine/full_sampler.hpp>
 #include <machine/metropolis_sampler.hpp>
 #include <machine/rbm_base.hpp>
 #include <machine/rbm_symmetry.hpp>
 #include <model/kitaev.hpp>
+#include <model/kitaevS3.hpp>
 #include <operators/aggregator.hpp>
 #include <operators/bond_op.hpp>
 #include <operators/derivative_op.hpp>
@@ -50,10 +52,13 @@
 #include <operators/local_op_chain.hpp>
 #include <operators/overlap_op.hpp>
 #include <operators/store_state.hpp>
+#include <optimizer/abstract_optimizer.hpp>
+#include <optimizer/gradient_descent.hpp>
 #include <optimizer/plugin.hpp>
 #include <optimizer/stochastic_reconfiguration.hpp>
 #include <tools/ini.hpp>
 #include <tools/logger.hpp>
+#include <tools/state.hpp>
 
 using namespace Eigen;
 
@@ -106,24 +111,32 @@ void test_symmetry() {
     for (auto& s : symm) {
         lattice.print_lattice(to_indices(s * vec));
     }
-    exit(0);
+}
+
+void print_bonds() {
+    lattice::honeycombS3 lat{1};
+    auto bonds = lat.get_bonds();
+    for (auto& bond : bonds) {
+        std::cout << bond.a << "," << bond.b << "," << bond.type << std::endl;
+    }
 }
 
 void debug() {
-    MatrixXcd x(10, 1);
-    for (int i = 0; i < 10; i++) {
-        x(i) = i;
-    }
-    MatrixXcd z(2, 1);
-    z(0) = 1;
-    z(1) = 10;
-    auto y = Map<MatrixXcd>(x.data(), 2, 5).rowwise().sum();
-    std::cout << y << std::endl;
+    model::kitaevS3 km{3, -1};
+    machine::file_psi m{km.get_lattice(), "n3s3_1.state"};
+    machine::full_sampler sampler{m, 3};
+    auto& h = km.get_hamiltonian();
+    operators::aggregator agg{h};
+    sampler.register_op(&h);
+    sampler.register_agg(&agg);
+    sampler.sample(false);
+    std::cout << agg.get_result() << std::endl;
 }
 
 int main(int argc, char* argv[]) {
-    debug();
-    exit(0);
+    // debug();
+    // return 0;
+
     int rc = ini::load(argc, argv);
     if (rc != 0) {
         return rc;
@@ -135,7 +148,7 @@ int main(int argc, char* argv[]) {
     Eigen::setNbThreads(1);
 
     std::mt19937 rng{static_cast<std::mt19937::result_type>(ini::seed)};
-    model::kitaev km{ini::n_cells, ini::J};
+    model::kitaevS3 km{ini::n_cells, ini::J};
 
     std::unique_ptr<machine::rbm_base> rbm;
     switch (ini::rbm) {
@@ -170,21 +183,32 @@ int main(int argc, char* argv[]) {
             return 1;
     }
 
-    optimizer::stochastic_reconfiguration sr{
-        *rbm, *sampler, km.get_hamiltonian(), ini::sr_lr, ini::sr_reg};
-    sr.register_observables();
+    std::unique_ptr<optimizer::abstract_optimizer> optimizer;
+    switch (ini::opt_type) {
+        case ini::optimizer_t::SR:
+            optimizer = std::make_unique<optimizer::stochastic_reconfiguration>(
+                *rbm, *sampler, km.get_hamiltonian(), ini::opt_lr,
+                ini::opt_sr_reg);
+            break;
+        case ini::optimizer_t::SGD:
+            optimizer = std::make_unique<optimizer::gradient_descent>(
+                *rbm, *sampler, km.get_hamiltonian(), ini::opt_lr);
+            break;
+        default:
+            return 1;
+    }
+    optimizer->register_observables();
     std::unique_ptr<optimizer::base_plugin> p;
-    if (ini::sr_plugin.length() > 0) {
-        if (ini::sr_plugin == "adam") {
+    if (ini ::opt_plugin.length() > 0) {
+        if (ini::opt_plugin == "adam") {
             p = std::make_unique<optimizer::adam_plugin>(rbm->n_params);
-        } else if (ini::sr_plugin == "momentum") {
+        } else if (ini::opt_plugin == "momentum") {
             p = std::make_unique<optimizer::momentum_plugin>(rbm->n_params);
         } else {
             return 1;
         }
-        sr.set_plugin(p.get());
+        optimizer->set_plugin(p.get());
     }
-
     if (ini::train) {
         // Start getchar non-block
         struct termios oldt, newt;
@@ -202,11 +226,11 @@ int main(int argc, char* argv[]) {
         for (size_t i = 0; i < ini::n_epochs && ch != ''; i++) {
             sampler->sample(ini::sa_n_samples);
             Eigen::setNbThreads(0);
-            sr.optimize();
+            optimizer->optimize();
             Eigen::setNbThreads(1);
             logger::newline();
             progress_bar(i + 1, ini::n_epochs,
-                         sr.get_current_energy() / rbm->n_visible);
+                         optimizer->get_current_energy() / rbm->n_visible);
             ch = getchar();
         }
 
@@ -217,6 +241,13 @@ int main(int argc, char* argv[]) {
 
         std::cout << std::endl;
         rbm->save(ini::name);
+
+        machine::full_sampler samp{*rbm, 3};
+        operators::aggregator agg{km.get_hamiltonian()};
+        samp.register_op(&(km.get_hamiltonian()));
+        samp.register_agg(&agg);
+        samp.sample(true);
+        std::cout << agg.get_result() / rbm->n_visible << std::endl;
 
     } else {
         std::cout << "nothing to do!" << std::endl;

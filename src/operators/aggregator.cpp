@@ -47,12 +47,12 @@ void aggregator::finalize(double num) {
     if (track_variance_) {
         variance_ /= num;
         // Calculate variance <0^2> - <0>^2
-        variance_ -= (Eigen::MatrixXcd)result_.array().pow(2);
+        variance_ -= (Eigen::MatrixXd)result_.array().abs().pow(2);
     }
 }
 
 Eigen::MatrixXcd& aggregator::get_result() { return result_; }
-Eigen::MatrixXcd& aggregator::get_variance() { return variance_; }
+Eigen::MatrixXd& aggregator::get_variance() { return variance_; }
 
 Eigen::MatrixXcd aggregator::aggregate_() {
     // By default, just forward the operator result.
@@ -68,7 +68,7 @@ void aggregator::aggregate(double weight) {
 
     if (track_variance_) {
         // Calculate the resul of the squared observable
-        Eigen::MatrixXcd xx = x.array().pow(2) / weight;
+        Eigen::MatrixXd xx = x.array().abs().pow(2) / weight;
         // Safely aggregate teh variance.
 #pragma omp critical
         variance_ += xx;

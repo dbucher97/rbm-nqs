@@ -63,6 +63,8 @@ class rbm_symmetry : public rbm_base {
 
     virtual std::complex<double> psi(const Eigen::MatrixXcd& state,
                                      const Eigen::MatrixXcd&) const override;
+    virtual std::complex<double> psi_alt(
+        const Eigen::MatrixXcd& state, const Eigen::MatrixXcd&) const override;
 
     virtual Eigen::MatrixXcd get_thetas(
         const Eigen::MatrixXcd& state) const override;

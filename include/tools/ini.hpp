@@ -46,6 +46,10 @@ enum rbm_t { BASIC, SYMMETRY };
  * @brief Sampler Type enum
  */
 enum sampler_t { FULL, METROPOLIS, EXACT };
+/**
+ * @brief Optimizer Type enum
+ */
+enum optimizer_t { SGD, SR };
 
 /**
  * @brief `istream` wrapper for loading RBM type.
@@ -65,6 +69,15 @@ extern std::istream& operator>>(std::istream& input, rbm_t& rbm);
  * @return `istream` reference.
  */
 extern std::istream& operator>>(std::istream& input, sampler_t& sampler);
+/**
+ * @brief `istream` wrapper for loading Optimizer type.
+ *
+ * @param input `istream` reference.
+ * @param optimizer `optimizer_t` reference.
+ *
+ * @return `istream` reference.
+ */
+extern std::istream& operator>>(std::istream& input, optimizer_t& optimizer);
 /**
  * @brief Loads an `decay_t` with a string vector from `boost_program_options`.
  *
@@ -125,9 +138,14 @@ extern size_t sa_full_n_parallel_bits;
 extern std::string sa_exact_gs_file;
 
 // Optimizer
-extern std::string sr_plugin;
-extern decay_t sr_lr;
-extern decay_t sr_reg;
+extern optimizer_t opt_type;
+extern std::string opt_plugin;
+extern decay_t opt_lr;
+extern decay_t opt_sr_reg;
+extern double opt_adam_beta1;
+extern double opt_adam_beta2;
+extern double opt_adam_eps;
+extern double opt_mom_alpha;
 
 // Train
 extern size_t n_epochs;

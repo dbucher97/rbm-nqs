@@ -108,28 +108,6 @@ std::complex<double> rbm_base::log_psi_over_psi(
     return log_psi_over_psi(state, flips, thetas, updated_thetas);
 }
 
-std::complex<double> rbm_base::log_psi_over_psi(
-    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips) const {
-    // Wrapper for `log_psi_over_psi` with no up `thetas`, calculate `thetas`.
-    Eigen::MatrixXcd thetas = get_thetas(state);
-    return log_psi_over_psi(state, flips, thetas);
-}
-
-std::complex<double> rbm_base::psi_over_psi(
-    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    const Eigen::MatrixXcd& thetas) const {
-    // get `log_psi_over_psi` and return the exponianted result.
-    auto x = log_psi_over_psi(state, flips, thetas);
-    return std::exp(x);
-}
-
-std::complex<double> rbm_base::psi_over_psi(
-    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips) const {
-    // Wrapper for `psi_over_psi` with no `thetas`, calculate `thetas`.
-    Eigen::MatrixXcd thetas = get_thetas(state);
-    return psi_over_psi(state, flips, thetas);
-}
-
 bool rbm_base::flips_accepted(double prob, const Eigen::MatrixXcd& state,
                               const std::vector<size_t>& flips,
                               Eigen::MatrixXcd& thetas) const {
@@ -150,26 +128,12 @@ bool rbm_base::flips_accepted(double prob, const Eigen::MatrixXcd& state,
     }
 }
 
-bool rbm_base::flips_accepted(double prob, const Eigen::MatrixXcd& state,
-                              const std::vector<size_t>& flips) const {
-    // Wrapper for `flips_accepted` with no `thetas`, calculate `thetas`.
-    Eigen::MatrixXcd thetas = get_thetas(state);
-    return flips_accepted(prob, state, flips, thetas);
-}
-
 std::complex<double> rbm_base::psi_over_psi_alt(
     const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
     const Eigen::MatrixXcd& thetas) const {
     // Wrapper for `psi_over_psi_alt` with no `new_thetas`, copy `thets`
     Eigen::MatrixXcd new_thetas = thetas;
     return psi_over_psi_alt(state, flips, thetas, new_thetas);
-}
-
-std::complex<double> rbm_base::psi_over_psi_alt(
-    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips) const {
-    // Wrapper for `psi_over_psi_alt` with no `thetas`, calculate `thetas`.
-    Eigen::MatrixXcd thetas = get_thetas(state);
-    return psi_over_psi_alt(state, flips, thetas);
 }
 
 bool rbm_base::flips_accepted_alt(double prob, const Eigen::MatrixXcd& state,
@@ -192,12 +156,7 @@ bool rbm_base::flips_accepted_alt(double prob, const Eigen::MatrixXcd& state,
     }
 }
 
-bool rbm_base::flips_accepted_alt(double prob, const Eigen::MatrixXcd& state,
-                                  const std::vector<size_t>& flips) const {
-    // Wrapper for `flips_accepted` with no `thetas`, calculate `thetas`.
-    Eigen::MatrixXcd thetas = get_thetas(state);
-    return flips_accepted_alt(prob, state, flips, thetas);
-}
+// IO STUFF
 
 bool rbm_base::save(const std::string& name) {
     // Open the output stream
@@ -270,6 +229,14 @@ void rbm_base::update_thetas(const Eigen::MatrixXcd& state,
         thetas -= 2 * weights_.row(f).transpose() * state2(f);
         state2(f) *= -1;
     }
+}
+
+std::complex<double> rbm_base::psi_over_psi(
+    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+    const Eigen::MatrixXcd& thetas) const {
+    // get `log_psi_over_psi` and return the exponianted result.
+    auto x = log_psi_over_psi(state, flips, thetas);
+    return std::exp(x);
 }
 
 std::complex<double> rbm_base::log_psi_over_psi(

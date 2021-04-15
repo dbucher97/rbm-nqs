@@ -34,8 +34,8 @@ namespace operators {
 class aggregator {
     bool track_variance_ =
         false;  ///< If is set, track the variance of a observable
-    Eigen::MatrixXcd result_;    ///< The result Matrix
-    Eigen::MatrixXcd variance_;  ///< The variance Matrix
+    Eigen::MatrixXcd result_;   ///< The result Matrix
+    Eigen::MatrixXd variance_;  ///< The variance Matrix
 
    protected:
     const base_op&
@@ -94,7 +94,7 @@ class aggregator {
      *
      * @return The reference to the variance.
      */
-    Eigen::MatrixXcd& get_variance();
+    Eigen::MatrixXd& get_variance();
     /**
      * @brief Finalize the Aggregation.
      *

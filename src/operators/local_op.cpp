@@ -23,6 +23,7 @@
 //
 #include <machine/rbm_base.hpp>
 #include <operators/local_op.hpp>
+#include <tools/state.hpp>
 
 using namespace operators;
 
@@ -37,8 +38,8 @@ void local_op::evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
 
     // The next two lines are basicelly Op |\psi>, since |\psi> has only one
     // non-zero element, which is one.
-    size_t loc = get_local_psi(state);
-    Eigen::MatrixXcd res = op_.col(loc);
+    size_t loc = tools::state_to_num_loc(state, acts_on_);
+    Eigen::MatrixXcd res = op_.row(loc);
 
     // Initialize the flips vector.
     std::vector<size_t> flips;
@@ -52,7 +53,7 @@ void local_op::evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
                 // Off diagonal elements.
                 // Get the flips to get from `loc` to `i` and calculate the
                 // `psi_over_psi` local weight.
-                get_flips(i ^ loc, flips);
+                tools::get_flips(i ^ loc, flips, acts_on_);
                 result(0) +=
 #ifndef ALT_POP
                     res(i) * rbm.psi_over_psi(state, flips, thetas);
@@ -60,25 +61,6 @@ void local_op::evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
                     res(i) * rbm.psi_over_psi_alt(state, flips, thetas);
 #endif
             }
-        }
-    }
-}
-
-size_t local_op::get_local_psi(const Eigen::MatrixXcd& s) {
-    size_t loc = 0;
-    for (size_t i = 0; i < acts_on_.size(); i++) {
-        // set bit `i` of `loc` to one if acted on site `i` is -1.
-        loc += ((std::real(s(acts_on_[i])) < 0) << i);
-    }
-    return loc;
-}
-
-void local_op::get_flips(size_t loc, std::vector<size_t>& flips) {
-    flips.clear();
-    for (size_t i = 0; i < acts_on_.size(); i++) {
-        // if bit `i` of `loc` is 1, flip acted on site `i`.
-        if ((loc >> i & 1)) {
-            flips.push_back(acts_on_[i]);
         }
     }
 }

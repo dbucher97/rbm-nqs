@@ -56,7 +56,11 @@ std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
 honeycomb::construct_symmetry() const {
     // Define `p_mat`
     typedef Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> p_mat;
+#ifdef FULL_SYMMETRY
     std::vector<p_mat> ret(n_total);
+#else
+    std::vector<p_mat> ret(n_total_uc);
+#endif
 
     // Permutation function, permutes the indices of a
     // `Eigen::PermutationMatrix` by a respective amount.
@@ -90,15 +94,21 @@ honeycomb::construct_symmetry() const {
         for (size_t j = 0; j < n_uc; j++) {
             size_t id = n_uc * i + j;
 
+#ifdef FULL_SYMMETRY
+            id *= 2;
+#endif
+
             // Initialize the permutation matrix and get the permutation for
             // the 0th basis.
-            ret[2 * id] = p_mat(n_total);
-            permute(i, j, false, ret[2 * id]);
+            ret[id] = p_mat(n_total);
+            permute(i, j, false, ret[id]);
 
             // Initialize the permutation matrix and get the permutation for
             // the 1st basis with the 180 degree rotation.
-            ret[2 * id + 1] = p_mat(n_total);
-            permute(i, j, true, ret[2 * id + 1]);
+#ifdef FULL_SYMMETRY
+            ret[id + 1] = p_mat(n_total);
+            permute(i, j, true, ret[id + 1]);
+#endif
         }
     }
     return ret;

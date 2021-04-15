@@ -47,26 +47,6 @@ class full_sampler : public abstract_sampler {
      */
     size_t bits_parallel_;
 
-   protected:
-    /**
-     * @brief Convert the state in number (bit) representation into a Eigen
-     * Matrix used as input for RBM. 0 -> -1. 1 -> 1..
-     *
-     * @param state_num The state in bit form.
-     * @param state The Eigen Matrix reference, which will be filled.
-     */
-    void get_state(size_t state_num, Eigen::MatrixXcd& state);
-
-    /**
-     * @brief Tests if a particular bit is 1.
-     *
-     * @param s The number to test.
-     * @param i The index of the bit.
-     *
-     * @return `true` if bit `i` of `s` is 1.
-     */
-    inline bool test_bit(size_t s, size_t i) { return (s >> i) & 1; };
-
    public:
     /**
      * @brief Full sampler constructor.

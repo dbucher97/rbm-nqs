@@ -21,9 +21,12 @@
 
 #include <Eigen/Dense>
 #include <cmath>
+#include <fstream>
 //
 #include <machine/full_sampler.hpp>
 #include <machine/rbm_base.hpp>
+#include <tools/ini.hpp>
+#include <tools/state.hpp>
 
 using namespace machine;
 
@@ -55,7 +58,7 @@ void full_sampler::sample(bool keep_state) {
 
         // Get the state for `b`
         Eigen::MatrixXcd state(rbm_.n_visible, 1);
-        get_state(b, state);
+        tools::num_to_state(b, state);
 
         // Precalculate thetas
         Eigen::MatrixXcd thetas = rbm_.get_thetas(state);
@@ -72,14 +75,8 @@ void full_sampler::sample(bool keep_state) {
 
             // If keep state store \psi into the state vector
             if (keep_state) {
-                size_t l = 0;
-                for (size_t j = 0; j < rbm_.n_visible; j++) {
-                    if (std::real(state(j)) > 0) {
-                        l += (1 << j);
-                    }
-                }
 #pragma omp critical
-                vec(l) = psi;
+                vec(tools::state_to_num(state)) = psi;
             }
 
             // Cumulate probability for normalization
@@ -112,17 +109,11 @@ void full_sampler::sample(bool keep_state) {
     }
     // Print the state vector if `keep_state`
     if (keep_state) {
-        std::cout << vec / std::sqrt(p_total) << std::endl;
+        std::ofstream statefile{ini::name + ".state"};
+        statefile << vec;
+        statefile.close();
     }
     for (auto agg : aggs_) {
         agg->finalize(p_total);
-    }
-}
-
-void full_sampler::get_state(size_t n, Eigen::MatrixXcd& state) {
-    // If bit i of n is 1, set state(i) = 1, otherwise -1.
-    state.setConstant(1);
-    for (size_t i = 0; i < rbm_.n_visible; i++) {
-        if (!test_bit(n, i)) state(i) = -1;
     }
 }

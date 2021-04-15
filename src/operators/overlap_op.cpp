@@ -23,6 +23,7 @@
 //
 #include <machine/rbm_base.hpp>
 #include <operators/overlap_op.hpp>
+#include <tools/state.hpp>
 
 using namespace operators;
 
@@ -63,11 +64,5 @@ void overlap_op::evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
 }
 
 std::complex<double> overlap_op::get_psi(const Eigen::MatrixXcd& s) {
-    size_t loc = 0;
-    for (size_t i = 0; i < n_vis_; i++) {
-        // Set bit `i` of `loc` to 1 if site `i` is -1.
-        loc += ((std::real(s(i)) < 0) << i);
-    }
-    // Return psi of that state
-    return state_vec_(loc);
+    return state_vec_(tools::state_to_num(s));
 }

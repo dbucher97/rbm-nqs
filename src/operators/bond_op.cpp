@@ -27,14 +27,20 @@ using namespace operators;
 
 bond_op::bond_op(const std::vector<lattice::bond>& bonds,
                  const std::vector<Eigen::MatrixXcd>& ops)
-    : Base{}, ops_{} {
+    : Base{}, bops_{} {
     // Copy operators
     for (auto& op : ops) {
-        ops_.push_back(op);
+        // ADDED TRANSPOSITION HERE
+        bops_.push_back(op);
+        // bops_.push_back(op);
     }
     // Push every bond with corresponding operator into the local operator
     // chain.
+    size_t c = 0;
     for (auto& bond : bonds) {
-        push_back({{bond.a, bond.b}, ops_[bond.type]});
+        // if (c >= 6 && c < 7) {
+        push_back({{bond.a, bond.b}, bops_[bond.type]});
+        // }
+        c++;
     }
 }
