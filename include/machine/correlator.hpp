@@ -26,6 +26,6 @@ class corrlator {
    public:
     corrlator(const std::vector<size_t>& idxs);
 
-    std::complex<double> evaluate(Eigen::MatrixXd& state);
+    std::complex<double> evaluate(Eigen::MatrixXcd& state);
 };
 }  // namespace machine
