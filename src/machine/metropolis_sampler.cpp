@@ -100,7 +100,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
         flips.clear();
         // With probability 1/2 flip a second site. This scheme needs further
         // analysis
-        flips.push_back(f_dist_(rng_));
+        // flips.push_back(f_dist_(rng_));
         // if (u_dist_(rng_) < 0.5) {
         //     size_t flips2 = f_dist_(rng_);
         //     while (flips[0] == flips2) {
@@ -108,11 +108,11 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
         //     }
         //     flips.push_back(flips2);
         // }
-        // auto& b = bonds[b_dist(rng_)];
-        // std::vector<size_t> flips = {b.a, b.b};
-        // if (u_dist_(rng_) < 0.5) {
-        //     flips.pop_back();
-        // }
+        auto& b = bonds[b_dist(rng_)];
+        std::vector<size_t> flips = {b.a, b.b};
+        if (u_dist_(rng_) < 0.5) {
+            flips.pop_back();
+        }
 
         // try to accept flips, if flips are accepted, thetas are automatically
         // updated and state needs updating.

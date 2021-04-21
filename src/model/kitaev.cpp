@@ -32,3 +32,12 @@ Eigen::Matrix4cd szsz =
     ((Eigen::Matrix4cd() << 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1)
          .finished());
 }  // namespace model
+
+using namespace model;
+
+kitaev::kitaev(size_t size, const std::array<double, 3>& J) {
+    lattice_ = std::make_unique<lattice::honeycomb>(size);
+    hamiltonian_ = std::make_unique<operators::bond_op>(
+        lattice_->get_bonds(),
+        std::vector<Eigen::MatrixXcd>{J[0] * sxsx, J[1] * sysy, J[2] * szsz});
+}

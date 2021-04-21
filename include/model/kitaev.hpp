@@ -23,7 +23,7 @@
 #include <vector>
 //
 #include <lattice/honeycomb.hpp>
-#include <operators/base_op.hpp>
+#include <model/abstract_model.hpp>
 #include <operators/bond_op.hpp>
 
 /**
@@ -38,9 +38,9 @@ extern Eigen::Matrix4cd szsz;  ///< 2 site Pauli-z operator
 /**
  * @brief The Honeycomb Kitaev Model.
  */
-class kitaev {
-    lattice::honeycomb lat;          ///< Honeycomb lattice object.
-    operators::bond_op hamiltonian;  ///< Bond Operator Hamiltonian object.
+class kitaev : public abstract_model {
+    using Base = abstract_model;
+
    public:
     /**
      * @brief Kitaev model consturctor.
@@ -53,24 +53,8 @@ class kitaev {
      * @brief Kitaev model constructor.
      *
      * @param size Number of unitcells in one direction.
-     * @param J Array of coupling constant {J_x, J_y, J_z}..
+     * @param J Array of coupling constant {J_x, J_y, J_z}.
      */
-    kitaev(size_t size, const std::array<double, 3>& J)
-        : lat{size},
-          hamiltonian{lat.get_bonds(),
-                      {J[0] * sxsx, J[1] * sysy, J[2] * szsz}} {}
-
-    /**
-     * @brief Hamiltonian constructor
-     *
-     * @return Reference to the `bond_op` Hamiltonian.
-     */
-    operators::base_op& get_hamiltonian() { return hamiltonian; }
-    /**
-     * @brief Lattice getter
-     *
-     * @return Reference to the `honeycomb` lattice.
-     */
-    lattice::bravais& get_lattice() { return lat; };
+    kitaev(size_t size, const std::array<double, 3>& J);
 };
 }  // namespace model

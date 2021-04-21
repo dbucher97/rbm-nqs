@@ -41,6 +41,9 @@ class rbm_symmetry : public rbm_base {
     std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
         symmetry_;
 
+    virtual std::complex<double> psi_notheta(
+        const Eigen::MatrixXcd& state) const override;
+
    public:
     rbm_symmetry(size_t, lattice::bravais&);
 
@@ -59,12 +62,7 @@ class rbm_symmetry : public rbm_base {
      *
      * @return number of symmtery permutations.
      */
-    size_t symmetry_size() const { return symmetry_.size(); };
-
-    virtual std::complex<double> psi(const Eigen::MatrixXcd& state,
-                                     const Eigen::MatrixXcd&) const override;
-    virtual std::complex<double> psi_alt(
-        const Eigen::MatrixXcd& state, const Eigen::MatrixXcd&) const override;
+    virtual size_t symmetry_size() const override { return symmetry_.size(); };
 
     virtual Eigen::MatrixXcd get_thetas(
         const Eigen::MatrixXcd& state) const override;

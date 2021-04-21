@@ -37,10 +37,8 @@ rbm_symmetry::rbm_symmetry(size_t n_alpha, lattice::bravais& l)
       symmetry_{lattice_.construct_symmetry()} {
 }
 
-std::complex<double> rbm_symmetry::psi(const Eigen::MatrixXcd& state,
-                                       const Eigen::MatrixXcd& thetas) const {
-    // Same as base class, just modified for single `v_bias` item.
-    std::complex<double> cosh_part = lncosh(thetas).sum();
+std::complex<double> rbm_symmetry::psi_notheta(
+    const Eigen::MatrixXcd& state) const {
 #ifndef FULL_SYMMETRY
     auto vbias_part =
         v_bias_.array() * Eigen::Map<const Eigen::MatrixXcd>(
@@ -51,24 +49,9 @@ std::complex<double> rbm_symmetry::psi(const Eigen::MatrixXcd& state,
 #else
     auto vbias_part = v_bias_(0) * state;
 #endif
-    return std::exp(cosh_part) * vbias_part.array().exp().prod();
-}
-
-std::complex<double> rbm_symmetry::psi_alt(
-    const Eigen::MatrixXcd& state, const Eigen::MatrixXcd& thetas) const {
-    // Same as base class, just modified for single `v_bias` item.
-    std::complex<double> cosh_part = thetas.array().cosh().prod();
-#ifndef FULL_SYMMETRY
-    auto vbias_part =
-        v_bias_.array() * Eigen::Map<const Eigen::MatrixXcd>(
-                              state.data(), n_vb_, lattice_.n_total_uc)
-                              .rowwise()
-                              .sum()
-                              .array();
-#else
-    auto vbias_part = v_bias_(0) * state;
-#endif
-    return cosh_part * vbias_part.array().exp().prod();
+    std::complex<double> corr_part = 1.;
+    for (auto& c : correlators_) c->psi(state, corr_part);
+    return vbias_part.array().exp().prod() * corr_part;
 }
 
 Eigen::MatrixXcd rbm_symmetry::get_thetas(const Eigen::MatrixXcd& state) const {
@@ -76,6 +59,7 @@ Eigen::MatrixXcd rbm_symmetry::get_thetas(const Eigen::MatrixXcd& state) const {
     Eigen::MatrixXcd ret(n_alpha, symmetry_.size());
     for (size_t s = 0; s < symmetry_.size(); s++) {
         ret.col(s) = weights_.transpose() * (symmetry_[s] * state) + h_bias_;
+        for (auto& c : correlators_) c->add_thetas(state, ret, s);
     }
     return ret;
 }
@@ -84,14 +68,20 @@ void rbm_symmetry::update_thetas(const Eigen::MatrixXcd& state,
                                  const std::vector<size_t>& flips,
                                  Eigen::MatrixXcd& thetas) const {
     // Same as base class but with symmetries involved
-    Eigen::MatrixXcd state2 = state;
-    for (auto& f : flips) {
-        for (size_t s = 0; s < symmetry_.size(); s++) {
+    std::vector<std::vector<size_t>> cidxs;
+    for (auto& c : correlators_) {
+        c->get_cidxs_from_flips(flips, cidxs);
+    }
+
+    for (size_t s = 0; s < symmetry_.size(); s++) {
+        for (auto& f : flips) {
             thetas.col(s) -=
-                2 * weights_.transpose().col(symmetry_[s].indices()(f)) *
-                state2(f);
+                2 * weights_.row(symmetry_[s].indices()(f)).transpose() *
+                state(f);
         }
-        state2(f) *= -1;
+        for (size_t i = 0; i < correlators_.size(); i++) {
+            correlators_[i]->update_thetas(state, cidxs[i], thetas, s);
+        }
     }
 }
 
@@ -103,6 +93,12 @@ std::complex<double> rbm_symmetry::log_psi_over_psi(
     // Just adjusted for the single v_bias
     std::complex<double> ret = 0;
     for (auto& f : flips) ret -= 2. * state(f) * v_bias_(f % n_vb_);
+
+    std::vector<std::vector<size_t>> cidxs;
+    for (auto& c : correlators_) {
+        c->get_cidxs_from_flips(flips, cidxs);
+        ret += c->log_psi_over_psi(state, *(cidxs.end() - 1));
+    }
 
     // Same as base class
     update_thetas(state, flips, updated_thetas);
@@ -121,6 +117,12 @@ std::complex<double> rbm_symmetry::psi_over_psi_alt(
     std::complex<double> ret = 1;
     for (auto& f : flips) ret *= std::exp(-2. * state(f) * v_bias_(f % n_vb_));
 
+    std::vector<std::vector<size_t>> cidxs;
+    for (auto& c : correlators_) {
+        c->get_cidxs_from_flips(flips, cidxs);
+        ret *= std::exp(c->log_psi_over_psi(state, *(cidxs.end() - 1)));
+    }
+
     // Same as base class
     update_thetas(state, flips, updated_thetas);
 
@@ -131,7 +133,7 @@ std::complex<double> rbm_symmetry::psi_over_psi_alt(
 
 Eigen::MatrixXcd rbm_symmetry::derivative(
     const Eigen::MatrixXcd& state, const Eigen::MatrixXcd& thetas) const {
-    Eigen::MatrixXcd result = Eigen::MatrixXcd::Zero(n_params, 1);
+    Eigen::MatrixXcd result = Eigen::MatrixXcd::Zero(get_n_params(), 1);
 #ifndef FULL_SYMMETRY
     result.block(0, 0, n_vb_, 1) = Eigen::Map<const Eigen::MatrixXcd>(
                                        state.data(), n_vb_, lattice_.n_total_uc)
@@ -150,5 +152,8 @@ Eigen::MatrixXcd rbm_symmetry::derivative(
         result.block(n_vb_ + n_alpha, 0, n_tot, 1) +=
             Eigen::Map<Eigen::MatrixXcd>(x.data(), n_tot, 1);
     }
+
+    size_t offset = n_params_;
+    for (auto& c : correlators_) c->derivative(state, tanh, result, offset);
     return result;
 }

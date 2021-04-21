@@ -57,7 +57,7 @@ class honeycomb : public bravais {
 
     virtual std::vector<size_t> nns(size_t) const override;
 
-    virtual std::vector<bond> get_bonds() const override;
+    virtual void construct_bonds() override;
 
     virtual std::vector<
         Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
@@ -65,6 +65,12 @@ class honeycomb : public bravais {
 
     using Base::print_lattice;
     virtual void print_lattice(const std::vector<size_t>&) const override;
+
+#ifndef FULL_SYMMETRY
+    virtual bool has_correlators() const override { return true; }
+
+    virtual std::vector<correlator_group> get_correlators() const override;
+#endif
 };
 
 }  // namespace lattice

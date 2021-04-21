@@ -38,6 +38,7 @@ std::string ini_file = "";
 bool train = false;
 
 // Model
+model_t model = KITAEV;
 size_t n_cells = 2;
 double J = -1.;
 
@@ -47,6 +48,7 @@ size_t n_hidden = 3;
 bool rbm_force = false;
 double rbm_weights = 0.0001;
 double rbm_weights_imag = -1;
+size_t rbm_correlators = 1;
 
 // Sampler
 sampler_t sa_type = METROPOLIS;
@@ -111,6 +113,7 @@ int ini::load(int argc, char* argv[]) {
     ("name,n",                                po::value(&name),                             "set name of current rbm")
     ("n_threads,t",                           po::value(&n_threads),                        "set number of omp threads")
     // Model
+    ("model.type",                            po::value(&model),                            "Model type.")
     ("model.n_cells,c",                       po::value(&n_cells),                          "set number of unit cells in one dimension")
     ("model.J",                               po::value(&J),                                "Interaction coefficient")
     // RBM
@@ -119,6 +122,7 @@ int ini::load(int argc, char* argv[]) {
     ("rbm.force,f",                           po::bool_switch(&rbm_force),                  "force retraining of RBM")
     ("rbm.weights",                           po::value(&rbm_weights),                      "set stddev for weights initialization")
     ("rbm.weights_imag",                      po::value(&rbm_weights_imag),                 "set stddev for imag weights initialization (if not set = rbm.weights)")
+    ("rbm.correlators",                       po::value(&rbm_correlators),                  "enables correlators if set to 1 and correlators are available for the model")
     // Sampler
     ("sampler.type",                          po::value(&sa_type),                          "set sampler type")
     ("sampler.n_samples",                     po::value(&sa_n_samples),                     "set sampler n sampler (metropolis only)")
@@ -213,6 +217,19 @@ std::istream& ini::operator>>(std::istream& is, ini::optimizer_t& opt) {
     } else {
         throw std::runtime_error("Optimizer Type '" + token +
                                  "' not available!");
+    }
+    return is;
+}
+
+std::istream& ini::operator>>(std::istream& is, ini::model_t& model) {
+    std::string token;
+    is >> token;
+    if (token == "kitaev") {
+        model = ini::model_t::KITAEV;
+    } else if (token == "kitaevS3") {
+        model = ini::model_t::KITAEV_S3;
+    } else {
+        throw std::runtime_error("Model Type '" + token + "' not available!");
     }
     return is;
 }

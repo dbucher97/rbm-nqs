@@ -35,9 +35,11 @@
 #include <memory>
 #include <random>
 #include <sstream>
+#include <unordered_map>
 //
 #include <lattice/honeycomb.hpp>
 #include <lattice/honeycombS3.hpp>
+#include <machine/correlator.hpp>
 #include <machine/file_psi.hpp>
 #include <machine/full_sampler.hpp>
 #include <machine/metropolis_sampler.hpp>
@@ -121,16 +123,27 @@ void print_bonds() {
     }
 }
 
-void debug() {
+void test_S3() {
     model::kitaevS3 km{3, -1};
-    machine::file_psi m{km.get_lattice(), "n3s3_1.state"};
+    machine::file_psi m{km.get_lattice(), "train/test1.state"};
     machine::full_sampler sampler{m, 3};
     auto& h = km.get_hamiltonian();
     operators::aggregator agg{h};
     sampler.register_op(&h);
     sampler.register_agg(&agg);
     sampler.sample(false);
-    std::cout << agg.get_result() << std::endl;
+    std::cout << agg.get_result() / km.get_lattice().n_total << std::endl;
+}
+
+void debug() {
+    test_S3();
+    // lattice::honeycombS3 lat{1};
+    // auto corr = lat.get_correlators();
+    // machine::correlator c{corr[0], 2};
+    // machine::correlator x{corr[1], 2};
+    // std::cout << x.get_cidx(10) << std::endl;
+    // std::mt19937 rng{};
+    // c.initialize_weights(rng, 0.1);
 }
 
 int main(int argc, char* argv[]) {
@@ -148,20 +161,35 @@ int main(int argc, char* argv[]) {
     Eigen::setNbThreads(1);
 
     std::mt19937 rng{static_cast<std::mt19937::result_type>(ini::seed)};
-    model::kitaevS3 km{ini::n_cells, ini::J};
+
+    std::unique_ptr<model::abstract_model> model;
+    switch (ini::model) {
+        case ini::model_t::KITAEV:
+            model = std::make_unique<model::kitaev>(ini::n_cells, ini::J);
+            break;
+        case ini::model_t::KITAEV_S3:
+            model = std::make_unique<model::kitaevS3>(ini::n_cells, ini::J);
+            break;
+        default:
+            return 1;
+    }
 
     std::unique_ptr<machine::rbm_base> rbm;
     switch (ini::rbm) {
         case ini::rbm_t::BASIC:
             rbm = std::make_unique<machine::rbm_base>(ini::n_hidden,
-                                                      km.get_lattice());
+                                                      model->get_lattice());
             break;
         case ini::rbm_t::SYMMETRY:
             rbm = std::make_unique<machine::rbm_symmetry>(ini::n_hidden,
-                                                          km.get_lattice());
+                                                          model->get_lattice());
             break;
         default:
             return 1;
+    }
+    if (ini::rbm_correlators && model->get_lattice().has_correlators()) {
+        auto c = model->get_lattice().get_correlators();
+        rbm->add_correlators(c);
     }
     if (ini::rbm_force || !rbm->load(ini::name)) {
         rbm->initialize_weights(rng, ini::rbm_weights, ini::rbm_weights_imag);
@@ -187,12 +215,12 @@ int main(int argc, char* argv[]) {
     switch (ini::opt_type) {
         case ini::optimizer_t::SR:
             optimizer = std::make_unique<optimizer::stochastic_reconfiguration>(
-                *rbm, *sampler, km.get_hamiltonian(), ini::opt_lr,
+                *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr,
                 ini::opt_sr_reg);
             break;
         case ini::optimizer_t::SGD:
             optimizer = std::make_unique<optimizer::gradient_descent>(
-                *rbm, *sampler, km.get_hamiltonian(), ini::opt_lr);
+                *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr);
             break;
         default:
             return 1;
@@ -201,14 +229,18 @@ int main(int argc, char* argv[]) {
     std::unique_ptr<optimizer::base_plugin> p;
     if (ini ::opt_plugin.length() > 0) {
         if (ini::opt_plugin == "adam") {
-            p = std::make_unique<optimizer::adam_plugin>(rbm->n_params);
+            p = std::make_unique<optimizer::adam_plugin>(rbm->get_n_params());
         } else if (ini::opt_plugin == "momentum") {
-            p = std::make_unique<optimizer::momentum_plugin>(rbm->n_params);
+            p = std::make_unique<optimizer::momentum_plugin>(
+                rbm->get_n_params());
         } else {
             return 1;
         }
         optimizer->set_plugin(p.get());
     }
+
+    std::cout << "Number of parameters: " << rbm->get_n_params() << std::endl;
+
     if (ini::train) {
         // Start getchar non-block
         struct termios oldt, newt;
@@ -242,16 +274,16 @@ int main(int argc, char* argv[]) {
         std::cout << std::endl;
         rbm->save(ini::name);
 
-        machine::full_sampler samp{*rbm, 3};
-        operators::aggregator agg{km.get_hamiltonian()};
-        samp.register_op(&(km.get_hamiltonian()));
-        samp.register_agg(&agg);
-        samp.sample(true);
-        std::cout << agg.get_result() / rbm->n_visible << std::endl;
-
     } else {
         std::cout << "nothing to do!" << std::endl;
     }
+
+    machine::full_sampler samp{*rbm, 3};
+    operators::aggregator agg{model->get_hamiltonian()};
+    samp.register_op(&(model->get_hamiltonian()));
+    samp.register_agg(&agg);
+    samp.sample(true);
+    std::cout << agg.get_result() / rbm->n_visible << std::endl;
 
     return 0;
 }

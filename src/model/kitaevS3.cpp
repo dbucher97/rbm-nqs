@@ -45,11 +45,13 @@ Eigen::Matrix4cd z_xy =
 Eigen::Matrix4cd z_yx = z_xy;
 }  // namespace model
 
-model::kitaevS3::kitaevS3(size_t size, const std::array<double, 3>& J)
-    : lat{size / 3},
-      hamiltonian{lat.get_bonds(),
-                  {J[0] * zz, J[1] * zz, J[2] * zz, J[0] * x_yz, J[0] * x_zy,
-                   J[1] * y_xz, J[1] * y_zx, J[2] * z_xy, J[2] * z_yx}} {
+model::kitaevS3::kitaevS3(size_t size, const std::array<double, 3>& J) {
     if (size % 3 != 0)
         throw std::runtime_error("Size not valid for Kitaev S3.");
+    lattice_ = std::make_unique<lattice::honeycombS3>(size / 3);
+    hamiltonian_ = std::make_unique<operators::bond_op>(
+        lattice_->get_bonds(),
+        std::vector<Eigen::MatrixXcd>{J[0] * zz, J[1] * zz, J[2] * zz,
+                                      J[0] * x_yz, J[0] * x_zy, J[1] * y_xz,
+                                      J[1] * y_zx, J[2] * z_xy, J[2] * z_yx});
 }

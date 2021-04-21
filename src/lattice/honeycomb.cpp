@@ -27,7 +27,7 @@ using namespace lattice;
 
 // The Honeycomb lattice is a 2 dimensional bravais lattice with 2 basis sites
 // and a coordination of three.
-honeycomb::honeycomb(size_t n_uc) : Base{n_uc, 2, 2, 3} {}
+honeycomb::honeycomb(size_t n_uc) : Base{n_uc, 2, 2, 3} { construct_bonds(); }
 
 std::vector<size_t> honeycomb::nns(size_t i) const {
     // Get the Honeycomb NNs. different positions for the two basis indices.
@@ -40,16 +40,14 @@ std::vector<size_t> honeycomb::nns(size_t i) const {
     }
 }
 
-std::vector<bond> honeycomb::get_bonds() const {
-    std::vector<bond> vec;
+void honeycomb::construct_bonds() {
     // Get all bonds by iterating ove the unitcells and get all NNs of basis
     // index one. Assing each bond the type 0 for x, 1 for y and 2 for z.
     for (size_t i = 0; i < n_total_uc; i++) {
         auto nn = nns(idx(i, 0));
         for (size_t c = 0; c < n_coordination; c++)
-            vec.push_back({idx(i, 0), nn[c], c});
+            bonds_.push_back({idx(i, 0), nn[c], c});
     }
-    return vec;
 }
 
 std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
@@ -146,3 +144,12 @@ size_t honeycomb::count_occurances_(size_t idx,
     return ret;
 }
 
+#ifndef FULL_SYMMETRY
+std::vector<honeycomb::correlator_group> honeycomb::get_correlators() const {
+    correlator_group zbonds;
+    for (size_t i = 0; i < n_total_uc; i++) {
+        zbonds.push_back({idx(i, 1), idx(up(i, 1), 0)});
+    }
+    return {zbonds};
+}
+#endif

@@ -22,9 +22,11 @@
 
 #include <Eigen/Dense>
 #include <complex>
+#include <memory>
 #include <random>
 //
 #include <lattice/bravais.hpp>
+#include <machine/correlator.hpp>
 
 namespace machine {
 
@@ -36,8 +38,9 @@ class rbm_base {
    public:
     const size_t n_alpha;    ///< Number of hidden units.
     const size_t n_visible;  ///< Number of visible units.
-    const size_t n_params;   ///< Number of total parameters.
    protected:
+    const size_t n_params_;  ///< Number of total parameters.
+
     lattice::bravais& lattice_;  ///< Reference to the Lattice.
 
     Eigen::MatrixXcd weights_;  ///< The weights matrix.
@@ -48,6 +51,8 @@ class rbm_base {
 
     size_t n_updates_;  ///< The number of updates received.
 
+    std::vector<std::unique_ptr<correlator>> correlators_;
+
     /**
      * @brief Hidden Constructor for the RBM used by derived classes to get
      * access to custor visible bias sizes.
@@ -57,6 +62,9 @@ class rbm_base {
      * @param lattice Reference to the Lattice.
      */
     rbm_base(size_t n_alpha, size_t n_vb, lattice::bravais& lattice);
+
+    virtual std::complex<double> psi_notheta(
+        const Eigen::MatrixXcd& state) const;
 
    public:
     /**
@@ -304,6 +312,18 @@ class rbm_base {
      * @return lattice reference.
      */
     lattice::bravais& get_lattice() { return lattice_; }
-};
 
+    /**
+     * @brief n_params_ getter
+     *
+     * @return n_params of RBM (without correlators)
+     */
+    size_t get_n_params() const;
+
+    virtual size_t symmetry_size() const { return 1; }
+
+    void add_correlator(const std::vector<std::vector<size_t>>& correlator);
+    void add_correlators(
+        const std::vector<std::vector<std::vector<size_t>>>& correlators);
+};
 }  // namespace machine

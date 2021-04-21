@@ -27,7 +27,9 @@ using namespace lattice;
 
 // The Honeycomb S3 lattice is a 2 dimensional bravais lattice with 6 basis
 // sites
-honeycombS3::honeycombS3(size_t n_uc) : Base{n_uc, 2, 6, 4, n_uc * 3, n_uc} {}
+honeycombS3::honeycombS3(size_t n_uc) : Base{n_uc, 2, 6, 4, n_uc * 3, n_uc} {
+    construct_bonds();
+}
 
 std::vector<size_t> honeycombS3::nns(size_t i) const {
     // Get the Honeycomb NNs. different positions for the two basis indices.
@@ -49,8 +51,7 @@ std::vector<size_t> honeycombS3::nns(size_t i) const {
     }
 }
 
-std::vector<bond> honeycombS3::get_bonds() const {
-    std::vector<bond> vec;
+void honeycombS3::construct_bonds() {
     std::vector<size_t> types;
     // Get all bonds by iterating ove the unitcells and get all NNs of basis
     // index one. Assing each bond the type 0 for x, 1 for y and 2 for z.
@@ -58,17 +59,16 @@ std::vector<bond> honeycombS3::get_bonds() const {
         auto nn = nns(idx(i, 0));
         types = {BOND_XX, BOND_Y_XZ, BOND_Z_XY};
         for (size_t c = 0; c < nn.size(); c++)
-            vec.push_back({idx(i, 0), nn[c], types[c]});
+            bonds_.push_back({idx(i, 0), nn[c], types[c]});
         nn = nns(idx(i, 2));
         types = {BOND_X_ZY, BOND_Y_ZX, BOND_ZZ};
         for (size_t c = 0; c < nn.size(); c++)
-            vec.push_back({idx(i, 2), nn[c], types[c]});
+            bonds_.push_back({idx(i, 2), nn[c], types[c]});
         nn = nns(idx(i, 5));
         types = {BOND_X_YZ, BOND_YY, BOND_Z_YX};
         for (size_t c = 0; c < nn.size(); c++)
-            vec.push_back({idx(i, 5), nn[c], types[c]});
+            bonds_.push_back({idx(i, 5), nn[c], types[c]});
     }
-    return vec;
 }
 
 std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
@@ -126,4 +126,18 @@ void honeycombS3::print_lattice(const std::vector<size_t>& el) const {
         }
         std::cout << std::endl;
     }
+}
+
+std::vector<honeycombS3::correlator_group> honeycombS3::get_correlators()
+    const {
+    correlator_group plaq, xbonds, ybonds, zbonds;
+    for (size_t i = 0; i < n_total_uc; i++) {
+        plaq.push_back({idx(i, 0), idx(i, 1), idx(i, 2), idx(i, 3),
+                        idx(down(i, 1), 5), idx(down(i, 1), 4)});
+        xbonds.push_back({idx(i, 0), idx(down(i), 3)});
+        ybonds.push_back({idx(i, 1), idx(down(i), 5)});
+        zbonds.push_back({idx(i, 2), idx(i, 4)});
+    }
+
+    return {plaq, xbonds, ybonds, zbonds};
 }

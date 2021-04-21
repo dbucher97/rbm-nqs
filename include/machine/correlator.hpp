@@ -15,17 +15,79 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 #include <Eigen/Dense>
 #include <complex>
+#include <fstream>
+#include <random>
+#include <unordered_map>
 #include <vector>
 
 namespace machine {
-class corrlator {
-    const std::vector<size_t>& idxs_;
+class correlator {
+   public:
+    const size_t cmax;
+
+   private:
+    std::vector<std::vector<size_t>> corr_;
+    std::unordered_map<size_t, size_t> rev_map_;
+
+    Eigen::MatrixXcd bias_;
+    Eigen::MatrixXcd weights_;
+
+    const size_t n_hidden_;
+    const size_t symmetry_;
+
+    inline size_t cidx_with_symm(size_t cidx, size_t symm) const {
+        return (cmax + cidx - symm) % cmax;
+    }
+
+    inline size_t get_cidx(size_t idx) const { return rev_map_.at(idx); }
 
    public:
-    corrlator(const std::vector<size_t>& idxs);
+    correlator(const std::vector<std::vector<size_t>>& corr, size_t n_hidden,
+               size_t symmetry = 1);
 
-    std::complex<double> evaluate(Eigen::MatrixXcd& state);
+    std::complex<double> evaluate(const Eigen::MatrixXcd& state, size_t cidx,
+                                  size_t sidx = 0) const;
+
+    /**
+     * @brief Initializes the weights randomly with given standard deviations.
+     * The imaginary part can have a different standard deviation.
+     *
+     * @param rng Reference to the RNG.
+     * @param std_dev Standard Deviation.
+     * @param std_dev_imag Standard Deviation for the imaginary part, default
+     * -1. will use the same as real part.
+     */
+    void initialize_weights(std::mt19937& rng, double std_dev,
+                            double std_dev_imag = -1.);
+
+    size_t get_n_params() const;
+
+    void update_weights(const Eigen::MatrixXcd& dw, size_t& offset);
+
+    void psi(const Eigen::MatrixXcd& state, std::complex<double>& res) const;
+
+    void add_thetas(const Eigen::MatrixXcd& state, Eigen::MatrixXcd& res,
+                    size_t sidx = 0) const;
+
+    void get_cidxs_from_flips(const std::vector<size_t>& flips,
+                              std::vector<std::vector<size_t>>& cidxs) const;
+
+    void update_thetas(const Eigen::MatrixXcd& state,
+                       const std::vector<size_t>& cidxs,
+                       Eigen::MatrixXcd& thetas, size_t sidx = 0) const;
+
+    std::complex<double> log_psi_over_psi(
+        const Eigen::MatrixXcd& state, const std::vector<size_t>& cidxs) const;
+
+    void derivative(const Eigen::MatrixXcd& state,
+                    const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& result,
+                    size_t& offset) const;
+
+    void load(std::ifstream& input);
+    void save(std::ofstream& output);
 };
 }  // namespace machine

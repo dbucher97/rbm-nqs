@@ -24,9 +24,7 @@
 #include <vector>
 //
 #include <lattice/honeycombS3.hpp>
-#include <model/kitaev.hpp>
-#include <operators/base_op.hpp>
-#include <operators/bond_op.hpp>
+#include <model/abstract_model.hpp>
 
 /**
  * @brief Namespace for the physical models.
@@ -43,9 +41,9 @@ extern Eigen::Matrix4cd z_yx;  ///< 2 site Pauli-z operator in y x basis
 /**
  * @brief The Honeycomb Kitaev Model.
  */
-class kitaevS3 {
-    lattice::honeycombS3 lat;        ///< Honeycomb lattice object.
-    operators::bond_op hamiltonian;  ///< Bond Operator Hamiltonian object.
+class kitaevS3 : public abstract_model {
+    using Base = abstract_model;
+
    public:
     /**
      * @brief Kitaev model consturctor.
@@ -61,18 +59,5 @@ class kitaevS3 {
      * @param J Array of coupling constant {J_x, J_y, J_z}..
      */
     kitaevS3(size_t size, const std::array<double, 3>& J);
-
-    /**
-     * @brief Hamiltonian constructor
-     *
-     * @return Reference to the `bond_op` Hamiltonian.
-     */
-    operators::base_op& get_hamiltonian() { return hamiltonian; }
-    /**
-     * @brief Lattice getter
-     *
-     * @return Reference to the `honeycomb` lattice.
-     */
-    lattice::bravais& get_lattice() { return lat; };
 };
 }  // namespace model

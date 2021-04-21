@@ -50,6 +50,10 @@ enum sampler_t { FULL, METROPOLIS, EXACT };
  * @brief Optimizer Type enum
  */
 enum optimizer_t { SGD, SR };
+/**
+ * @brief Model Type enum
+ */
+enum model_t { KITAEV, KITAEV_S3 };
 
 /**
  * @brief `istream` wrapper for loading RBM type.
@@ -78,6 +82,15 @@ extern std::istream& operator>>(std::istream& input, sampler_t& sampler);
  * @return `istream` reference.
  */
 extern std::istream& operator>>(std::istream& input, optimizer_t& optimizer);
+/**
+ * @brief `istream` wrapper for loading Model type.
+ *
+ * @param input `istream` reference.
+ * @param optimizer `optimizer_t` reference.
+ *
+ * @return `istream` reference.
+ */
+extern std::istream& operator>>(std::istream& input, model_t& optimizer);
 /**
  * @brief Loads an `decay_t` with a string vector from `boost_program_options`.
  *
@@ -118,6 +131,7 @@ extern std::string ini_file;
 extern bool train;
 
 // Model
+extern model_t model;
 extern size_t n_cells;
 extern double J;
 
@@ -127,6 +141,7 @@ extern size_t n_hidden;
 extern bool rbm_force;
 extern double rbm_weights;
 extern double rbm_weights_imag;
+extern size_t rbm_correlators;
 
 // Sampler
 extern sampler_t sa_type;

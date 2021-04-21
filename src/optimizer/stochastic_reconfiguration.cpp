@@ -67,7 +67,8 @@ void stochastic_reconfiguration::optimize() {
     Eigen::MatrixXcd S = dd - d.conjugate() * d.transpose();
 
     // Add regularization.
-    S += kp_.get() * Eigen::MatrixXcd::Identity(rbm_.n_params, rbm_.n_params);
+    size_t p = rbm_.get_n_params();
+    S += kp_.get() * Eigen::MatrixXcd::Identity(p, p);
     // Calculate dw.
     Eigen::MatrixXcd dw = S.completeOrthogonalDecomposition().solve(F);
 

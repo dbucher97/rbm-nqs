@@ -58,6 +58,11 @@ class bravais {
     const size_t h_shift;  ///< Horizontal shift on vertical periodic boundary.
 
    protected:
+    using correlator = std::vector<size_t>;
+    using correlator_group = std::vector<correlator>;
+
+    std::vector<bond> bonds_;
+
     /**
      * @brief Bravais constructor.
      *
@@ -71,6 +76,13 @@ class bravais {
      */
     bravais(size_t n_uc, size_t n_dim, size_t n_basis, size_t n_coordination,
             size_t n_uc_b = 0, size_t h_shift = 0);
+
+    /**
+     * @brief Constructs the nearest neighbouring bonds of the lattice
+     *
+     * @return vector of bonds
+     */
+    virtual void construct_bonds() = 0;
 
    public:
     /**
@@ -158,7 +170,7 @@ class bravais {
      *
      * @return vector of bonds
      */
-    virtual std::vector<bond> get_bonds() const = 0;
+    virtual const std::vector<bond>& get_bonds() const { return bonds_; }
 
     /**
      * @brief Constructs the symmetry of the lattice. A symmetry can be
@@ -171,9 +183,25 @@ class bravais {
     construct_symmetry() const = 0;
 
     /**
+     * @brief Check if lattice has correlators.
+     *
+     * @return True if it has correlators.
+     */
+    virtual bool has_correlators() const { return false; }
+
+    /**
+     * @brief Returns a vector of correlator groups
+     *
+     * @return Vector of correlator_groups
+     */
+    virtual std::vector<correlator_group> get_correlators() const {
+        return {};
+    };
+
+    /**
      * @brief Printis the lattice and highlights
-     * certain sites inside the lattice. A highlight is marked with the number
-     * of occurances in the hightlits vector.
+     * certain sites inside the lattice. A highlight is marked with the
+     * number of occurances in the hightlits vector.
      *
      * @param highlights Vector of site indices to be hightligthed.
      */
