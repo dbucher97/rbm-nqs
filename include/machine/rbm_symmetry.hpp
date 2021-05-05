@@ -84,6 +84,9 @@ class rbm_symmetry : public rbm_base {
     virtual Eigen::MatrixXcd derivative(
         const Eigen::MatrixXcd& state,
         const Eigen::MatrixXcd& thetas) const override;
+
+    virtual void add_correlator(
+        const std::vector<std::vector<size_t>>& corr) override;
 };
 
 }  // namespace machine

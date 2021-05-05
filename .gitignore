@@ -6,4 +6,7 @@ tsf-out/
 *.log
 *.rbm
 *.state
+.cache/
 !trained/*.rbm
+.ipynb_checkpoints/
+__pycache__/

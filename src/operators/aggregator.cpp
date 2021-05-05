@@ -84,7 +84,7 @@ prod_aggregator::prod_aggregator(const base_op& op, const base_op& scalar)
 
 Eigen::MatrixXcd prod_aggregator::aggregate_() {
     // Calculate op_a op_b^*
-    return scalar_.get_result()(0, 0) * op_.get_result().conjugate();
+    return scalar_.get_result()(0) * op_.get_result().conjugate();
 }
 
 outer_aggregator::outer_aggregator(const base_op& op)

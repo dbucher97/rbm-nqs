@@ -63,7 +63,7 @@ void stochastic_reconfiguration::optimize() {
     sampler_.log();
 
     // Calculate the gradient descent and the covariance matrix.
-    Eigen::MatrixXcd F = dh - d.conjugate() * h(0);
+    Eigen::MatrixXcd F = dh - h(0) * d.conjugate();
     Eigen::MatrixXcd S = dd - d.conjugate() * d.transpose();
 
     // Add regularization.

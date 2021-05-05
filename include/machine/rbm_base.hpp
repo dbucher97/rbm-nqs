@@ -322,7 +322,8 @@ class rbm_base {
 
     virtual size_t symmetry_size() const { return 1; }
 
-    void add_correlator(const std::vector<std::vector<size_t>>& correlator);
+    virtual void add_correlator(
+        const std::vector<std::vector<size_t>>& correlator);
     void add_correlators(
         const std::vector<std::vector<std::vector<size_t>>>& correlators);
 };

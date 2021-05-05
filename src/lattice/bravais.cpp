@@ -57,27 +57,26 @@ size_t bravais::idx(std::vector<size_t>&& idxs, size_t b_idx) const {
     return idx(uc_idx(std::move(idxs)), b_idx);
 }
 
-size_t bravais::up(size_t uc_idx, size_t dir) const {
+size_t bravais::up(size_t uc_idx, size_t dir, size_t step) const {
     // Calculate the total index shift.
     size_t shift = static_cast<size_t>(std::pow(n_uc, dir)) * n_uc_b;
     // Get the offset of the last samlle dimension.
     size_t offset = uc_idx / shift;
     // use n_uc_b for first dim.
-    size_t n_uc2 = dir == 0 ? n_uc_b : n_uc;
+    size_t n_uc2 = (dir == 0 ? n_uc_b : n_uc);
     // Check if overflow happened for h shift
-    size_t overflow = (uc_idx + shift / n_uc2) / shift;
+    size_t overflow = (uc_idx + (step * shift) / n_uc2) / shift;
     // Shift unitcell along a dimension.
-    uc_idx = (uc_idx + shift / n_uc2) % shift;
+    step %= n_uc2;
+    uc_idx = (uc_idx + step * shift / n_uc2) % shift;
     // Get the complete unitcell index together with previous dimension.
     size_t ret = shift * offset + uc_idx;
     if (overflow && h_shift && dir == 1) {
-        for (size_t i = 0; i < h_shift; i++) {
-            ret = down(ret);
-        }
+        ret = down(ret, 0, h_shift);
     }
     return ret;
 }
-size_t bravais::down(size_t uc_idx, size_t dir) const {
+size_t bravais::down(size_t uc_idx, size_t dir, size_t step) const {
     // Calculate the total index shift.
     size_t shift = static_cast<size_t>(std::pow(n_uc, dir)) * n_uc_b;
     // Get the offset of the last samlle dimension.
@@ -85,14 +84,25 @@ size_t bravais::down(size_t uc_idx, size_t dir) const {
     // use n_uc_b for first dim.
     size_t n_uc2 = dir == 0 ? n_uc_b : n_uc;
     // Check if overflow happened for h shift
-    size_t overflow = (uc_idx + (n_uc2 - 1) * shift / n_uc2) / shift;
+    size_t overflow = (uc_idx + (n_uc2 - step) * shift / n_uc2) / shift;
     // Shift unitcell along a dimension.
-    uc_idx = (uc_idx + (n_uc2 - 1) * shift / n_uc2) % shift;
+    step %= n_uc2;
+    uc_idx = (uc_idx + (n_uc2 - step) * shift / n_uc2) % shift;
     // Get the complete unitcell index together with previous dimension.
     size_t ret = shift * offset + uc_idx;
     if (!overflow && h_shift && dir == 1) {
-        for (size_t i = 0; i < h_shift; i++) {
-            ret = up(ret);
+        ret = up(ret, 0, h_shift);
+    }
+    return ret;
+}
+
+std::vector<std::vector<size_t>> bravais::construct_uc_symmetry() const {
+    std::vector<std::vector<size_t>> ret(n_uc_b * n_uc);
+    for (size_t y = 0; y < n_uc; y++) {
+        for (size_t x = 0; x < n_uc_b; x++) {
+            for (size_t uc = 0; uc < n_total_uc; uc++) {
+                ret[x + y * n_uc_b].push_back(up(up(uc, 0, x), 1, y));
+            }
         }
     }
     return ret;

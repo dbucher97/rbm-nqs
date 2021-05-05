@@ -228,6 +228,10 @@ std::istream& ini::operator>>(std::istream& is, ini::model_t& model) {
         model = ini::model_t::KITAEV;
     } else if (token == "kitaevS3") {
         model = ini::model_t::KITAEV_S3;
+    } else if (token == "isingS3") {
+        model = ini::model_t::ISING_S3;
+    } else if (token == "toric") {
+        model = ini::model_t::TORIC;
     } else {
         throw std::runtime_error("Model Type '" + token + "' not available!");
     }

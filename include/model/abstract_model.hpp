@@ -27,7 +27,7 @@ namespace model {
 class abstract_model {
    protected:
     std::unique_ptr<lattice::bravais> lattice_;  ///< lattice object pointer.
-    std::unique_ptr<operators::bond_op>
+    std::unique_ptr<operators::base_op>
         hamiltonian_;  ///< Bond Operator Pointer.
 
    public:
@@ -38,7 +38,7 @@ class abstract_model {
      *
      * @return Reference to the `bond_op` Hamiltonian.
      */
-    operators::bond_op& get_hamiltonian() { return *hamiltonian_; }
+    operators::base_op& get_hamiltonian() { return *hamiltonian_; }
     /**
      * @brief Lattice getter
      *

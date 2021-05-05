@@ -49,6 +49,9 @@ doc:
 	cd docs && make html && cd ..
 	mv README.md.tmp README.md
 
+lsp:
+	@compiledb make --always-make --dry-run
+
 
 -include $(DEPS)
 

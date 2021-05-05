@@ -18,44 +18,51 @@
 
 #include <Eigen/Dense>
 #include <complex>
+#include <unsupported/Eigen/KroneckerProduct>
 //
 
-#include <model/kitaevS3.hpp>
+#include <model/isingS3.hpp>
 
 namespace model {
 // Definition of the 2 site Pauli matrices.
-Eigen::Matrix4cd zz =
-    ((Eigen::Matrix4cd() << 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1)
-         .finished());
-Eigen::Matrix4cd x_zy =
-    std::complex<double>(0, 1.) *
-    ((Eigen::Matrix4cd() << 0, 0, 0, -1, 0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
-         .finished());
-Eigen::Matrix4cd x_yz =
-    std::complex<double>(0, 1.) *
-    ((Eigen::Matrix4cd() << 0, 0, 0, -1, 0, 0, 1, 0, 0, -1, 0, 0, 1, 0, 0, 0)
-         .finished());
-Eigen::Matrix4cd y_xz =
-    ((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, 1, 0, 0, 0)
-         .finished());
-Eigen::Matrix4cd y_zx =
-    ((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, 1, 0, 0, 0)
-         .finished());
-Eigen::Matrix4cd z_xy =
+Eigen::Matrix4cd sx =
     ((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
          .finished());
-Eigen::Matrix4cd z_yx =
+Eigen::Matrix4cd iyy =
+    ((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
+         .finished());
+Eigen::Matrix4cd izz =
+    ((Eigen::Matrix4cd() << 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1)
+         .finished());
+Eigen::Matrix4cd ix_zy =
+    ((Eigen::Matrix4cd() << 0, 0, 1, 0, 0, 0, 0, -1, 1, 0, 0, 0, 0, -1, 0, 0)
+         .finished());
+//
+Eigen::Matrix4cd ix_yz =
+    ((Eigen::Matrix4cd() << 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 0, 0, -1, 0)
+         .finished());
+Eigen::Matrix4cd iy_xz =
+    ((Eigen::Matrix4cd() << 0, 0, 1, 0, 0, 0, 0, -1, 1, 0, 0, 0, 0, -1, 0, 0)
+         .finished());
+Eigen::Matrix4cd iy_zx =
+    ((Eigen::Matrix4cd() << 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 0, 0, -1, 0)
+         .finished());
+//
+Eigen::Matrix4cd iz_xy =
+    ((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
+         .finished());
+Eigen::Matrix4cd iz_yx =
     ((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
          .finished());
 }  // namespace model
 
-model::kitaevS3::kitaevS3(size_t size, const std::array<double, 3>& J) {
+model::isingS3::isingS3(size_t size, double J) {
     if (size % 3 != 0)
         throw std::runtime_error("Size not valid for Kitaev S3.");
     lattice_ = std::make_unique<lattice::honeycombS3>(size / 3);
     hamiltonian_ = std::make_unique<operators::bond_op>(
         lattice_->get_bonds(),
-        std::vector<Eigen::MatrixXcd>{J[0] * zz, J[1] * zz, J[2] * zz,
-                                      J[0] * x_yz, J[0] * x_zy, J[1] * y_xz,
-                                      J[1] * y_zx, J[2] * z_xy, J[2] * z_yx});
+        std::vector<Eigen::MatrixXcd>{J * ixx, J * iyy, J * izz, J * ix_yz,
+                                      J * ix_zy, J * iy_zx, J * iy_xz,
+                                      J * iz_xy, J * iz_yx});
 }

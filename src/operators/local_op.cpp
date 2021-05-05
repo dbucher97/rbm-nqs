@@ -36,7 +36,7 @@ void local_op::evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
     auto& result = get_result_();
     result.setZero();
 
-    // The next two lines are basicelly Op |\psi>, since |\psi> has only one
+    // The next two lines are basicelly <\psi| Op, since |\psi> has only one
     // non-zero element, which is one.
     size_t loc = tools::state_to_num_loc(state, acts_on_);
     Eigen::MatrixXcd res = op_.row(loc);

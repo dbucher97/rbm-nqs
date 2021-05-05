@@ -30,15 +30,13 @@ bond_op::bond_op(const std::vector<lattice::bond>& bonds,
     : Base{}, bops_{} {
     // Copy operators
     for (auto& op : ops) {
-        // ADDED TRANSPOSITION HERE
         bops_.push_back(op);
-        // bops_.push_back(op);
     }
     // Push every bond with corresponding operator into the local operator
     // chain.
     size_t c = 0;
     for (auto& bond : bonds) {
-        // if (c >= 6 && c < 7) {
+        // if (c == 1) {
         push_back({{bond.a, bond.b}, bops_[bond.type]});
         // }
         c++;

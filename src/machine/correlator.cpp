@@ -23,27 +23,48 @@
 using namespace machine;
 
 correlator::correlator(const std::vector<std::vector<size_t>>& corr,
-                       size_t n_hidden, size_t symmetry)
+                       size_t n_hidden,
+                       const std::vector<std::vector<size_t>>& uc_symm)
     : cmax{corr.size()},
       corr_(corr.size()),
-      bias_(cmax / symmetry, 1),
+      symm_(uc_symm.size() == 0 ? 1 : uc_symm.size()),
+      rev_symm_(symm_.size()),
+      bias_(cmax / symm_.size(), 1),
       weights_(cmax, n_hidden),
-      n_hidden_{n_hidden},
-      symmetry_{symmetry} {
+      n_hidden_{n_hidden} {
     size_t c = 0;
-    for (auto& ci : corr) {
+    for (auto& ci : corr_) {
         for (auto idx : ci) {
             corr_[c].push_back(idx);
             rev_map_[idx] = c;
         }
         c++;
     }
+    if (uc_symm.size() == 0) {
+        rev_symm_.push_back({});
+        for (size_t i = 0; i < cmax; i++) {
+            symm_[0].push_back(i);
+            rev_symm_[0].push_back(i);
+        }
+    } else {
+        c = 0;
+        for (auto& si : uc_symm) {
+            rev_symm_[c].reserve(si.size());
+            size_t ic = 0;
+            for (auto idx : si) {
+                symm_[c].push_back(idx);
+                rev_symm_[c][idx] = ic;
+                ic++;
+            }
+            c++;
+        }
+    }
 }
 
 std::complex<double> correlator::evaluate(const Eigen::MatrixXcd& state,
                                           size_t cidx, size_t sidx) const {
     std::complex<double> ret = 1;
-    for (auto i : corr_[(cidx + sidx) % cmax]) {
+    for (auto i : corr_[symm_[sidx][cidx]]) {
         ret *= state(i);
     }
     return ret;
@@ -147,7 +168,7 @@ void correlator::derivative(const Eigen::MatrixXcd& state,
     offset += bias_.size();
     for (size_t i = 0; i < cmax; i++) {
         result.block(offset + i * tanh.rows(), 0, tanh.rows(), 1).setZero();
-        for (size_t s = 0; s < symmetry_; s++) {
+        for (size_t s = 0; s < symm_.size(); s++) {
             result.block(offset + i * tanh.rows(), 0, tanh.rows(), 1) +=
                 evaluate(state, i, s) * tanh.col(s);
         }

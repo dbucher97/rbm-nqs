@@ -53,7 +53,7 @@ enum optimizer_t { SGD, SR };
 /**
  * @brief Model Type enum
  */
-enum model_t { KITAEV, KITAEV_S3 };
+enum model_t { KITAEV, KITAEV_S3, ISING_S3, TORIC };
 
 /**
  * @brief `istream` wrapper for loading RBM type.

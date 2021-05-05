@@ -1,0 +1,515 @@
+[
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/tools/eigen_fstream.cpp",
+   "-o",
+   "build/src/tools/eigen_fstream.cpp.o"
+  ],
+  "file": "src/tools/eigen_fstream.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/tools/ini.cpp",
+   "-o",
+   "build/src/tools/ini.cpp.o"
+  ],
+  "file": "src/tools/ini.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/tools/logger.cpp",
+   "-o",
+   "build/src/tools/logger.cpp.o"
+  ],
+  "file": "src/tools/logger.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/operators/aggregator.cpp",
+   "-o",
+   "build/src/operators/aggregator.cpp.o"
+  ],
+  "file": "src/operators/aggregator.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/operators/local_op.cpp",
+   "-o",
+   "build/src/operators/local_op.cpp.o"
+  ],
+  "file": "src/operators/local_op.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/operators/overlap_op.cpp",
+   "-o",
+   "build/src/operators/overlap_op.cpp.o"
+  ],
+  "file": "src/operators/overlap_op.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/operators/local_op_chain.cpp",
+   "-o",
+   "build/src/operators/local_op_chain.cpp.o"
+  ],
+  "file": "src/operators/local_op_chain.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/operators/derivative_op.cpp",
+   "-o",
+   "build/src/operators/derivative_op.cpp.o"
+  ],
+  "file": "src/operators/derivative_op.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/operators/bond_op.cpp",
+   "-o",
+   "build/src/operators/bond_op.cpp.o"
+  ],
+  "file": "src/operators/bond_op.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/operators/store_state.cpp",
+   "-o",
+   "build/src/operators/store_state.cpp.o"
+  ],
+  "file": "src/operators/store_state.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/optimizer/gradient_descent.cpp",
+   "-o",
+   "build/src/optimizer/gradient_descent.cpp.o"
+  ],
+  "file": "src/optimizer/gradient_descent.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/optimizer/stochastic_reconfiguration.cpp",
+   "-o",
+   "build/src/optimizer/stochastic_reconfiguration.cpp.o"
+  ],
+  "file": "src/optimizer/stochastic_reconfiguration.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/optimizer/plugin.cpp",
+   "-o",
+   "build/src/optimizer/plugin.cpp.o"
+  ],
+  "file": "src/optimizer/plugin.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/optimizer/abstract_optimizer.cpp",
+   "-o",
+   "build/src/optimizer/abstract_optimizer.cpp.o"
+  ],
+  "file": "src/optimizer/abstract_optimizer.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/lattice/bravais.cpp",
+   "-o",
+   "build/src/lattice/bravais.cpp.o"
+  ],
+  "file": "src/lattice/bravais.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/lattice/honeycomb.cpp",
+   "-o",
+   "build/src/lattice/honeycomb.cpp.o"
+  ],
+  "file": "src/lattice/honeycomb.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/lattice/honeycombS3.cpp",
+   "-o",
+   "build/src/lattice/honeycombS3.cpp.o"
+  ],
+  "file": "src/lattice/honeycombS3.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/machine/file_psi.cpp",
+   "-o",
+   "build/src/machine/file_psi.cpp.o"
+  ],
+  "file": "src/machine/file_psi.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/machine/metropolis_sampler.cpp",
+   "-o",
+   "build/src/machine/metropolis_sampler.cpp.o"
+  ],
+  "file": "src/machine/metropolis_sampler.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/machine/rbm_symmetry.cpp",
+   "-o",
+   "build/src/machine/rbm_symmetry.cpp.o"
+  ],
+  "file": "src/machine/rbm_symmetry.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/machine/abstract_sampler.cpp",
+   "-o",
+   "build/src/machine/abstract_sampler.cpp.o"
+  ],
+  "file": "src/machine/abstract_sampler.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/machine/rbm_base.cpp",
+   "-o",
+   "build/src/machine/rbm_base.cpp.o"
+  ],
+  "file": "src/machine/rbm_base.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/machine/full_sampler.cpp",
+   "-o",
+   "build/src/machine/full_sampler.cpp.o"
+  ],
+  "file": "src/machine/full_sampler.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/machine/correlator.cpp",
+   "-o",
+   "build/src/machine/correlator.cpp.o"
+  ],
+  "file": "src/machine/correlator.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/model/kitaevS3.cpp",
+   "-o",
+   "build/src/model/kitaevS3.cpp.o"
+  ],
+  "file": "src/model/kitaevS3.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/model/kitaev.cpp",
+   "-o",
+   "build/src/model/kitaev.cpp.o"
+  ],
+  "file": "src/model/kitaev.cpp"
+ },
+ {
+  "directory": "/Users/david/master/project/RBMC",
+  "arguments": [
+   "/usr/local/opt/llvm/bin/clang++",
+   "-fopenmp",
+   "-Iinclude",
+   "-I/usr/local/include/",
+   "-I/usr/local/include/eigen3/",
+   "-MMD",
+   "-MP",
+   "-Wall",
+   "-std=c++14",
+   "-c",
+   "src/main.cpp",
+   "-o",
+   "build/src/main.cpp.o"
+  ],
+  "file": "src/main.cpp"
+ }
+]

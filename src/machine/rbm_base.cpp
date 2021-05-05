@@ -1,20 +1,4 @@
 /*
- *            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
- *                    Version 2, December 2004
- *
- * Copyright (C) 2021 David Bucher <David.Bucher@physik.lmu.de>
- *
- * Everyone is permitted to copy and distribute verbatim or modified
- * copies of this license document, and changing it is allowed as long
- * as the name is changed.
- *
- *            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
- *   TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
- *
- *  0. You just DO WHAT THE FUCK YOU WANT TO.
- */
-
-/*
  * Copyright (c) 2021 David Bucher <David.Bucher@physik.lmu.de>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -339,8 +323,7 @@ size_t rbm_base::get_n_params() const {
 }
 
 void rbm_base::add_correlator(const std::vector<std::vector<size_t>>& corr) {
-    correlators_.push_back(
-        std::make_unique<correlator>(corr, n_alpha, symmetry_size()));
+    correlators_.push_back(std::make_unique<correlator>(corr, n_alpha));
 }
 
 void rbm_base::add_correlators(

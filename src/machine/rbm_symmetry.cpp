@@ -157,3 +157,9 @@ Eigen::MatrixXcd rbm_symmetry::derivative(
     for (auto& c : correlators_) c->derivative(state, tanh, result, offset);
     return result;
 }
+
+void rbm_symmetry::add_correlator(
+    const std::vector<std::vector<size_t>>& corr) {
+    auto symm = lattice_.construct_uc_symmetry();
+    correlators_.push_back(std::make_unique<correlator>(corr, n_alpha, symm));
+}

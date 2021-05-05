@@ -141,20 +141,22 @@ class bravais {
      *
      * @param uc_idx Current unitcell index
      * @param dir Direction (Dimension of movement: 0 <-> x, 1 <-> y, ...)
+     * @param step Step size in direction (max unitcells in direction).
      *
      * @return Index of new unitcell.
      */
-    size_t up(size_t uc_idx, size_t dir = 0) const;
+    size_t up(size_t uc_idx, size_t dir = 0, size_t step = 1) const;
 
     /**
      * @brief move one unitcell down in given dimension
      *
      * @param uc_idx Current unitcell index
      * @param dir Direction (Dimension of movement: 0 <-> x, 1 <-> y, ...)
+     * @param step Step size in direction (max unitcells in direction).
      *
      * @return Index of new unitcell.
      */
-    size_t down(size_t ux_idx, size_t dir = 0) const;
+    size_t down(size_t ux_idx, size_t dir = 0, size_t step = 1) const;
 
     /**
      * @brief Returns the nearest neighbour sites to a given site.
@@ -181,6 +183,13 @@ class bravais {
     virtual std::vector<
         Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
     construct_symmetry() const = 0;
+
+    /**
+     * @brief Constructs the uc indices for all symmetry indices.
+     *
+     * @return Vector of uc indices vectors.
+     */
+    virtual std::vector<std::vector<size_t>> construct_uc_symmetry() const;
 
     /**
      * @brief Check if lattice has correlators.

@@ -36,17 +36,21 @@
 #include <random>
 #include <sstream>
 #include <unordered_map>
+#include <unsupported/Eigen/KroneckerProduct>
 //
 #include <lattice/honeycomb.hpp>
 #include <lattice/honeycombS3.hpp>
+#include <lattice/toric_lattice.hpp>
 #include <machine/correlator.hpp>
 #include <machine/file_psi.hpp>
 #include <machine/full_sampler.hpp>
 #include <machine/metropolis_sampler.hpp>
 #include <machine/rbm_base.hpp>
 #include <machine/rbm_symmetry.hpp>
+#include <model/isingS3.hpp>
 #include <model/kitaev.hpp>
 #include <model/kitaevS3.hpp>
+#include <model/toric.hpp>
 #include <operators/aggregator.hpp>
 #include <operators/bond_op.hpp>
 #include <operators/derivative_op.hpp>
@@ -99,6 +103,12 @@ std::vector<size_t> to_indices(const MatrixXcd& vec) {
     }
     return ret;
 }
+size_t to_idx(const MatrixXcd& vec) {
+    for (size_t v = 0; v < vec.size(); v++) {
+        if (std::real(vec(v)) > 0) return v;
+    }
+    return -1;
+}
 void test_symmetry() {
     model::kitaev km{4, -1};
     auto& lattice = km.get_lattice();
@@ -121,29 +131,64 @@ void print_bonds() {
     for (auto& bond : bonds) {
         std::cout << bond.a << "," << bond.b << "," << bond.type << std::endl;
     }
+    lat.print_lattice({0, lat.up(0, 1)});
 }
 
 void test_S3() {
-    model::kitaevS3 km{3, -1};
-    machine::file_psi m{km.get_lattice(), "train/test1.state"};
+    model::isingS3 km{3, -1};
+    machine::file_psi m{km.get_lattice(), "isingS3.state"};
     machine::full_sampler sampler{m, 3};
     auto& h = km.get_hamiltonian();
     operators::aggregator agg{h};
     sampler.register_op(&h);
     sampler.register_agg(&agg);
     sampler.sample(false);
+    std::cout.precision(17);
+    std::cout << agg.get_result() << std::endl;
     std::cout << agg.get_result() / km.get_lattice().n_total << std::endl;
 }
 
 void debug() {
-    test_S3();
-    // lattice::honeycombS3 lat{1};
-    // auto corr = lat.get_correlators();
-    // machine::correlator c{corr[0], 2};
-    // machine::correlator x{corr[1], 2};
-    // std::cout << x.get_cidx(10) << std::endl;
-    // std::mt19937 rng{};
-    // c.initialize_weights(rng, 0.1);
+    // auto& h = m.get_hamiltonian();
+    //
+    // machine::rbm_base rbm(3, m.get_lattice());
+    //
+    // Eigen::MatrixXcd state(rbm.n_visible, 1);
+    // std::uniform_real_distribution<double> u_dist(0, 1);
+    // std::mt19937 rng;
+    // for (size_t i = 0; i < rbm.n_visible; i++) {
+    //     state(i) = u_dist(rng) < 0.5 ? 1. : -1.;
+    // }
+    // MatrixXcd thetas = rbm.get_thetas(state);
+    //
+    // h.evaluate(rbm, state, thetas);
+    lattice::toric_lattice lat{3};
+    auto plaq = lat.construct_plaqs();
+    for (auto& p : plaq) {
+        for (auto& i : p.idxs) {
+            std::cout << i << ", ";
+        }
+        std::cout << p.type << std::endl;
+    }
+    // auto symm = lat.construct_symmetry();
+    // std::vector<size_t> v1(plaq[0].idxs.begin(), plaq[0].idxs.end());
+    // std::vector<size_t> v2(plaq[1].idxs.begin(), plaq[1].idxs.end());
+    // v1.insert(v1.end(), v2.begin(), v2.end());
+    // MatrixXcd vec(lat.n_total, 1);
+    // for (auto& s : symm) {
+    //     std::vector<size_t> st;
+    //     for (auto v : v1) {
+    //         vec.setZero();
+    //         vec(v) = 1;
+    //         vec = s * vec;
+    //         // std::cout << to_idx(vec) << std::endl;
+    //         st.push_back(to_idx(vec));
+    //     }
+    //     for (auto& x : st) std::cout << x << ", ";
+    //     std::cout << std::endl;
+    //     lat.print_lattice(st);
+    //     std::cout << std::endl;
+    // }
 }
 
 int main(int argc, char* argv[]) {
@@ -169,6 +214,12 @@ int main(int argc, char* argv[]) {
             break;
         case ini::model_t::KITAEV_S3:
             model = std::make_unique<model::kitaevS3>(ini::n_cells, ini::J);
+            break;
+        case ini::model_t::ISING_S3:
+            model = std::make_unique<model::isingS3>(ini::n_cells, ini::J);
+            break;
+        case ini::model_t::TORIC:
+            model = std::make_unique<model::toric>(ini::n_cells, ini::J);
             break;
         default:
             return 1;
@@ -257,7 +308,7 @@ int main(int argc, char* argv[]) {
         int ch = 0;
         for (size_t i = 0; i < ini::n_epochs && ch != ''; i++) {
             sampler->sample(ini::sa_n_samples);
-            Eigen::setNbThreads(0);
+            Eigen::setNbThreads(ini::n_threads);
             optimizer->optimize();
             Eigen::setNbThreads(1);
             logger::newline();
@@ -283,7 +334,8 @@ int main(int argc, char* argv[]) {
     samp.register_op(&(model->get_hamiltonian()));
     samp.register_agg(&agg);
     samp.sample(true);
-    std::cout << agg.get_result() / rbm->n_visible << std::endl;
+    std::cout.precision(17);
+    std::cout << std::real(agg.get_result()(0)) / rbm->n_visible << std::endl;
 
     return 0;
 }

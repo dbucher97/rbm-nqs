@@ -31,23 +31,24 @@ class correlator {
 
    private:
     std::vector<std::vector<size_t>> corr_;
+    std::vector<std::vector<size_t>> symm_;
+    std::vector<std::vector<size_t>> rev_symm_;
     std::unordered_map<size_t, size_t> rev_map_;
 
     Eigen::MatrixXcd bias_;
     Eigen::MatrixXcd weights_;
 
     const size_t n_hidden_;
-    const size_t symmetry_;
 
-    inline size_t cidx_with_symm(size_t cidx, size_t symm) const {
-        return (cmax + cidx - symm) % cmax;
+    inline size_t cidx_with_symm(size_t cidx, size_t sidx) const {
+        return rev_symm_[sidx][cidx];
     }
 
     inline size_t get_cidx(size_t idx) const { return rev_map_.at(idx); }
 
    public:
     correlator(const std::vector<std::vector<size_t>>& corr, size_t n_hidden,
-               size_t symmetry = 1);
+               const std::vector<std::vector<size_t>>& symm = {});
 
     std::complex<double> evaluate(const Eigen::MatrixXcd& state, size_t cidx,
                                   size_t sidx = 0) const;
