@@ -42,9 +42,9 @@ class metropolis_sampler : public abstract_sampler {
     size_t step_size_;     ///< The steps taken between two samples
     size_t warmup_steps_;  ///< The number of steps in the beginning before
                            ///< sampling.
+    bool bond_flips_;      ///< use bond flip for update proposal.
 
     double acceptance_rate_ = 0;  ///< The acceptance rate of all chains
-    double single_flip_prob_;     ///< The probability for a single flip
 
     std::uniform_int_distribution<size_t>
         f_dist_;  ///< The flip distribution, which bit should get flipped
@@ -68,11 +68,13 @@ class metropolis_sampler : public abstract_sampler {
      * @param rbm The RBM reference.
      * @param rng The RNG reference.
      * @param n_chains The number of Markov chains
-     * @param size_t The steps taken between two samples
-     * @param size_t The warmup steps before sampling
+     * @param step_size The steps taken between two samples
+     * @param warmup_steps The warmup steps before sampling
+     * @param bond_flips Use bond flips for update proposal
      */
     metropolis_sampler(rbm_base& rbm, std::mt19937& rng, size_t n_chains = 1,
-                       size_t step_size = 5, size_t warmup_steps = 100);
+                       size_t step_size = 5, size_t warmup_steps = 100,
+                       bool bond_flips = true);
 
     virtual void sample(size_t) override;
 

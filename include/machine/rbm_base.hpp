@@ -38,6 +38,7 @@ class rbm_base {
    public:
     const size_t n_alpha;    ///< Number of hidden units.
     const size_t n_visible;  ///< Number of visible units.
+
    protected:
     const size_t n_params_;  ///< Number of total parameters.
 
@@ -51,6 +52,16 @@ class rbm_base {
 
     size_t n_updates_;  ///< The number of updates received.
 
+    std::complex<double> (rbm_base::*psi_)(const Eigen::MatrixXcd&,
+                                           const Eigen::MatrixXcd&) const;
+    std::complex<double> (rbm_base::*psi_over_psi_)(const Eigen::MatrixXcd&,
+                                                    const std::vector<size_t>&,
+                                                    const Eigen::MatrixXcd&,
+                                                    Eigen::MatrixXcd&) const;
+
+    Eigen::MatrixXcd (*cosh_)(const Eigen::MatrixXcd&);
+    Eigen::MatrixXcd (*tanh_)(const Eigen::MatrixXcd&);
+
     std::vector<std::unique_ptr<correlator>> correlators_;
 
     /**
@@ -61,10 +72,8 @@ class rbm_base {
      * @param n_vb Number of visible units.
      * @param lattice Reference to the Lattice.
      */
-    rbm_base(size_t n_alpha, size_t n_vb, lattice::bravais& lattice);
-
-    virtual std::complex<double> psi_notheta(
-        const Eigen::MatrixXcd& state) const;
+    rbm_base(size_t n_alpha, size_t n_vb, lattice::bravais& lattice,
+             size_t pop_mode = 0, size_t cosh_mode = 0);
 
    public:
     /**
@@ -73,7 +82,8 @@ class rbm_base {
      * @param n_alpha Number of hidden units.
      * @param lattice Reference to the Lattice.
      */
-    rbm_base(size_t n_alpha, lattice::bravais& lattice);
+    rbm_base(size_t n_alpha, lattice::bravais& lattice, size_t pop_mode = 0,
+             size_t cosh_mode = 0);
     /**
      * @brief Default virtual destructor.
      */
@@ -99,6 +109,29 @@ class rbm_base {
     Eigen::MatrixXcd& get_v_bias() { return v_bias_; }
 
     /**
+     * @brief Returns the number of updates received.
+     *
+     * @return `n_updates_`.
+     */
+    size_t get_n_updates() { return n_updates_; }
+
+    /**
+     * @brief Lattice getter.
+     *
+     * @return lattice reference.
+     */
+    lattice::bravais& get_lattice() { return lattice_; }
+
+    /**
+     * @brief n_params_ getter
+     *
+     * @return n_params of RBM (without correlators)
+     */
+    size_t get_n_params() const;
+
+    virtual size_t symmetry_size() const { return 1; }
+
+    /**
      * @brief Initializes the weights randomly with given standard deviations.
      * The imaginary part can have a different standard deviation.
      *
@@ -116,17 +149,6 @@ class rbm_base {
      * @param Eigen::MatrixXcd A update vector of size `n_params`.
      */
     void update_weights(const Eigen::MatrixXcd&);
-
-    /**
-     * @brief Get the \psi(\sigma) form the RBM.
-     *
-     * @param state The \sigma or the z-basis state.
-     * @param thetas The pre calculated angles \theta, see the paper.
-     *
-     * @return \psi(\sigma)
-     */
-    virtual std::complex<double> psi(const Eigen::MatrixXcd& state,
-                                     const Eigen::MatrixXcd& thetas) const;
 
     /**
      * @brief Calculates the angles \theta_{js}
@@ -152,22 +174,6 @@ class rbm_base {
                                Eigen::MatrixXcd& thetas) const;
 
     /**
-     * @brief Computes the log of a ratio of \psi with some spins flipped to the
-     * \psi with no spins flipped.
-     *
-     * @param state The current state.
-     * @param flips The vector of indices of spins to flip.
-     * @param thetas The precalculated thetas.
-     * @param updated_thetas A updated thetas reference to spare the reupdating
-     * of the thetas if a flip combination was accepted.
-     *
-     * @return returns the ratio log(\psi(\sigma')/\psi(\sigma))
-     */
-    virtual std::complex<double> log_psi_over_psi(
-        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& updated_thetas) const;
-
-    /**
      * @brief Calculates the derivative of the RBM with repsect to the
      * parameters.
      *
@@ -180,18 +186,36 @@ class rbm_base {
                                         const Eigen::MatrixXcd& thetas) const;
 
     /**
-     * @brief Computes the log of a ratio of \psi with some spins flipped to the
-     * \psi with no spins flipped.
+     * @brief Get the \psi(\sigma) form the RBM.
+     *
+     * @param state The \sigma or the z-basis state.
+     * @param thetas The pre calculated angles \theta, see the paper.
+     *
+     * @return \psi(\sigma)
+     */
+    inline std::complex<double> psi(const Eigen::MatrixXcd& state,
+                                    const Eigen::MatrixXcd& thetas) const {
+        return (this->*psi_)(state, thetas);
+    }
+
+    /**
+     * @briefComputes the ratio of \psi with some spins. Function pointer
+     * wrapper
      *
      * @param state The current state.
      * @param flips The vector of indices of spins to flip.
      * @param thetas The precalculated thetas.
+     * @param updated_thetas A updated thetas reference to spare the reupdating
+     * of the thetas if a flip combination was accepted.
      *
-     * @return returns the ratio log(\psi(\sigma')/\psi(\sigma))
+     * @return returns the ratio \psi(\sigma')/\psi(\sigma)
      */
-    std::complex<double> log_psi_over_psi(const Eigen::MatrixXcd& state,
-                                          const std::vector<size_t>& flips,
-                                          const Eigen::MatrixXcd& thetas) const;
+    inline std::complex<double> psi_over_psi(
+        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+        const Eigen::MatrixXcd& thetas,
+        Eigen::MatrixXcd& updated_thetas) const {
+        return (this->*psi_over_psi_)(state, flips, thetas, updated_thetas);
+    }
 
     /**
      * @brief Computes ratio of \psi with some spins flipped to the
@@ -203,9 +227,12 @@ class rbm_base {
      *
      * @return returns the ratio \psi(\sigma')/\psi(\sigma)
      */
-    virtual std::complex<double> psi_over_psi(
+    inline std::complex<double> psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const Eigen::MatrixXcd& thetas) const;
+        const Eigen::MatrixXcd& thetas) const {
+        Eigen::MatrixXcd updated_thetas = thetas;
+        return psi_over_psi(state, flips, thetas, updated_thetas);
+    }
 
     /**
      * @brief Computes the acceptance value of a specific flip combination and
@@ -221,65 +248,6 @@ class rbm_base {
     bool flips_accepted(double prob, const Eigen::MatrixXcd& state,
                         const std::vector<size_t>& flips,
                         Eigen::MatrixXcd& thetas) const;
-
-    /**
-     * @brief Get the \psi(\sigma) form the RBM. Alternative version
-     *
-     * @param state The \sigma or the z-basis state.
-     * @param thetas The pre calculated angles \theta, see the paper.
-     *
-     * @return \psi(\sigma)
-     */
-    virtual std::complex<double> psi_alt(const Eigen::MatrixXcd& state,
-                                         const Eigen::MatrixXcd& thetas) const;
-
-    /**
-     * @brief Alternative Version: Computes the ratio of \psi with some spins
-     * flipped to the \psi with no spins flipped. Direct calculation, without
-     * `log_psi_over_psi`.
-     *
-     * @param state The current state.
-     * @param flips The vector of indices of spins to flip.
-     * @param thetas The precalculated thetas.
-     * @param updated_thetas A updated thetas reference to spare the reupdating
-     * of the thetas if a flip combination was accepted.
-     *
-     * @return returns the ratio \psi(\sigma')/\psi(\sigma)
-     */
-    virtual std::complex<double> psi_over_psi_alt(
-        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& updated_thetas) const;
-
-    /**
-     * @brief Alternative Version: Computes ratio of \psi with some spins
-     * flipped to the \psi with no spins flipped. Direct computation, without
-     * using `log_psi_over_psi`.
-     *
-     * @param state The current state.
-     * @param flips The vector of indices of spins to flip.
-     * @param thetas The precalculated thetas.
-     *
-     * @return returns the ratio \psi(\sigma')/\psi(\sigma)
-     */
-    std::complex<double> psi_over_psi_alt(const Eigen::MatrixXcd& state,
-                                          const std::vector<size_t>& flips,
-                                          const Eigen::MatrixXcd& thetas) const;
-
-    /**
-     * @brief Alternative Version: Computes the acceptance value of a specific
-     * flip combination and accepts the flip if `prob` is smaller than the
-     * acceptance value.
-     *
-     * @param prob Random double between zero and one.
-     * @param state The current state.
-     * @param flips The vector of proposed spin flips.
-     * @param thetas The precalculated \thetas.
-     *
-     * @return A bool if proposed flips have been accepted.
-     */
-    bool flips_accepted_alt(double prob, const Eigen::MatrixXcd& state,
-                            const std::vector<size_t>& flips,
-                            Eigen::MatrixXcd& thetas) const;
 
     /**
      * @brief Saves the current state to the file '`name`.rbm'.
@@ -299,32 +267,95 @@ class rbm_base {
      */
     bool load(const std::string& name);
 
-    /**
-     * @brief Returns the number of updates received.
-     *
-     * @return `n_updates_`.
-     */
-    size_t get_n_updates() { return n_updates_; }
-
-    /**
-     * @brief Lattice getter.
-     *
-     * @return lattice reference.
-     */
-    lattice::bravais& get_lattice() { return lattice_; }
-
-    /**
-     * @brief n_params_ getter
-     *
-     * @return n_params of RBM (without correlators)
-     */
-    size_t get_n_params() const;
-
-    virtual size_t symmetry_size() const { return 1; }
-
     virtual void add_correlator(
         const std::vector<std::vector<size_t>>& correlator);
     void add_correlators(
         const std::vector<std::vector<std::vector<size_t>>>& correlators);
+
+   protected:
+    /**
+     * @brief The bias part of the psi calculation
+     *
+     * @param state current state
+     *
+     * @return the bias part of psi.
+     */
+    virtual std::complex<double> psi_notheta(
+        const Eigen::MatrixXcd& state) const;
+
+    /**
+     * @brief Get the \psi(\sigma) form the RBM. Alternative version
+     *
+     * @param state The \sigma or the z-basis state.
+     * @param thetas The pre calculated angles \theta, see the paper.
+     *
+     * @return \psi(\sigma)
+     */
+    virtual std::complex<double> psi_default(
+        const Eigen::MatrixXcd& state, const Eigen::MatrixXcd& thetas) const;
+
+    /**
+     * @brief Get the \psi(\sigma) form the RBM. Alternative version
+     *
+     * @param state The \sigma or the z-basis state.
+     * @param thetas The pre calculated angles \theta, see the paper.
+     *
+     * @return \psi(\sigma)
+     */
+    virtual std::complex<double> psi_alt(const Eigen::MatrixXcd& state,
+                                         const Eigen::MatrixXcd& thetas) const;
+
+    /**
+     * @brief Computes the log of a ratio of \psi with some spins flipped to the
+     * \psi with no spins flipped.
+     *
+     * @param state The current state.
+     * @param flips The vector of indices of spins to flip.
+     * @param thetas The precalculated thetas.
+     * @param updated_thetas A updated thetas reference to spare the reupdating
+     * of the thetas if a flip combination was accepted.
+     *
+     * @return returns the ratio log(\psi(\sigma')/\psi(\sigma))
+     */
+    virtual std::complex<double> log_psi_over_psi(
+        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+        const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& updated_thetas) const;
+
+    /**
+     * @brief Computes the ratio of \psi with some spins
+     * flipped to the \psi with no spins flipped. Direct calculation, without
+     * `log_psi_over_psi`.
+     *
+     * @param state The current state.
+     * @param flips The vector of indices of spins to flip.
+     * @param thetas The precalculated thetas.
+     * @param updated_thetas A updated thetas reference to spare the reupdating
+     * of the thetas if a flip combination was accepted.
+     *
+     * @return returns the ratio \psi(\sigma')/\psi(\sigma)
+     */
+    inline std::complex<double> psi_over_psi_default(
+        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+        const Eigen::MatrixXcd& thetas,
+        Eigen::MatrixXcd& updated_thetas) const {
+        return std::exp(log_psi_over_psi(state, flips, thetas, updated_thetas));
+    }
+
+    /**
+     * @brief Alternative Version: Computes the ratio of \psi with some spins
+     * flipped to the \psi with no spins flipped. Direct calculation, without
+     * `log_psi_over_psi`.
+     *
+     * @param state The current state.
+     * @param flips The vector of indices of spins to flip.
+     * @param thetas The precalculated thetas.
+     * @param updated_thetas A updated thetas reference to spare the reupdating
+     * of the thetas if a flip combination was accepted.
+     *
+     * @return returns the ratio \psi(\sigma')/\psi(\sigma)
+     */
+    virtual std::complex<double> psi_over_psi_alt(
+        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+        const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& updated_thetas) const;
 };
 }  // namespace machine

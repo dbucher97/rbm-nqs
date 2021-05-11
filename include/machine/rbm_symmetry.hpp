@@ -41,27 +41,10 @@ class rbm_symmetry : public rbm_base {
     std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
         symmetry_;
 
-    virtual std::complex<double> psi_notheta(
-        const Eigen::MatrixXcd& state) const override;
-
    public:
-    rbm_symmetry(size_t, lattice::bravais&);
+    rbm_symmetry(size_t, lattice::bravais&, size_t pop_mode = 0,
+                 size_t cosh_mode = 0);
 
-    /**
-     * @brief Returns the symmtery permutations.
-     *
-     * @return The Reference to the Symmetry Permutations vector.
-     */
-    std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>&
-    get_symmetry() {
-        return symmetry_;
-    };
-
-    /**
-     * @brief Returns the number of total symmtery permutations.
-     *
-     * @return number of symmtery permutations.
-     */
     virtual size_t symmetry_size() const override { return symmetry_.size(); };
 
     virtual Eigen::MatrixXcd get_thetas(
@@ -70,6 +53,17 @@ class rbm_symmetry : public rbm_base {
     virtual void update_thetas(const Eigen::MatrixXcd& state,
                                const std::vector<size_t>& flips,
                                Eigen::MatrixXcd& thetas) const override;
+
+    virtual Eigen::MatrixXcd derivative(
+        const Eigen::MatrixXcd& state,
+        const Eigen::MatrixXcd& thetas) const override;
+
+    virtual void add_correlator(
+        const std::vector<std::vector<size_t>>& corr) override;
+
+   protected:
+    virtual std::complex<double> psi_notheta(
+        const Eigen::MatrixXcd& state) const override;
 
     virtual std::complex<double> log_psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
@@ -80,13 +74,6 @@ class rbm_symmetry : public rbm_base {
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
         const Eigen::MatrixXcd& thetas,
         Eigen::MatrixXcd& updated_thetas) const override;
-
-    virtual Eigen::MatrixXcd derivative(
-        const Eigen::MatrixXcd& state,
-        const Eigen::MatrixXcd& thetas) const override;
-
-    virtual void add_correlator(
-        const std::vector<std::vector<size_t>>& corr) override;
 };
 
 }  // namespace machine

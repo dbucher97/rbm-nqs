@@ -28,7 +28,8 @@
 
 using namespace machine;
 
-rbm_base::rbm_base(size_t n_alpha, size_t n_v_bias, lattice::bravais& l)
+rbm_base::rbm_base(size_t n_alpha, size_t n_v_bias, lattice::bravais& l,
+                   size_t pop_mode, size_t cosh_mode)
     : n_alpha{n_alpha},
       n_visible{l.n_total},
       n_params_{n_v_bias + n_alpha + n_alpha * n_visible},
@@ -37,14 +38,24 @@ rbm_base::rbm_base(size_t n_alpha, size_t n_v_bias, lattice::bravais& l)
       h_bias_(n_alpha, 1),
       v_bias_(n_v_bias, 1),
       n_vb_{n_v_bias},
-      n_updates_{0} {}
+      n_updates_{0},
+      psi_{pop_mode == 0 ? &rbm_base::psi_default : &rbm_base::psi_alt},
+      psi_over_psi_{pop_mode == 0 ? &rbm_base::psi_over_psi_default
+                                  : &rbm_base::psi_over_psi_alt},
+      cosh_{(pop_mode == 0 || cosh_mode == 0) ? &math::cosh1 : &math::cosh2},
+      tanh_{(pop_mode == 0 || cosh_mode == 0) ? &math::tanh1 : &math::tanh2} {}
 
-rbm_base::rbm_base(size_t n_alpha, lattice::bravais& l)
-    : rbm_base{n_alpha, l.n_total, l} {}
+rbm_base::rbm_base(size_t n_alpha, lattice::bravais& l, size_t pop_mode,
+                   size_t cosh_mode)
+    : rbm_base{n_alpha, l.n_total, l, pop_mode, cosh_mode} {}
 
-//
-// Base class functions, valid for both implementations of the RBM.
-//
+size_t rbm_base::get_n_params() const {
+    size_t x = n_params_;
+    for (auto& c : correlators_) {
+        x += c->get_n_params();
+    }
+    return x;
+}
 
 void rbm_base::initialize_weights(std::mt19937& rng, double std_dev,
                                   double std_dev_imag) {
@@ -91,13 +102,46 @@ void rbm_base::update_weights(const Eigen::MatrixXcd& dw) {
     n_updates_++;
 }
 
-std::complex<double> rbm_base::log_psi_over_psi(
-    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    const Eigen::MatrixXcd& thetas) const {
-    // Wrapper for `log_psi_over_psi` with no `updated_thetas`, copy `thetas`
-    // into `updated_thetas`
-    Eigen::MatrixXcd updated_thetas = thetas;
-    return log_psi_over_psi(state, flips, thetas, updated_thetas);
+Eigen::MatrixXcd rbm_base::get_thetas(const Eigen::MatrixXcd& state) const {
+    // Calculate the thetas from `state`
+    Eigen::MatrixXcd ret = (state.transpose() * weights_).transpose() + h_bias_;
+    for (auto& c : correlators_) c->add_thetas(state, ret);
+    return ret;
+}
+
+void rbm_base::update_thetas(const Eigen::MatrixXcd& state,
+                             const std::vector<size_t>& flips,
+                             Eigen::MatrixXcd& thetas) const {
+    // Update the thetas for a given number of flips
+    for (auto& f : flips) {
+        // Just subtract a row from weights from the thetas
+        thetas -= 2 * weights_.row(f).transpose() * state(f);
+    }
+    std::vector<std::vector<size_t>> cidxs;
+    for (auto& c : correlators_) {
+        c->get_cidxs_from_flips(flips, cidxs);
+        c->update_thetas(state, *(cidxs.end() - 1), thetas);
+    }
+}
+
+Eigen::MatrixXcd rbm_base::derivative(const Eigen::MatrixXcd& state,
+                                      const Eigen::MatrixXcd& thetas) const {
+    // Calculate thr derivative of the RBM with respect to the parameters.
+    // The formula for this can be calculated by pen and paper.
+    Eigen::MatrixXcd result = Eigen::MatrixXcd::Zero(get_n_params(), 1);
+    result.block(0, 0, n_vb_, 1) = state;
+    // Eigen::MatrixXcd tanh = thetas.array().tanh();
+    Eigen::MatrixXcd tanh = (*tanh_)(thetas);
+    result.block(n_vb_, 0, n_alpha, 1) = tanh;
+    Eigen::MatrixXcd x = state * tanh.transpose();
+    // Transform weights matrix into a vector.
+    result.block(n_vb_ + n_alpha, 0, n_alpha * n_visible, 1) =
+        Eigen::Map<Eigen::MatrixXcd>(x.data(), n_alpha * n_visible, 1);
+
+    size_t offset = n_params_;
+    for (auto& c : correlators_) c->derivative(state, tanh, result, offset);
+
+    return result;
 }
 
 bool rbm_base::flips_accepted(double prob, const Eigen::MatrixXcd& state,
@@ -107,8 +151,8 @@ bool rbm_base::flips_accepted(double prob, const Eigen::MatrixXcd& state,
     Eigen::MatrixXcd new_thetas = thetas;
 
     // Calculate the acceptance value
-    double a = std::exp(
-        2 * std::real(log_psi_over_psi(state, flips, thetas, new_thetas)));
+    double a =
+        std::pow(std::abs(psi_over_psi(state, flips, thetas, new_thetas)), 2);
 
     // accept with given probability
     if (prob < a) {
@@ -119,36 +163,6 @@ bool rbm_base::flips_accepted(double prob, const Eigen::MatrixXcd& state,
         return false;
     }
 }
-
-std::complex<double> rbm_base::psi_over_psi_alt(
-    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    const Eigen::MatrixXcd& thetas) const {
-    // Wrapper for `psi_over_psi_alt` with no `new_thetas`, copy `thets`
-    Eigen::MatrixXcd new_thetas = thetas;
-    return psi_over_psi_alt(state, flips, thetas, new_thetas);
-}
-
-bool rbm_base::flips_accepted_alt(double prob, const Eigen::MatrixXcd& state,
-                                  const std::vector<size_t>& flips,
-                                  Eigen::MatrixXcd& thetas) const {
-    // First copy the old thetas
-    Eigen::MatrixXcd new_thetas = thetas;
-
-    // Calculate the acceptance value
-    double a = std::pow(
-        std::abs(psi_over_psi_alt(state, flips, thetas, new_thetas)), 2);
-
-    // accept with given probability
-    if (prob < a) {
-        // Update the thetas
-        thetas = new_thetas;
-        return true;
-    } else {
-        return false;
-    }
-}
-
-// IO STUFF
 
 bool rbm_base::save(const std::string& name) {
     // Open the output stream
@@ -193,6 +207,17 @@ bool rbm_base::load(const std::string& name) {
     }
 }
 
+void rbm_base::add_correlator(const std::vector<std::vector<size_t>>& corr) {
+    correlators_.push_back(std::make_unique<correlator>(corr, n_alpha));
+}
+
+void rbm_base::add_correlators(
+    const std::vector<std::vector<std::vector<size_t>>>& corr) {
+    for (const auto& c : corr) {
+        add_correlator(c);
+    }
+}
+
 //
 // Overrideable functions, specific to the basic RBM.
 //
@@ -204,48 +229,18 @@ std::complex<double> rbm_base::psi_notheta(
     return corr_part * (v_bias_.array() * state.array()).exp().prod();
 }
 
-std::complex<double> rbm_base::psi(const Eigen::MatrixXcd& state,
-                                   const Eigen::MatrixXcd& thetas) const {
+std::complex<double> rbm_base::psi_default(
+    const Eigen::MatrixXcd& state, const Eigen::MatrixXcd& thetas) const {
     // Calculate the \psi with `thetas`
-    std::complex<double> cosh_part = lncosh(thetas).sum();
+    std::complex<double> cosh_part = math::lncosh(thetas).sum();
     return psi_notheta(state) * std::exp(cosh_part);
 }
 
 std::complex<double> rbm_base::psi_alt(const Eigen::MatrixXcd& state,
                                        const Eigen::MatrixXcd& thetas) const {
     // Calculate the \psi with `thetas`
-    std::complex<double> cosh_part = thetas.array().cosh().prod();
+    std::complex<double> cosh_part = (*cosh_)(thetas).array().prod();
     return psi_notheta(state) * cosh_part;
-}
-
-Eigen::MatrixXcd rbm_base::get_thetas(const Eigen::MatrixXcd& state) const {
-    // Calculate the thetas from `state`
-    Eigen::MatrixXcd ret = (state.transpose() * weights_).transpose() + h_bias_;
-    for (auto& c : correlators_) c->add_thetas(state, ret);
-    return ret;
-}
-
-void rbm_base::update_thetas(const Eigen::MatrixXcd& state,
-                             const std::vector<size_t>& flips,
-                             Eigen::MatrixXcd& thetas) const {
-    // Update the thetas for a given number of flips
-    for (auto& f : flips) {
-        // Just subtract a row from weights from the thetas
-        thetas -= 2 * weights_.row(f).transpose() * state(f);
-    }
-    std::vector<std::vector<size_t>> cidxs;
-    for (auto& c : correlators_) {
-        c->get_cidxs_from_flips(flips, cidxs);
-        c->update_thetas(state, *(cidxs.end() - 1), thetas);
-    }
-}
-
-std::complex<double> rbm_base::psi_over_psi(
-    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    const Eigen::MatrixXcd& thetas) const {
-    // get `log_psi_over_psi` and return the exponianted result.
-    auto x = log_psi_over_psi(state, flips, thetas);
-    return std::exp(x);
 }
 
 std::complex<double> rbm_base::log_psi_over_psi(
@@ -268,28 +263,9 @@ std::complex<double> rbm_base::log_psi_over_psi(
 
     // Caclulate the diffrenece of the lncoshs, which is the same as the log
     // of the ratio of coshes.
-    ret += (lncosh(updated_thetas) - lncosh(thetas)).sum();
+    ret += (math::lncosh(updated_thetas) - math::lncosh(thetas)).sum();
 
     return ret;
-}
-
-Eigen::MatrixXcd rbm_base::derivative(const Eigen::MatrixXcd& state,
-                                      const Eigen::MatrixXcd& thetas) const {
-    // Calculate thr derivative of the RBM with respect to the parameters.
-    // The formula for this can be calculated by pen and paper.
-    Eigen::MatrixXcd result = Eigen::MatrixXcd::Zero(get_n_params(), 1);
-    result.block(0, 0, n_vb_, 1) = state;
-    Eigen::MatrixXcd tanh = thetas.array().tanh();
-    result.block(n_vb_, 0, n_alpha, 1) = tanh;
-    Eigen::MatrixXcd x = state * tanh.transpose();
-    // Transform weights matrix into a vector.
-    result.block(n_vb_ + n_alpha, 0, n_alpha * n_visible, 1) =
-        Eigen::Map<Eigen::MatrixXcd>(x.data(), n_alpha * n_visible, 1);
-
-    size_t offset = n_params_;
-    for (auto& c : correlators_) c->derivative(state, tanh, result, offset);
-
-    return result;
 }
 
 std::complex<double> rbm_base::psi_over_psi_alt(
@@ -309,26 +285,8 @@ std::complex<double> rbm_base::psi_over_psi_alt(
     // Update the thetas with the flips
     update_thetas(state, flips, updated_thetas);
 
-    ret *= (updated_thetas.array().cosh() / thetas.array().cosh()).prod();
+    ret *= ((*cosh_)(updated_thetas).array() / (*cosh_)(thetas).array()).prod();
 
     return ret;
 }
 
-size_t rbm_base::get_n_params() const {
-    size_t x = n_params_;
-    for (auto& c : correlators_) {
-        x += c->get_n_params();
-    }
-    return x;
-}
-
-void rbm_base::add_correlator(const std::vector<std::vector<size_t>>& corr) {
-    correlators_.push_back(std::make_unique<correlator>(corr, n_alpha));
-}
-
-void rbm_base::add_correlators(
-    const std::vector<std::vector<std::vector<size_t>>>& corr) {
-    for (const auto& c : corr) {
-        add_correlator(c);
-    }
-}

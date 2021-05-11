@@ -25,7 +25,7 @@
 
 namespace model {
 // Definition of the 2 site Pauli matrices.
-Eigen::Matrix4cd sx =
+Eigen::Matrix4cd ixx =
     ((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
          .finished());
 Eigen::Matrix4cd iyy =

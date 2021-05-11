@@ -41,6 +41,8 @@ class aggregator {
     const base_op&
         op_;  ///< Operator, for which the results should be accumulated.
 
+    const size_t num_samples_;  ///< Number of samples
+
     /**
      * @brief Get the observable from the operator(s), this will be overriden
      * by derived classes.
@@ -56,8 +58,9 @@ class aggregator {
      * @param base_op Reference to the operator.
      * @param rows Number of rows.
      * @param cols Number of cols.
+     * @param num_samples Number of samples.
      */
-    aggregator(const base_op&, size_t, size_t);
+    aggregator(const base_op&, size_t, size_t, size_t);
 
    public:
     /**

@@ -142,6 +142,8 @@ extern bool rbm_force;
 extern double rbm_weights;
 extern double rbm_weights_imag;
 extern size_t rbm_correlators;
+extern size_t rbm_pop_mode;
+extern size_t rbm_cosh_mode;
 
 // Sampler
 extern sampler_t sa_type;
@@ -151,6 +153,7 @@ extern size_t sa_metropolis_n_warmup_steps;
 extern size_t sa_n_samples;
 extern size_t sa_full_n_parallel_bits;
 extern std::string sa_exact_gs_file;
+extern bool sa_metropolis_bond_flips;
 
 // Optimizer
 extern optimizer_t opt_type;

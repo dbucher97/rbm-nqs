@@ -50,6 +50,8 @@ plt.ion()
 fig, ax1 = plt.subplots()
 ax2 = ax1.twinx()
 plt.show()
+
+
 for line in fileinput.input(args.input):
     print(line, end='')
     if(line.startswith('#')):
@@ -65,15 +67,6 @@ for line in fileinput.input(args.input):
     if(len(vals) > 200):
         vavg = np.mean(v0[-100:])
 
-    if args.reference is not None:
-        ax1.axhline(y=args.reference, color='r', linestyle='--')
-    if vavg is not None:
-        ax1.axhline(y=vavg, color='b')
-        ax1.text(10, vavg - 0.03, f'{vavg:.5f}')
-
-    for other in othervals:
-        x = min(len(vals), len(other))
-        ax1.plot(other[:x])
 
     ax1.set_xlabel('Iteration')
     ax1.set_ylabel('Energy per site')
@@ -86,7 +79,21 @@ for line in fileinput.input(args.input):
             ax2.plot(vi, color=shps[shi], linestyle=':')
             ax2.set_ylim((0, 1))
             shi += 1
+
+    for other in othervals:
+        x = min(len(vals), len(other))
+        ax1.plot(other[:x])
+
+    if vavg is not None:
+        ax1.axhline(y=vavg, color='b')
+        ax1.text(10, vavg - 0.03, f'{vavg:.5f}')
+    if args.reference is not None:
+        ax1.axhline(y=args.reference, color='r', linestyle='--')
+
+
     ax1.plot(v0, 'k', linewidth=2)
+    ax1.set_zorder(ax2.get_zorder()+1)
+    ax1.patch.set_visible(False)
 
     if args.reference is not None:
         ax1.set_ylim((args.reference - 0.05, v0[0] + 0.05))

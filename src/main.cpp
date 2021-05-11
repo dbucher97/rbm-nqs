@@ -47,6 +47,7 @@
 #include <machine/metropolis_sampler.hpp>
 #include <machine/rbm_base.hpp>
 #include <machine/rbm_symmetry.hpp>
+#include <math.hpp>
 #include <model/isingS3.hpp>
 #include <model/kitaev.hpp>
 #include <model/kitaevS3.hpp>
@@ -162,14 +163,14 @@ void debug() {
     // MatrixXcd thetas = rbm.get_thetas(state);
     //
     // h.evaluate(rbm, state, thetas);
-    lattice::toric_lattice lat{3};
-    auto plaq = lat.construct_plaqs();
-    for (auto& p : plaq) {
-        for (auto& i : p.idxs) {
-            std::cout << i << ", ";
-        }
-        std::cout << p.type << std::endl;
-    }
+    // lattice::toric_lattice lat{3};
+    // auto plaq = lat.construct_plaqs();
+    // for (auto& p : plaq) {
+    //     for (auto& i : p.idxs) {
+    //         std::cout << i << ", ";
+    //     }
+    //     std::cout << p.type << std::endl;
+    // }
     // auto symm = lat.construct_symmetry();
     // std::vector<size_t> v1(plaq[0].idxs.begin(), plaq[0].idxs.end());
     // std::vector<size_t> v2(plaq[1].idxs.begin(), plaq[1].idxs.end());
@@ -228,12 +229,14 @@ int main(int argc, char* argv[]) {
     std::unique_ptr<machine::rbm_base> rbm;
     switch (ini::rbm) {
         case ini::rbm_t::BASIC:
-            rbm = std::make_unique<machine::rbm_base>(ini::n_hidden,
-                                                      model->get_lattice());
+            rbm = std::make_unique<machine::rbm_base>(
+                ini::n_hidden, model->get_lattice(), ini::rbm_pop_mode,
+                ini::rbm_cosh_mode);
             break;
         case ini::rbm_t::SYMMETRY:
-            rbm = std::make_unique<machine::rbm_symmetry>(ini::n_hidden,
-                                                          model->get_lattice());
+            rbm = std::make_unique<machine::rbm_symmetry>(
+                ini::n_hidden, model->get_lattice(), ini::rbm_pop_mode,
+                ini::rbm_cosh_mode);
             break;
         default:
             return 1;
@@ -256,7 +259,8 @@ int main(int argc, char* argv[]) {
             sampler = std::make_unique<machine::metropolis_sampler>(
                 *rbm, rng, ini::sa_metropolis_n_chains,
                 ini::sa_metropolis_n_steps_per_sample,
-                ini::sa_metropolis_n_warmup_steps);
+                ini::sa_metropolis_n_warmup_steps,
+                ini::sa_metropolis_bond_flips);
             break;
         default:
             return 1;

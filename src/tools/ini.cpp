@@ -46,6 +46,8 @@ double J = -1.;
 rbm_t rbm = SYMMETRY;
 size_t n_hidden = 3;
 bool rbm_force = false;
+size_t rbm_pop_mode = 0;
+size_t rbm_cosh_mode = 0;
 double rbm_weights = 0.0001;
 double rbm_weights_imag = -1;
 size_t rbm_correlators = 1;
@@ -58,6 +60,7 @@ size_t sa_metropolis_n_warmup_steps = 100;
 size_t sa_metropolis_n_steps_per_sample = 5;
 size_t sa_full_n_parallel_bits = 3;
 std::string sa_exact_gs_file = "";
+bool sa_metropolis_bond_flips = true;
 
 // Optimizer
 optimizer_t opt_type = SR;
@@ -123,6 +126,8 @@ int ini::load(int argc, char* argv[]) {
     ("rbm.weights",                           po::value(&rbm_weights),                      "set stddev for weights initialization")
     ("rbm.weights_imag",                      po::value(&rbm_weights_imag),                 "set stddev for imag weights initialization (if not set = rbm.weights)")
     ("rbm.correlators",                       po::value(&rbm_correlators),                  "enables correlators if set to 1 and correlators are available for the model")
+    ("rbm.pop_mode",                          po::value(&rbm_pop_mode),                     "switches between Psi calculation modes.")
+    ("rbm.cosh_mode",                         po::value(&rbm_cosh_mode),                    "turns cosh approximation on")
     // Sampler
     ("sampler.type",                          po::value(&sa_type),                          "set sampler type")
     ("sampler.n_samples",                     po::value(&sa_n_samples),                     "set sampler n sampler (metropolis only)")
@@ -131,6 +136,7 @@ int ini::load(int argc, char* argv[]) {
     ("sampler.metropolis.n_warmup_steps",     po::value(&sa_metropolis_n_warmup_steps),     "set number of MCMC warmup steps")
     ("sampler.metropolis.n_steps_per_sample", po::value(&sa_metropolis_n_steps_per_sample), "set number of MCMC steps between a sample")
     ("sampler.exact.gs_file",                 po::value(&sa_exact_gs_file),                 "set file of ground state for exact sampling")
+    ("sampler.metropolis.bond_flips",         po::value(&sa_metropolis_bond_flips),         "use bond flips for update proposal")
     // Optimizer
     ("optimizer.type",                        po::value(&opt_type),                         "set optimizer type")
     ("optimizer.learning_rate,l",             po::value(&opt_lr)->multitoken(),             "set learning rate optionally with decay factor")

@@ -31,13 +31,13 @@ using namespace machine;
 
 metropolis_sampler::metropolis_sampler(rbm_base& rbm, std::mt19937& rng,
                                        size_t n_chains, size_t step_size,
-                                       size_t warmup_steps)
+                                       size_t warmup_steps, bool bond_flips)
     : Base{rbm},
       rng_{rng},
       n_chains_{n_chains},
       step_size_{step_size},
       warmup_steps_{warmup_steps},
-      single_flip_prob_{1.},
+      bond_flips_{bond_flips},
       f_dist_{0, rbm.n_visible - 1} {}
 
 void metropolis_sampler::sample(size_t total_samples) {
@@ -52,7 +52,6 @@ void metropolis_sampler::sample(size_t total_samples) {
 
     // Initialize acceptance_rate
     acceptance_rate_ = 0;
-    single_flip_prob_ *= 0.996;
 
     // Run the chains in parallel.
 #pragma omp parallel for
@@ -108,19 +107,16 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
         //     }
         //     flips.push_back(flips2);
         // }
-        auto& b = bonds[b_dist(rng_)];
-        std::vector<size_t> flips = {b.a, b.b};
-        if (u_dist_(rng_) < 0.5) {
-            flips.pop_back();
+        if (bond_flips_) {
+            auto& b = bonds[b_dist(rng_)];
+            flips = {b.a, b.b};
+        } else {
+            flips.push_back(f_dist_(rng_));
         }
 
         // try to accept flips, if flips are accepted, thetas are automatically
         // updated and state needs updating.
-#ifndef ALT_POP
         if (rbm_.flips_accepted(u_dist_(rng_), state, flips, thetas)) {
-#else
-        if (rbm_.flips_accepted_alt(u_dist_(rng_), state, flips, thetas)) {
-#endif
             ar++;
             for (auto& flip : flips) state(flip) *= -1;
         }

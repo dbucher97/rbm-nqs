@@ -32,25 +32,6 @@ class file_psi : public rbm_base {
    public:
     file_psi(lattice::bravais& lattice, const std::string& filename);
 
-    virtual std::complex<double> psi(const Eigen::MatrixXcd& state,
-                                     const Eigen::MatrixXcd&) const override;
-
-    virtual std::complex<double> psi_over_psi(
-        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const Eigen::MatrixXcd&) const override;
-
-    virtual std::complex<double> psi_over_psi_alt(
-        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd&) const override {
-        return psi_over_psi(state, flips, thetas);
-    }
-
-    virtual std::complex<double> psi_alt(
-        const Eigen::MatrixXcd& state,
-        const Eigen::MatrixXcd& t) const override {
-        return psi(state, t);
-    }
-
     virtual Eigen::MatrixXcd get_thetas(
         const Eigen::MatrixXcd& state) const override {
         return Eigen::MatrixXcd::Zero(1, 1);
@@ -59,6 +40,25 @@ class file_psi : public rbm_base {
     virtual void update_thetas(const Eigen::MatrixXcd& state,
                                const std::vector<size_t>& flips,
                                Eigen::MatrixXcd& thetas) const override {}
-};
 
+   protected:
+    virtual std::complex<double> psi_default(
+        const Eigen::MatrixXcd& state, const Eigen::MatrixXcd&) const override;
+
+    virtual std::complex<double> psi_alt(
+        const Eigen::MatrixXcd& state,
+        const Eigen::MatrixXcd& t) const override {
+        return psi(state, t);
+    }
+
+    virtual std::complex<double> log_psi_over_psi(
+        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+        const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& ut) const override {
+        return std::log(psi_over_psi_alt(state, flips, thetas, ut));
+    }
+
+    virtual std::complex<double> psi_over_psi_alt(
+        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+        const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd&) const override;
+};
 }  // namespace machine

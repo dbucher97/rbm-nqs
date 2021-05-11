@@ -17,11 +17,13 @@
  */
 #pragma once
 
-#define LNCOSH_CUTOFF 12  // 16.7
+#define LNCOSH_CUTOFF 16.7
 
 #include <Eigen/Dense>
 #include <cmath>
 #include <complex>
+
+namespace math {
 
 static const double ln2 = std::log(2);  ///< log(2) stored.
 
@@ -32,7 +34,7 @@ static const double ln2 = std::log(2);  ///< log(2) stored.
  *
  * @return ln(cosh(x))
  */
-static double lncosh(double x) {
+static inline double lncosh(double x) {
     x = std::abs(x);
     // for x larger than the specified value, a linear approximation is more
     // than sufficient
@@ -50,7 +52,7 @@ static double lncosh(double x) {
  *
  * @return ln(cosh(x))
  */
-static std::complex<double> lncosh(std::complex<double> x) {
+static inline std::complex<double> lncosh(std::complex<double> x) {
     const double xr = x.real();
     const double xi = x.imag();
 
@@ -72,10 +74,28 @@ static std::complex<double> lncosh(std::complex<double> x) {
  *
  * @return MatrixXcd result.
  */
-static Eigen::MatrixXcd lncosh(const Eigen::MatrixXcd& x) {
+static inline Eigen::MatrixXcd lncosh(const Eigen::MatrixXcd& x) {
     Eigen::MatrixXcd ret(x.rows(), x.cols());
     for (size_t i = 0; i < static_cast<size_t>(ret.size()); i++) {
         ret(i) = lncosh(x(i));
     }
     return ret;
 }
+
+static inline Eigen::MatrixXcd cosh2(const Eigen::MatrixXcd& x) {
+    return 1 + x.array().pow(2) / 2;
+}
+
+static inline Eigen::MatrixXcd tanh2(const Eigen::MatrixXcd& x) {
+    return x.array() / cosh2(x).array();
+}
+
+static inline Eigen::MatrixXcd cosh1(const Eigen::MatrixXcd& x) {
+    return x.array().cosh();
+}
+
+static inline Eigen::MatrixXcd tanh1(const Eigen::MatrixXcd& x) {
+    return x.array().tanh();
+}
+
+}  // namespace math
