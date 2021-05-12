@@ -65,13 +65,12 @@ abstract_optimizer::abstract_optimizer(machine::rbm_base& rbm,
 void abstract_optimizer::set_plugin(base_plugin* plug) { plug_ = plug; }
 void abstract_optimizer::remove_plugin() { plug_ = nullptr; }
 
-double abstract_optimizer::get_current_energy() {
-    return std::real(a_h_.get_result()(0));
+double abstract_optimizer::get_current_energy(double norm) {
+    return std::real(a_h_.get_result().sum() / norm);
 }
 
 void abstract_optimizer::register_observables() {
     // Register operators and aggregators
     sampler_.register_ops({&hamiltonian_, &derivative_});
-    a_h_.track_variance();
     sampler_.register_aggs({&a_h_, &a_d_});
 }

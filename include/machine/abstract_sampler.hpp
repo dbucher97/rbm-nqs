@@ -63,7 +63,7 @@ class abstract_sampler {
      * @param n_samples number of samples wich should be done; ignore if not
      * needed.
      */
-    virtual void sample(size_t n_samples) = 0;
+    virtual double sample(size_t n_samples) = 0;
 
     /**
      * @brief Log message (needs to be invoked after optimization log).

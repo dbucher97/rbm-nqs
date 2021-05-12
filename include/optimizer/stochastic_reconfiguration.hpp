@@ -60,16 +60,9 @@ class stochastic_reconfiguration : public abstract_optimizer {
                                const ini::decay_t& learning_rate,
                                const ini::decay_t& regularization);
 
-    virtual void register_observables() override;
-
-    virtual void optimize() override;
+    virtual void optimize(double norm) override;
 
    private:
-    operators::prod_aggregator
-        a_dh_;  ///< Derivative Hamiltonian aggregator <D^* H>
-    operators::outer_aggregator
-        a_dd_;  ///< Outer product derivative aggregator <D^* D^T>
-
     decay_t kp_;  ///< Regularization
 };
 }  // namespace optimizer

@@ -25,78 +25,28 @@
 
 using namespace operators;
 
-aggregator::aggregator(const base_op& op, size_t r, size_t c)
-    : result_(r, c), variance_(r, c), op_{op} {
-    // Initialize result as zero.
-    set_zero();
-}
+aggregator::aggregator(const base_op& op) : result_(1, 1), op_{op} {}
 
-aggregator::aggregator(const base_op& op)
-    : aggregator{op, op.rows(), op.cols()} {}
-
-void aggregator::set_zero() {
-    result_.setZero();
-    if (track_variance_) {
-        variance_.setZero();
+void aggregator::init(size_t num_samples) {
+    current_ = 0;
+    if ((size_t)result_.cols() != num_samples ||
+        (size_t)result_.rows() != op_.size()) {
+        result_.resize(op_.size(), num_samples);
     }
 }
 
-void aggregator::finalize(double num) {
-    // Normalize result
-    result_ /= num;
-    if (track_variance_) {
-        variance_ /= num;
-        // Calculate variance <0^2> - <0>^2
-        variance_ -= (Eigen::MatrixXd)result_.array().abs().pow(2);
-    }
-}
-
-Eigen::MatrixXcd& aggregator::get_result() { return result_; }
-Eigen::MatrixXd& aggregator::get_variance() { return variance_; }
-
-Eigen::MatrixXcd aggregator::aggregate_() {
-    // By default, just forward the operator result.
-    return op_.get_result();
-}
+const Eigen::MatrixXcd& aggregator::get_result() const { return result_; }
 
 void aggregator::aggregate(double weight) {
     // Calculate the weight * observable
-    Eigen::MatrixXcd x = weight * aggregate_();
-    // Safly aggeregte the result
 #pragma omp critical
-    result_ += x;
-
-    if (track_variance_) {
-        // Calculate the resul of the squared observable
-        Eigen::MatrixXd xx = x.array().abs().pow(2) / weight;
-        // Safely aggregate teh variance.
-#pragma omp critical
-        variance_ += xx;
+    {
+        result_.col(current_) = Eigen::Map<const Eigen::MatrixXcd>(
+            op_.get_result().data(), result_.rows(), 1);
+        if (weight != 1.) {
+            result_.col(current_) *= weight;
+        }
+        current_++;
     }
 }
 
-prod_aggregator::prod_aggregator(const base_op& op, const base_op& scalar)
-    : Base{op}, scalar_{scalar} {
-    if (scalar_.rows() != 1 || scalar_.cols() != 1) {
-        throw std::runtime_error("scalar operator must have size (1, 1).");
-    }
-}
-
-Eigen::MatrixXcd prod_aggregator::aggregate_() {
-    // Calculate op_a op_b^*
-    return scalar_.get_result()(0) * op_.get_result().conjugate();
-}
-
-outer_aggregator::outer_aggregator(const base_op& op)
-    : Base{op, op.rows(), op.rows()} {
-    // Guard operator to be vector.
-    if (op_.cols() != 1) {
-        throw std::runtime_error(
-            "outer_aggregator needs column vector type operators");
-    }
-}
-
-Eigen::MatrixXcd outer_aggregator::aggregate_() {
-    // Calculate op^* op^T
-    return op_.get_result().conjugate() * op_.get_result().transpose();
-}

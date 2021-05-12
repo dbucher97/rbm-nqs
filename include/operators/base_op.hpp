@@ -101,6 +101,12 @@ class base_op {
      * @return Number of cols.
      */
     size_t cols() const { return c_; }
+    /**
+     * @brief Size getter
+     *
+     * @return Number of elements.
+     */
+    size_t size() const { return r_ * c_; }
 
     /**
      * @brief Gets the result of the current thread.

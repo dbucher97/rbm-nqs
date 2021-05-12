@@ -30,6 +30,7 @@
 #include <complex>
 #include <csignal>
 #include <cstdio>
+#include <ctime>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -80,15 +81,15 @@ void interrupt(int sig) {
     exit(0);
 }
 
-void progress_bar(size_t i, size_t n_epochs, double energy) {
+void progress_bar(size_t i, size_t n_epochs, double energy, char status) {
     double progress = i / (double)n_epochs;
     int digs = (int)std::log10(n_epochs) - (int)std::log10(i);
     if (i == 0) digs = (int)std::log10(n_epochs);
     std::cout << "\rEpochs: (" << std::string(digs, ' ') << i << "/" << n_epochs
-              << ") ";
+              << ") " << status << " ";
     struct winsize size;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &size);
-    int plen = size.ws_col - (2 * (int)std::log10(n_epochs) + 35);
+    int plen = size.ws_col - (2 * (int)std::log10(n_epochs) + 37);
     int p = (int)(plen * progress + 0.5);
     int m = plen - p;
     std::cout << "[" << std::string(p, '#') << std::string(m, ' ') << "]";
@@ -99,13 +100,13 @@ void progress_bar(size_t i, size_t n_epochs, double energy) {
 
 std::vector<size_t> to_indices(const MatrixXcd& vec) {
     std::vector<size_t> ret;
-    for (size_t v = 0; v < vec.size(); v++) {
+    for (size_t v = 0; v < (size_t)vec.size(); v++) {
         if (std::real(vec(v)) > 0) ret.push_back(v);
     }
     return ret;
 }
 size_t to_idx(const MatrixXcd& vec) {
-    for (size_t v = 0; v < vec.size(); v++) {
+    for (size_t v = 0; v < (size_t)vec.size(); v++) {
         if (std::real(vec(v)) > 0) return v;
     }
     return -1;
@@ -127,12 +128,11 @@ void test_symmetry() {
 }
 
 void print_bonds() {
-    lattice::honeycombS3 lat{1};
+    lattice::honeycomb lat{2};
     auto bonds = lat.get_bonds();
     for (auto& bond : bonds) {
         std::cout << bond.a << "," << bond.b << "," << bond.type << std::endl;
     }
-    lat.print_lattice({0, lat.up(0, 1)});
 }
 
 void test_S3() {
@@ -150,7 +150,21 @@ void test_S3() {
 }
 
 void debug() {
-    // auto& h = m.get_hamiltonian();
+    // std::mt19937 rng{static_cast<std::mt19937::result_type>(ini::seed)};
+    model::kitaev km{2, -1};
+    machine::file_psi m{km.get_lattice(), "notebooks/kitaev2.state"};
+    machine::full_sampler sampler{m, 3};
+    auto& h = km.get_hamiltonian();
+    operators::aggregator agg{h};
+    sampler.register_op(&h);
+    sampler.register_agg(&agg);
+    double norm = sampler.sample(false);
+    double res = std::real(agg.get_result().sum()) / norm;
+    std::cout.precision(17);
+    std::cout << norm << std::endl;
+    std::cout << res << std::endl;
+    std::cout << res / km.get_lattice().n_total << std::endl;
+    // auto& h = m.get_hamiltonian()
     //
     // machine::rbm_base rbm(3, m.get_lattice());
     //
@@ -308,16 +322,31 @@ int main(int argc, char* argv[]) {
         fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
         // End getchar non-block
 
-        progress_bar(0, ini::n_epochs, -1);
+        double ce = -1;
+        progress_bar(0, ini::n_epochs, ce, 'I');
         int ch = 0;
+        double norm;
         for (size_t i = 0; i < ini::n_epochs && ch != ''; i++) {
-            sampler->sample(ini::sa_n_samples);
+            auto begin = std::chrono::high_resolution_clock::now();
+            norm = sampler->sample(ini::sa_n_samples);
+            auto end = std::chrono::high_resolution_clock::now();
+            auto elapsed =
+                std::chrono::duration_cast<std::chrono::milliseconds>(end -
+                                                                      begin);
+            // std::cout << std::endl << elapsed.count() << std::endl;
+            ce = optimizer->get_current_energy(norm) / rbm->n_visible;
+            progress_bar(i + 1, ini::n_epochs, ce, 'O');
             Eigen::setNbThreads(ini::n_threads);
-            optimizer->optimize();
+            begin = std::chrono::high_resolution_clock::now();
+            optimizer->optimize(norm);
+            end = std::chrono::high_resolution_clock::now();
+            elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                end - begin);
+            // std::cout << elapsed.count() << std::endl;
+
             Eigen::setNbThreads(1);
             logger::newline();
-            progress_bar(i + 1, ini::n_epochs,
-                         optimizer->get_current_energy() / rbm->n_visible);
+            progress_bar(i + 1, ini::n_epochs, ce, 'S');
             ch = getchar();
         }
 
@@ -337,9 +366,10 @@ int main(int argc, char* argv[]) {
     operators::aggregator agg{model->get_hamiltonian()};
     samp.register_op(&(model->get_hamiltonian()));
     samp.register_agg(&agg);
-    samp.sample(true);
+    double norm = samp.sample(true);
     std::cout.precision(17);
-    std::cout << std::real(agg.get_result()(0)) / rbm->n_visible << std::endl;
+    std::cout << std::real(agg.get_result().sum()) / norm / rbm->n_visible
+              << std::endl;
 
     return 0;
 }

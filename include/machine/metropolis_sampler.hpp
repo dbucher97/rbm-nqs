@@ -76,7 +76,7 @@ class metropolis_sampler : public abstract_sampler {
                        size_t step_size = 5, size_t warmup_steps = 100,
                        bool bond_flips = true);
 
-    virtual void sample(size_t) override;
+    virtual double sample(size_t) override;
 
     virtual void log() override;
 

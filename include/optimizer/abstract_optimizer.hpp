@@ -116,7 +116,7 @@ class abstract_optimizer {
     /**
      * @brief Do the optimization step described in the class description.
      */
-    virtual void optimize() = 0;
+    virtual void optimize(double norm) = 0;
 
     /**
      * @brief Add a plugin to the optimization.
@@ -135,6 +135,6 @@ class abstract_optimizer {
      *
      * @return current energy of `a_h_`.
      */
-    double get_current_energy();
+    double get_current_energy(double norm);
 };
 }  // namespace optimizer

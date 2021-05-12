@@ -53,12 +53,6 @@ class gradient_descent : public abstract_optimizer {
                      operators::base_op& hamiltonian,
                      const ini::decay_t& learning_rate);
 
-    virtual void register_observables() override;
-
-    virtual void optimize() override;
-
-   private:
-    operators::prod_aggregator
-        a_dh_;  ///< Derivative Hamiltonian aggregator <D^* H>
+    virtual void optimize(double norm) override;
 };
 }  // namespace optimizer
