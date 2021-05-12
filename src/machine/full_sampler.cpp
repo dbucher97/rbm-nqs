@@ -33,10 +33,10 @@ using namespace machine;
 full_sampler::full_sampler(rbm_base& rbm_, size_t bp)
     : Base{rbm_}, bits_parallel_{bp} {}
 
-double full_sampler::sample(bool keep_state) {
+void full_sampler::sample(bool keep_state) {
     // Initialize aggregators
     for (auto agg : aggs_) {
-        agg->init(static_cast<size_t>(1 << rbm_.n_visible));
+        agg->set_zero();
     }
     // Number of parallel gray code runs
     size_t b_len = (size_t)std::pow(2, bits_parallel_);
@@ -109,6 +109,7 @@ double full_sampler::sample(bool keep_state) {
         statefile << vec;
         statefile.close();
     }
-
-    return p_total;
+    for (auto agg : aggs_) {
+        agg->finalize(p_total);
+    }
 }

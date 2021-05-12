@@ -32,21 +32,41 @@ namespace operators {
  * Operator op results of each sample. `agg.result_ = <op>`
  */
 class aggregator {
-    Eigen::MatrixXcd result_;  ///< The result Matrix
+    bool track_variance_ =
+        false;  ///< If is set, track the variance of a observable
+    Eigen::MatrixXcd result_;   ///< The result Matrix
+    Eigen::MatrixXd variance_;  ///< The variance Matrix
 
    protected:
     const base_op&
         op_;  ///< Operator, for which the results should be accumulated.
 
-    size_t num_samples_;  ///< Number of samples
-    size_t current_;      ///< Current sample
+    const size_t num_samples_;  ///< Number of samples
+
+    /**
+     * @brief Get the observable from the operator(s), this will be overriden
+     * by derived classes.
+     *
+     * @return Matrix of the specific result.
+     */
+    virtual Eigen::MatrixXcd aggregate_();
+
+    /**
+     * @brief Protected Aggregator constructor for custorm observable size
+     * (Matrix returned by `aggregate_`).
+     *
+     * @param base_op Reference to the operator.
+     * @param rows Number of rows.
+     * @param cols Number of cols.
+     * @param num_samples Number of samples.
+     */
+    aggregator(const base_op&, size_t, size_t, size_t);
 
    public:
     /**
      * @brief Aggregator constructor with size same as oprator result size.
      *
      * @param base_op Reference to the operator.
-     * @param num_samples Number of samples.
      */
     aggregator(const base_op&);
     /**
@@ -57,21 +77,77 @@ class aggregator {
     /**
      * @brief Aggregate the current operator(s) result.
      *
-     * @param weight Weight.
+     * @param weight Weight (Default = 1.).
      */
     void aggregate(double weight = 1.);
+
+    /**
+     * @brief Turn on `track_variance_`.
+     */
+    void track_variance() { track_variance_ = true; }
 
     /**
      * @brief Result getter.
      *
      * @return The reference to the result.
      */
-    const Eigen::MatrixXcd& get_result() const;
+    Eigen::MatrixXcd& get_result();
+    /**
+     * @brief Variance getter.
+     *
+     * @return The reference to the variance.
+     */
+    Eigen::MatrixXd& get_variance();
+    /**
+     * @brief Finalize the Aggregation.
+     *
+     * @param normalization divide by normalization factor.
+     */
+    void finalize(double normalization);
 
     /**
      * @brief Sets result to zero.
      */
-    void init(size_t num_samples);
+    void set_zero();
+};
+
+/**
+ * @brief Prodcut aggregator calculates the expectation value of the product of
+ * a scalar operator with a matrix sized operator. agg.resut_ = <op_ ob_b^*>
+ */
+class prod_aggregator : public aggregator {
+    using Base = aggregator;
+
+    const base_op& scalar_;  ///< Reference to the scalar operator.
+
+    virtual Eigen::MatrixXcd aggregate_() override;
+
+   public:
+    /**
+     * @brief Constructor of the product aggregator
+     *
+     * @param matrix_op Matrix sized operator.
+     * @param scalar_op Scalar operator.
+     */
+    prod_aggregator(const base_op& matrix_op, const base_op& scalar_op);
+};
+
+/**
+ * @brief Outer aggregator calculates the expectation value of the outer
+ * product of a vector sized operator with itself. agg.result_ = <op^* op^T>
+ */
+class outer_aggregator : public aggregator {
+    using Base = aggregator;
+
+    virtual Eigen::MatrixXcd aggregate_() override;
+
+   public:
+    /**
+     * @brief Outer aggregator constructor.
+     *
+     * @param base_op Reference to the vector sized operator.
+     */
+    outer_aggregator(const base_op&);
 };
 
 }  // namespace operators

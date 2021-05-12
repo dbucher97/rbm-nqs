@@ -26,29 +26,30 @@ gradient_descent::gradient_descent(machine::rbm_base& rbm,
                                    machine::abstract_sampler& sampler,
                                    operators::base_op& hamiltonian,
                                    const ini::decay_t& lr)
-    : Base{rbm, sampler, hamiltonian, lr} {}
+    : Base{rbm, sampler, hamiltonian, lr},
+      // Initialize SR aggregators
+      a_dh_{derivative_, hamiltonian_} {}
 
-void gradient_descent::optimize(double norm) {
+void gradient_descent::register_observables() {
+    // Register operators and aggregators
+    Base::register_observables();
+    sampler_.register_agg(&a_dh_);
+}
+
+void gradient_descent::optimize() {
     // Get the result
-    auto& hr = a_h_.get_result();
-    auto& dr = a_d_.get_result();
-
-    std::complex<double> h = hr.sum() / norm;
-    Eigen::MatrixXcd d = dr.rowwise().sum() / norm;
-    Eigen::MatrixXcd dh =
-        (dr.conjugate().array().rowwise() * hr.row(0).array()).rowwise().sum() /
-        norm;
-    // std::cout << hr << std::endl;
-    // std::cout << std::endl;
-
-    std::cout << norm << std::endl;
+    auto& h = a_h_.get_result();
+    auto& d = a_d_.get_result();
+    auto& dh = a_dh_.get_result();
 
     // Log energy, energy variance and sampler properties.
-    logger::log(std::real(h) / rbm_.n_visible, "Energy");
+    logger::log(std::real(h(0)) / rbm_.n_visible, "Energy");
+    logger::log(std::real(a_h_.get_variance()(0)) / rbm_.n_visible,
+                "EnergyVariance");
     sampler_.log();
 
     // Calculate the gradient descent
-    Eigen::MatrixXcd dw = dh - d.conjugate() * h;
+    Eigen::MatrixXcd dw = dh - d.conjugate() * h(0);
 
     // Apply plugin if set
     if (!plug_) {

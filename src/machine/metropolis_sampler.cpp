@@ -40,10 +40,10 @@ metropolis_sampler::metropolis_sampler(rbm_base& rbm, std::mt19937& rng,
       bond_flips_{bond_flips},
       f_dist_{0, rbm.n_visible - 1} {}
 
-double metropolis_sampler::sample(size_t total_samples) {
+void metropolis_sampler::sample(size_t total_samples) {
     // Initialize aggregators
     for (auto agg : aggs_) {
-        agg->init(total_samples);
+        agg->set_zero();
     }
 
     // Divide the `total_samples` between the chains.
@@ -64,7 +64,10 @@ double metropolis_sampler::sample(size_t total_samples) {
     // Average acceptance rate.
     acceptance_rate_ /= n_chains_;
 
-    return total_samples;
+    // Finalize aggregators
+    for (auto agg : aggs_) {
+        agg->finalize(total_samples);
+    }
 }
 
 double metropolis_sampler::sample_chain(size_t total_samples) {

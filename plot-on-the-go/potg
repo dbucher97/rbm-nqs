@@ -19,8 +19,6 @@ import matplotlib.pyplot as plt
 import argparse
 import math
 import numpy as np
-import time
-import threading
 
 
 def parse_line(line):
@@ -35,97 +33,74 @@ def parse_line(line):
         return 0
 
 
-def get_others(args):
-    othervals = []
-    for o in args.other:
-        with open(o, 'r') as f:
-            othervals.append(np.array([parse_line(l) for l in f if not
-                                       l.startswith('#')]))
-    return othervals
+parser = argparse.ArgumentParser(description='Plot stdin values live.')
+parser.add_argument('-r', '--reference', type=float)
+parser.add_argument('-i', '--input', type=str, default='-')
+parser.add_argument('other', nargs='*')
+args = parser.parse_args()
+
+othervals = []
+for o in args.other:
+    with open(o, 'r') as f:
+        othervals.append(np.array([parse_line(l) for l in f if not
+                                   l.startswith('#')]))
+vals = []
+
+plt.ion()
+fig, ax1 = plt.subplots()
+ax2 = ax1.twinx()
+plt.show()
 
 
-def read_input(vals, args, run_event):
-    for line in fileinput.input(args.input):
-        print(line, end='')
-        if(line.startswith('#')):
-            continue
-        vals.append(parse_line(line))
-        if not run_event.is_set():
-            run_event.set()
+for line in fileinput.input(args.input):
+    print(line, end='')
+    if(line.startswith('#')):
+        continue
+    ax1.cla()
+    vals.append(parse_line(line))
+    v = np.array(vals)
+    if len(v.shape) > 1:
+        v0 = v[:, 0]
+    else:
+        v0 = v
+    vavg = None
+    if(len(vals) > 200):
+        vavg = np.mean(v0[-100:])
 
 
-def plot_routine(vals, othervals, args, run_event):
-    plt.ion()
-    fig, ax1 = plt.subplots()
-    ax2 = ax1.twinx()
-    plt.show()
+    ax1.set_xlabel('Iteration')
+    ax1.set_ylabel('Energy per site')
+    ax2.set_ylabel('Energy Variance (gray) / Acceptance Rate (green)')
+    shps = ['gray', 'green', 'orange']
+    if len(v.shape) > 1:
+        ax2.cla()
+        shi = 0
+        for vi in v[:, 1:].T:
+            ax2.plot(vi, color=shps[shi], linestyle=':')
+            ax2.set_ylim((0, 1))
+            shi += 1
 
-    while run_event.wait():
-        run_event.clear()
-        v = np.array(vals)
-        if len(v.shape) > 1:
-            v0 = v[:, 0]
-        else:
-            v0 = v
-        vavg = None
-        if(len(vals) > 200):
-            vavg = np.mean(v0[-100:])
+    for other in othervals:
+        x = min(len(vals), len(other))
+        ax1.plot(other[:x])
 
-        ax1.cla()
-        ax1.set_xlabel('Iteration')
-        ax1.set_ylabel('Energy per site')
-        ax2.set_ylabel('Acceptance Rate (green)')
-        shps = ['green', 'orange', 'gray']
-
-        if len(v.shape) > 1:
-            ax2.cla()
-            shi = 0
-            for vi in v[:, 1:].T:
-                ax2.plot(vi, color=shps[shi], linestyle=':')
-                ax2.set_ylim((0, 1))
-                shi += 1
-
-        for other in othervals:
-            x = min(len(vals), len(other))
-            ax1.plot(other[:x])
-
-        if vavg is not None:
-            ax1.axhline(y=vavg, color='b')
-            ax1.text(10, vavg - 0.03, f'{vavg:.5f}')
-        if args.reference is not None:
-            ax1.axhline(y=args.reference, color='r', linestyle='--')
-
-        ax1.plot(v0, 'k', linewidth=2)
-        ax1.set_zorder(ax2.get_zorder()+1)
-        ax1.patch.set_visible(False)
-
-        if args.reference is not None:
-            ax1.set_ylim((args.reference - 0.05, v0[0] + 0.05))
-        plt.draw()
-        plt.pause(0.01)
+    if vavg is not None:
+        ax1.axhline(y=vavg, color='b')
+        ax1.text(10, vavg - 0.03, f'{vavg:.5f}')
+    if args.reference is not None:
+        ax1.axhline(y=args.reference, color='r', linestyle='--')
 
 
-def main():
-    parser = argparse.ArgumentParser(description='Plot stdin values live.')
-    parser.add_argument('-r', '--reference', type=float)
-    parser.add_argument('-i', '--input', type=str, default='-')
-    parser.add_argument('other', nargs='*')
-    args = parser.parse_args()
+    ax1.plot(v0, 'k', linewidth=2)
+    ax1.set_zorder(ax2.get_zorder()+1)
+    ax1.patch.set_visible(False)
 
-    othervals = get_others(args)
+    if args.reference is not None:
+        ax1.set_ylim((args.reference - 0.05, v0[0] + 0.05))
+    plt.draw()
+    plt.pause(0.00001)
 
-    vals = []
-
-    run_event = threading.Event()
-
-    th = threading.Thread(target=read_input, args=(vals, args, run_event))
-    th.start()
-    try:
-        plot_routine(vals, othervals, args, run_event)
-    except KeyboardInterrupt:
-        run_event.clear()
-        th.join()
-
-
-if __name__ == '__main__':
-    main()
+#  plt.ioff()
+#  plt.clf()
+#  plt.plot(vals, 'k', linewidth=2)
+#  plt.show()

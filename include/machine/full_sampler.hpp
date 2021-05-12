@@ -56,16 +56,14 @@ class full_sampler : public abstract_sampler {
      */
     full_sampler(rbm_base&, size_t bits_parallel);
 
-    virtual double sample(size_t n_samples = 0) override {
-        return sample(false);
-    };
+    virtual void sample(size_t n_samples = 0) override { sample(false); };
 
     /**
      * @brief Sample over all basis states.
      *
      * @param keep_state Keeps the state vector.
      */
-    virtual double sample(bool keep_state);
+    virtual void sample(bool keep_state);
 };
 
 }  // namespace machine
