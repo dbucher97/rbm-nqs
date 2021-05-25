@@ -14,7 +14,7 @@ INC_DIRS += /usr/local/include/
 INC_DIRS += /usr/local/include/eigen3/
 INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
-CPPFLAGS ?= $(INC_FLAGS) -MMD -MP -Wall -std=c++14
+CPPFLAGS ?= $(INC_FLAGS) -MMD -MP -Wall -std=c++14 -O3 -march=native
 
 OMP = -fopenmp
 ifeq ($(notdir $(CXX)), clang++)

@@ -20,14 +20,16 @@
 #include <Eigen/Dense>
 #include <cmath>
 #include <complex>
+#include <tools/logger.hpp>
+#include <unsupported/Eigen/IterativeSolvers>
+#include <vector>
+//
 #include <machine/abstract_sampler.hpp>
 #include <machine/rbm_base.hpp>
 #include <operators/base_op.hpp>
 #include <operators/derivative_op.hpp>
 #include <optimizer/plugin.hpp>
 #include <optimizer/stochastic_reconfiguration.hpp>
-#include <tools/logger.hpp>
-#include <vector>
 
 using namespace optimizer;
 
@@ -71,6 +73,12 @@ void stochastic_reconfiguration::optimize() {
     S += kp_.get() * Eigen::MatrixXcd::Identity(p, p);
     // Calculate dw.
     Eigen::MatrixXcd dw = S.completeOrthogonalDecomposition().solve(F);
+    // Eigen::GMRES<Eigen::MatrixXcd> gmres;
+    // gmres.setTolerance(1e-12);
+    // gmres.compute(S);
+    // Eigen::MatrixXcd dw = gmres.solve(F);
+
+    // std::cout << " " << (dw - dw2).array().abs().sum() << std::endl;
 
     // Apply plugin if set
     if (!plug_) {

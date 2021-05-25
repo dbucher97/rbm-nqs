@@ -51,7 +51,8 @@ class gradient_descent : public abstract_optimizer {
      */
     gradient_descent(machine::rbm_base& rbm, machine::abstract_sampler& sampler,
                      operators::base_op& hamiltonian,
-                     const ini::decay_t& learning_rate);
+                     const ini::decay_t& learning_rate,
+                     double real_factor = 1.);
 
     virtual void register_observables() override;
 
@@ -60,5 +61,7 @@ class gradient_descent : public abstract_optimizer {
    private:
     operators::prod_aggregator
         a_dh_;  ///< Derivative Hamiltonian aggregator <D^* H>
+
+    double real_factor_;
 };
 }  // namespace optimizer

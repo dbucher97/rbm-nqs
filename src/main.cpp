@@ -80,15 +80,15 @@ void interrupt(int sig) {
     exit(0);
 }
 
-void progress_bar(size_t i, size_t n_epochs, double energy) {
+void progress_bar(size_t i, size_t n_epochs, double energy, char state) {
     double progress = i / (double)n_epochs;
     int digs = (int)std::log10(n_epochs) - (int)std::log10(i);
     if (i == 0) digs = (int)std::log10(n_epochs);
     std::cout << "\rEpochs: (" << std::string(digs, ' ') << i << "/" << n_epochs
-              << ") ";
+              << ") " << state << " ";
     struct winsize size;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &size);
-    int plen = size.ws_col - (2 * (int)std::log10(n_epochs) + 35);
+    int plen = size.ws_col - (2 * (int)std::log10(n_epochs) + 37);
     int p = (int)(plen * progress + 0.5);
     int m = plen - p;
     std::cout << "[" << std::string(p, '#') << std::string(m, ' ') << "]";
@@ -127,12 +127,12 @@ void test_symmetry() {
 }
 
 void print_bonds() {
-    lattice::honeycombS3 lat{1};
+    lattice::honeycomb lat{3};
     auto bonds = lat.get_bonds();
     for (auto& bond : bonds) {
         std::cout << bond.a << "," << bond.b << "," << bond.type << std::endl;
     }
-    lat.print_lattice({0, lat.up(0, 1)});
+    // lat.print_lattice({0, lat.up(0, 1)});
 }
 
 void test_S3() {
@@ -150,46 +150,38 @@ void test_S3() {
 }
 
 void debug() {
-    // auto& h = m.get_hamiltonian();
-    //
-    // machine::rbm_base rbm(3, m.get_lattice());
-    //
-    // Eigen::MatrixXcd state(rbm.n_visible, 1);
-    // std::uniform_real_distribution<double> u_dist(0, 1);
-    // std::mt19937 rng;
-    // for (size_t i = 0; i < rbm.n_visible; i++) {
-    //     state(i) = u_dist(rng) < 0.5 ? 1. : -1.;
-    // }
-    // MatrixXcd thetas = rbm.get_thetas(state);
-    //
-    // h.evaluate(rbm, state, thetas);
-    // lattice::toric_lattice lat{3};
-    // auto plaq = lat.construct_plaqs();
-    // for (auto& p : plaq) {
-    //     for (auto& i : p.idxs) {
-    //         std::cout << i << ", ";
-    //     }
-    //     std::cout << p.type << std::endl;
-    // }
-    // auto symm = lat.construct_symmetry();
-    // std::vector<size_t> v1(plaq[0].idxs.begin(), plaq[0].idxs.end());
-    // std::vector<size_t> v2(plaq[1].idxs.begin(), plaq[1].idxs.end());
-    // v1.insert(v1.end(), v2.begin(), v2.end());
-    // MatrixXcd vec(lat.n_total, 1);
-    // for (auto& s : symm) {
-    //     std::vector<size_t> st;
-    //     for (auto v : v1) {
-    //         vec.setZero();
-    //         vec(v) = 1;
-    //         vec = s * vec;
-    //         // std::cout << to_idx(vec) << std::endl;
-    //         st.push_back(to_idx(vec));
-    //     }
-    //     for (auto& x : st) std::cout << x << ", ";
-    //     std::cout << std::endl;
-    //     lat.print_lattice(st);
-    //     std::cout << std::endl;
-    // }
+    // print_bonds();
+    // return;
+    size_t n_chains = 16;
+    size_t step_size = 5;
+    size_t warmup_steps = 100;
+    size_t n_samples = 1000;
+    bool bond_flips = true;
+
+    std::mt19937 rng{static_cast<std::mt19937::result_type>(ini::seed)};
+    std::cout.precision(17);
+
+    model::kitaev m{3, -1};
+    machine::file_psi rbm{m.get_lattice(), "notebooks/n3.state"};
+    machine::full_sampler sampler{rbm, 3};
+    machine::metropolis_sampler msampler{rbm,       rng,          n_chains,
+                                         step_size, warmup_steps, bond_flips};
+    operators::aggregator agg{m.get_hamiltonian()};
+    agg.track_variance();
+    sampler.register_op(&(m.get_hamiltonian()));
+    sampler.register_agg(&agg);
+    msampler.register_op(&(m.get_hamiltonian()));
+    msampler.register_agg(&agg);
+
+    for (size_t i = 0; i < 10; i++) {
+        msampler.sample(n_samples);
+        std::cout << "Metropolis Sampler: " << agg.get_result() / rbm.n_visible
+                  << " += " << agg.get_variance() / rbm.n_visible << std::endl;
+        std::cout << msampler.get_acceptance_rate() << std::endl;
+    }
+    sampler.sample(false);
+    std::cout << "Full Sampler: " << agg.get_result() / rbm.n_visible
+              << " += " << agg.get_variance() / rbm.n_visible << std::endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -275,7 +267,8 @@ int main(int argc, char* argv[]) {
             break;
         case ini::optimizer_t::SGD:
             optimizer = std::make_unique<optimizer::gradient_descent>(
-                *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr);
+                *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr,
+                ini::opt_sgd_real_factor);
             break;
         default:
             return 1;
@@ -308,16 +301,18 @@ int main(int argc, char* argv[]) {
         fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
         // End getchar non-block
 
-        progress_bar(0, ini::n_epochs, -1);
+        progress_bar(0, ini::n_epochs, -1, 'S');
         int ch = 0;
         for (size_t i = 0; i < ini::n_epochs && ch != ''; i++) {
             sampler->sample(ini::sa_n_samples);
             Eigen::setNbThreads(ini::n_threads);
+            progress_bar(i + 1, ini::n_epochs,
+                         optimizer->get_current_energy() / rbm->n_visible, 'O');
             optimizer->optimize();
             Eigen::setNbThreads(1);
             logger::newline();
             progress_bar(i + 1, ini::n_epochs,
-                         optimizer->get_current_energy() / rbm->n_visible);
+                         optimizer->get_current_energy() / rbm->n_visible, 'S');
             ch = getchar();
         }
 

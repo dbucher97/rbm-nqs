@@ -25,10 +25,11 @@ using namespace optimizer;
 gradient_descent::gradient_descent(machine::rbm_base& rbm,
                                    machine::abstract_sampler& sampler,
                                    operators::base_op& hamiltonian,
-                                   const ini::decay_t& lr)
+                                   const ini::decay_t& lr, double real_factor)
     : Base{rbm, sampler, hamiltonian, lr},
       // Initialize SR aggregators
-      a_dh_{derivative_, hamiltonian_} {}
+      a_dh_{derivative_, hamiltonian_},
+      real_factor_{real_factor} {}
 
 void gradient_descent::register_observables() {
     // Register operators and aggregators
@@ -57,7 +58,7 @@ void gradient_descent::optimize() {
     } else {
         dw = lr_.get() * plug_->apply(dw);
     }
-    dw.real() /= 2.;
+    dw.real() /= real_factor_;
 
     // Update the weights.
     rbm_.update_weights(dw);

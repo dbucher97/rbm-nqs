@@ -160,6 +160,7 @@ extern optimizer_t opt_type;
 extern std::string opt_plugin;
 extern decay_t opt_lr;
 extern decay_t opt_sr_reg;
+extern double opt_sgd_real_factor;
 extern double opt_adam_beta1;
 extern double opt_adam_beta2;
 extern double opt_adam_eps;

@@ -107,7 +107,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
         //     }
         //     flips.push_back(flips2);
         // }
-        if (bond_flips_) {
+        if (bond_flips_ && u_dist_(rng_) < 0.5) {
             auto& b = bonds[b_dist(rng_)];
             flips = {b.a, b.b};
         } else {

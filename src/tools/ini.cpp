@@ -55,9 +55,9 @@ size_t rbm_correlators = 1;
 // Sampler
 sampler_t sa_type = METROPOLIS;
 size_t sa_n_samples = 1000;
-size_t sa_metropolis_n_chains = 8;
+size_t sa_metropolis_n_chains = 16;
 size_t sa_metropolis_n_warmup_steps = 100;
-size_t sa_metropolis_n_steps_per_sample = 5;
+size_t sa_metropolis_n_steps_per_sample = 10;
 size_t sa_full_n_parallel_bits = 3;
 std::string sa_exact_gs_file = "";
 bool sa_metropolis_bond_flips = true;
@@ -67,6 +67,7 @@ optimizer_t opt_type = SR;
 std::string opt_plugin = "";
 decay_t opt_lr = {0.001, 0.001, 1.};
 decay_t opt_sr_reg = {1, 1e-4, 0.9};
+double opt_sgd_real_factor = 1.;
 double opt_adam_beta1 = 0.9;
 double opt_adam_beta2 = 0.999;
 double opt_adam_eps = 1e-8;
@@ -141,6 +142,7 @@ int ini::load(int argc, char* argv[]) {
     ("optimizer.type",                        po::value(&opt_type),                         "set optimizer type")
     ("optimizer.learning_rate,l",             po::value(&opt_lr)->multitoken(),             "set learning rate optionally with decay factor")
     ("optimizer.sr.regularization,r",         po::value(&opt_sr_reg)->multitoken(),         "set regularization diagonal shift decay rate optionally with decay factor")
+    ("optimizer.sgd.real_factor,r",           po::value(&opt_sgd_real_factor),              "set the factor the real part of the update vector is divided by (default 1.)")
     ("optimizer.plugin",                      po::value(&opt_plugin),                       "set optional plugin for SR adam/momentum")
     ("optimizer.adam.beta1",                  po::value(&opt_adam_beta1),                   "set ADAM plug beta1")
     ("optimizer.adam.beta2",                  po::value(&opt_adam_beta2),                   "set ADAM plug beta2")
