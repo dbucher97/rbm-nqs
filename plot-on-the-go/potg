@@ -36,13 +36,14 @@ def get_others(args):
     othervals = []
     for o in args.other:
         with open(o, 'r') as f:
-            othervals.append(np.array([parse_line(l) for l in f if not
-                                       l.startswith('#')]))
+            othervals.append(np.array([parse_line(l)
+                                       for l in f if not l.startswith('#')]))
     return othervals
 
 
 def read_input(vals, args, run_event):
     for line in fileinput.input(args.input):
+        line = str(line)
         print(line, end='')
         if(line.startswith('#')):
             continue
