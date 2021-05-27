@@ -64,7 +64,9 @@ void aggregator::aggregate(double weight) {
     Eigen::MatrixXcd x = weight * aggregate_();
     // Safly aggeregte the result
 #pragma omp critical
-    result_ += x;
+    {
+        result_ += x;
+    }
 
     if (track_variance_) {
         // Calculate the resul of the squared observable

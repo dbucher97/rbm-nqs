@@ -80,6 +80,9 @@ void rbm_base::initialize_weights(std::mt19937& rng, double std_dev,
         }
     }
 
+    /* h_bias_.setZero();
+    v_bias_.setZero(); */
+
     for (auto& c : correlators_)
         c->initialize_weights(rng, std_dev, std_dev_imag);
 }
@@ -122,6 +125,7 @@ void rbm_base::update_thetas(const Eigen::MatrixXcd& state,
         c->get_cidxs_from_flips(flips, cidxs);
         c->update_thetas(state, *(cidxs.end() - 1), thetas);
     }
+
 }
 
 Eigen::MatrixXcd rbm_base::derivative(const Eigen::MatrixXcd& state,
@@ -132,6 +136,7 @@ Eigen::MatrixXcd rbm_base::derivative(const Eigen::MatrixXcd& state,
     result.block(0, 0, n_vb_, 1) = state;
     // Eigen::MatrixXcd tanh = thetas.array().tanh();
     Eigen::MatrixXcd tanh = (*tanh_)(thetas);
+
     result.block(n_vb_, 0, n_alpha, 1) = tanh;
     Eigen::MatrixXcd x = state * tanh.transpose();
     // Transform weights matrix into a vector.
@@ -289,4 +294,3 @@ std::complex<double> rbm_base::psi_over_psi_alt(
 
     return ret;
 }
-

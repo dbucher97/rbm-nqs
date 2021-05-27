@@ -177,8 +177,7 @@ def load_state(path):
             sim_state.append(float(r) + 1j * float(i))
     sim_state = np.array(sim_state)
     norm = np.linalg.norm(sim_state)
-    print(norm)
-    return sim_state / norm
+    return sim_state / norm, norm
 
 
 def energy(op, state, N=18):

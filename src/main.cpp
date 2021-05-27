@@ -150,8 +150,7 @@ void test_S3() {
 }
 
 void debug() {
-    // print_bonds();
-    // return;
+    //
     size_t n_chains = 16;
     size_t step_size = 5;
     size_t warmup_steps = 100;
@@ -186,7 +185,6 @@ void debug() {
 
 int main(int argc, char* argv[]) {
     // debug();
-    // return 0;
 
     int rc = ini::load(argc, argv);
     if (rc != 0) {
@@ -277,7 +275,9 @@ int main(int argc, char* argv[]) {
     std::unique_ptr<optimizer::base_plugin> p;
     if (ini ::opt_plugin.length() > 0) {
         if (ini::opt_plugin == "adam") {
-            p = std::make_unique<optimizer::adam_plugin>(rbm->get_n_params());
+            p = std::make_unique<optimizer::adam_plugin>(
+                rbm->get_n_params(), ini::opt_adam_beta1, ini::opt_adam_beta2,
+                ini::opt_adam_eps);
         } else if (ini::opt_plugin == "momentum") {
             p = std::make_unique<optimizer::momentum_plugin>(
                 rbm->get_n_params());
@@ -327,6 +327,15 @@ int main(int argc, char* argv[]) {
     } else {
         std::cout << "nothing to do!" << std::endl;
     }
+
+    std::ofstream ws{"weights/weights_" + ini::name + ".txt"};
+    ws << "# Weights\n";
+    ws << rbm->get_weights();
+    ws << "\n\n# Hidden Bias\n";
+    ws << rbm->get_h_bias();
+    ws << "\n\n# Visible Bias\n";
+    ws << rbm->get_v_bias();
+    ws.close();
 
     machine::full_sampler samp{*rbm, 3};
     operators::aggregator agg{model->get_hamiltonian()};

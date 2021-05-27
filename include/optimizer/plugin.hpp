@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <Eigen/Dense>
+
 /**
  * @brief Namespace for all optimizer related classes.
  */
