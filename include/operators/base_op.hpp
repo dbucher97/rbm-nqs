@@ -57,8 +57,10 @@ class base_op {
     base_op(size_t r = 1, size_t c = 1)
         : r_{r}, c_{c}, result_(omp_get_max_threads()) {
         // Initialize all result matrices.
-        for (size_t i = 0; i < result_.size(); i++)
+        for (size_t i = 0; i < result_.size(); i++) {
             result_[i] = Eigen::MatrixXcd(r_, c_);
+            result_[i].setZero();
+        }
     }
     /**
      * @brief Default virtual destructor.
@@ -75,7 +77,7 @@ class base_op {
      * @param thetas Reference to the precalculated thetas.
      */
     virtual void evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
-                          const Eigen::MatrixXcd& thetas) = 0;
+                          const Eigen::MatrixXcd& thetas) {};
 
     /**
      * @brief Checks if operator is scalar

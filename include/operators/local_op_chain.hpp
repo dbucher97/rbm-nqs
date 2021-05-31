@@ -50,6 +50,11 @@ class local_op_chain : public base_op {
      * @param local_op The operator to add to the chain.
      */
     void push_back(local_op);
+
+    /**
+     * @brief Pop last local operator.
+     */
+    void pop_back();
 };
 }  // namespace operators
 

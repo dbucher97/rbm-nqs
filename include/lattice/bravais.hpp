@@ -208,6 +208,22 @@ class bravais {
     };
 
     /**
+     * @brief Returns true if custom weight initialization is supported
+     *
+     */
+    virtual bool supports_custom_weight_initialization() const { return false; }
+
+    /**
+     * @brief Initilize the v_bias to represent a certain order
+     *
+     * @param v_bias The v_bias matrix to initialize
+     */
+    virtual void initialize_vb(const std::string& type,
+                               Eigen::MatrixXcd& v_bias) const {
+        v_bias.setZero();
+    }
+
+    /**
      * @brief Printis the lattice and highlights
      * certain sites inside the lattice. A highlight is marked with the
      * number of occurances in the hightlits vector.

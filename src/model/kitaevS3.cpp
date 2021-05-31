@@ -22,40 +22,23 @@
 
 #include <model/kitaevS3.hpp>
 
-namespace model {
-// Definition of the 2 site Pauli matrices.
-Eigen::Matrix4cd zz =
-    ((Eigen::Matrix4cd() << 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1)
-         .finished());
-Eigen::Matrix4cd x_zy =
-    std::complex<double>(0, 1.) *
-    ((Eigen::Matrix4cd() << 0, 0, 0, -1, 0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
-         .finished());
-Eigen::Matrix4cd x_yz =
-    std::complex<double>(0, 1.) *
-    ((Eigen::Matrix4cd() << 0, 0, 0, -1, 0, 0, 1, 0, 0, -1, 0, 0, 1, 0, 0, 0)
-         .finished());
-Eigen::Matrix4cd y_xz =
-    ((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, 1, 0, 0, 0)
-         .finished());
-Eigen::Matrix4cd y_zx =
-    ((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, -1, 0, 0, -1, 0, 0, 1, 0, 0, 0)
-         .finished());
-Eigen::Matrix4cd z_xy =
-    ((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
-         .finished());
-Eigen::Matrix4cd z_yx =
-    ((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
-         .finished());
-}  // namespace model
-
 model::kitaevS3::kitaevS3(size_t size, const std::array<double, 3>& J) {
     if (size % 3 != 0)
         throw std::runtime_error("Size not valid for Kitaev S3.");
     lattice_ = std::make_unique<lattice::honeycombS3>(size / 3);
+    std::vector<const SparseXcd> bond_ops = {
+        J[0] * kron({sz(), sz()}),
+        J[1] * kron({sz(), sz()}),
+        J[2] * kron({sz(), sz()}),
+        J[0] * kron({sy(), sx()}),
+        J[0] * kron({sx(), sy()}),
+        -J[1] * kron({sy(), sy()}),
+        -J[1] * kron({sy(), sy()}),
+        J[2] * kron({sx(), sx()}),
+        J[2] * kron({sx(), sx()})
+    };
     hamiltonian_ = std::make_unique<operators::bond_op>(
         lattice_->get_bonds(),
-        std::vector<Eigen::MatrixXcd>{J[0] * zz, J[1] * zz, J[2] * zz,
-                                      J[0] * x_yz, J[0] * x_zy, J[1] * y_xz,
-                                      J[1] * y_zx, J[2] * z_xy, J[2] * z_yx});
+        bond_ops
+    );
 }

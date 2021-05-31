@@ -29,21 +29,13 @@
  */
 namespace model {
 
-typedef Eigen::Matrix<std::complex<double>, 2, 2> Matrix2cd;
-typedef Eigen::Matrix<std::complex<double>, 16, 16> Matrix16cd;
-
-extern Matrix2cd sx;       ///< 1 site Pauli-x operator
-extern Matrix2cd sy;       ///< 1 site Pauli-z operator
-extern Matrix16cd vertex;  ///< 4 site Pauli-x operator
-extern Matrix16cd plaq;    ///< 4 site Pauli-z operator
-
 /**
  * @brief The Kitaev toric code Model.
  */
 class toric : public abstract_model {
     using Base = abstract_model;
 
-    Eigen::MatrixXcd plaq_, vertex_;
+    SparseXcd plaq_, vertex_;
 
    public:
     /**

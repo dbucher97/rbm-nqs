@@ -18,17 +18,29 @@
 #pragma once
 
 #include <memory>
+#include <Eigen/Sparse>
+#include <complex>
 //
 #include <lattice/bravais.hpp>
 #include <operators/bond_op.hpp>
+#include <operators/local_op_chain.hpp>
 
 namespace model {
+
+typedef Eigen::SparseMatrix<std::complex<double>> SparseXcd;
+
+extern const SparseXcd kron(const std::vector<const SparseXcd>&);
+extern const SparseXcd sx();
+extern const SparseXcd sy();
+extern const SparseXcd sz();
 
 class abstract_model {
    protected:
     std::unique_ptr<lattice::bravais> lattice_;  ///< lattice object pointer.
-    std::unique_ptr<operators::base_op>
+    std::unique_ptr<operators::local_op_chain>
         hamiltonian_;  ///< Bond Operator Pointer.
+
+    size_t helpers_ = 0;
 
    public:
     virtual ~abstract_model() = default;
@@ -45,5 +57,11 @@ class abstract_model {
      * @return Reference to the `honeycomb` lattice.
      */
     lattice::bravais& get_lattice() { return *lattice_; };
+
+    virtual bool supports_helper_hamiltonian() const { return false; }
+
+    virtual void add_helper_hamiltonian(double strength) {}
+
+    virtual void remove_helper_hamiltoian();
 };
 }  // namespace model

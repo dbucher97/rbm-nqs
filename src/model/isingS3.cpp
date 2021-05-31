@@ -23,46 +23,25 @@
 
 #include <model/isingS3.hpp>
 
-namespace model {
-// Definition of the 2 site Pauli matrices.
-Eigen::Matrix4cd ixx =
-    ((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
-         .finished());
-Eigen::Matrix4cd iyy =
-    ((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
-         .finished());
-Eigen::Matrix4cd izz =
-    ((Eigen::Matrix4cd() << 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1)
-         .finished());
-Eigen::Matrix4cd ix_zy =
-    ((Eigen::Matrix4cd() << 0, 0, 1, 0, 0, 0, 0, -1, 1, 0, 0, 0, 0, -1, 0, 0)
-         .finished());
-//
-Eigen::Matrix4cd ix_yz =
-    ((Eigen::Matrix4cd() << 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 0, 0, -1, 0)
-         .finished());
-Eigen::Matrix4cd iy_xz =
-    ((Eigen::Matrix4cd() << 0, 0, 1, 0, 0, 0, 0, -1, 1, 0, 0, 0, 0, -1, 0, 0)
-         .finished());
-Eigen::Matrix4cd iy_zx =
-    ((Eigen::Matrix4cd() << 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 0, 0, -1, 0)
-         .finished());
-//
-Eigen::Matrix4cd iz_xy =
-    ((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
-         .finished());
-Eigen::Matrix4cd iz_yx =
-    ((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
-         .finished());
-}  // namespace model
-
 model::isingS3::isingS3(size_t size, double J) {
     if (size % 3 != 0)
         throw std::runtime_error("Size not valid for Kitaev S3.");
     lattice_ = std::make_unique<lattice::honeycombS3>(size / 3);
+    std::vector<const SparseXcd> bond_ops = {
+        J * kron({sx(), sx()}),
+        J * kron({sx(), sx()}),
+        J * kron({sz(), sz()}),
+        J * kron({sx(), sz()}),
+        J * kron({sz(), sx()}),
+        J * kron({sx(), sz()}),
+        J * kron({sz(), sx()}),
+        J * kron({sx(), sx()}),
+        J * kron({sx(), sx()})
+    };
     hamiltonian_ = std::make_unique<operators::bond_op>(
         lattice_->get_bonds(),
-        std::vector<Eigen::MatrixXcd>{J * ixx, J * iyy, J * izz, J * ix_yz,
+        bond_ops);
+        /* std::vector<Eigen::MatrixXcd>{J * ixx, J * iyy, J * izz, J * ix_yz,
                                       J * ix_zy, J * iy_zx, J * iy_xz,
-                                      J * iz_xy, J * iz_yx});
+                                      J * iz_xy, J * iz_yx}); */
 }

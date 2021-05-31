@@ -44,3 +44,8 @@ void local_op_chain::push_back(local_op op) {
     // Push baack wrapper
     ops_.push_back(op);
 }
+
+void local_op_chain::pop_back() {
+    // Push baack wrapper
+    ops_.pop_back();
+}

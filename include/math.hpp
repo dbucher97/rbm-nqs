@@ -74,7 +74,7 @@ static inline std::complex<double> lncosh(std::complex<double> x) {
  *
  * @return MatrixXcd result.
  */
-static inline Eigen::MatrixXcd lncosh(const Eigen::MatrixXcd& x) {
+extern inline Eigen::MatrixXcd lncosh(const Eigen::MatrixXcd& x) {
     Eigen::MatrixXcd ret(x.rows(), x.cols());
     for (size_t i = 0; i < static_cast<size_t>(ret.size()); i++) {
         ret(i) = lncosh(x(i));
@@ -82,24 +82,24 @@ static inline Eigen::MatrixXcd lncosh(const Eigen::MatrixXcd& x) {
     return ret;
 }
 
-static inline Eigen::MatrixXcd cosh2(const Eigen::MatrixXcd& x) {
+extern inline Eigen::MatrixXcd cosh2(const Eigen::MatrixXcd& x) {
     return (1 + x.real().array().pow(2) / 2) * x.imag().array().cos() +
            std::complex<double>(0, 1) * x.real().array() *
                x.imag().array().sin();
 }
 
-static inline Eigen::MatrixXcd tanh2(const Eigen::MatrixXcd& x) {
+extern inline Eigen::MatrixXcd tanh2(const Eigen::MatrixXcd& x) {
     return (x.real().array() * x.imag().array().cos() +
             std::complex<double>(0, 1) * (1 + x.real().array().pow(2) / 2) *
                 x.imag().array().sin()) /
            cosh2(x).array();
 }
 
-static inline Eigen::MatrixXcd cosh1(const Eigen::MatrixXcd& x) {
+extern inline Eigen::MatrixXcd cosh1(const Eigen::MatrixXcd& x) {
     return x.array().cosh();
 }
 
-static inline Eigen::MatrixXcd tanh1(const Eigen::MatrixXcd& x) {
+extern inline Eigen::MatrixXcd tanh1(const Eigen::MatrixXcd& x) {
     Eigen::MatrixXcd r = x.array().tanh();
     return r.array().isFinite().select(r, 0.);
 }

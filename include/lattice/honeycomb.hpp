@@ -66,11 +66,20 @@ class honeycomb : public bravais {
     using Base::print_lattice;
     virtual void print_lattice(const std::vector<size_t>&) const override;
 
+    virtual bool supports_custom_weight_initialization() const override {
+        return true;
+    }
+    virtual void initialize_vb(const std::string& type,
+                               Eigen::MatrixXcd& v_bias) const override;
+
 #ifndef FULL_SYMMETRY
     virtual bool has_correlators() const override { return true; }
 
     virtual std::vector<correlator_group> get_correlators() const override;
 #endif
+
+    std::vector<std::vector<size_t>> get_hexagons() const;
+    
 };
 
 }  // namespace lattice

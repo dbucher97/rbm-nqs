@@ -26,6 +26,7 @@
 #include <unistd.h>
 
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
 #include <chrono>
 #include <complex>
 #include <csignal>
@@ -183,8 +184,37 @@ void debug() {
               << " += " << agg.get_variance() / rbm.n_visible << std::endl;
 }
 
+Eigen::SparseMatrix<std::complex<double>> kron(
+    const std::vector<Eigen::SparseMatrix<std::complex<double>>>& args) {
+    Eigen::SparseMatrix<std::complex<double>> so(1, 1);
+    so.insert(0, 0) = 1;
+    for (const auto& arg : args) so = kroneckerProduct(arg, so).eval();
+    return so;
+}
+
+void debug1() {
+    using SparseXcd = Eigen::SparseMatrix<std::complex<double>>;
+    std::cout << "DEBUG 1" << std::endl;
+    SparseXcd sx(2, 2), sy(2, 2), sz(2, 2);
+    sx.insert(0, 1) = 1;
+    sx.insert(1, 0) = 1;
+    sy.insert(0, 1) = std::complex<double>(0, -1);
+    sy.insert(1, 0) = std::complex<double>(0, 1);
+    sz.insert(0, 0) = 1;
+    sz.insert(1, 1) = -1;
+
+    SparseXcd x_yz = kron({sy, sx});
+    SparseXcd x_zy = kron({sx, sy});
+
+    SparseXcd y_xz = kron({-sy, sy});
+    SparseXcd y_zx = kron({sy, -sy});
+
+    SparseXcd z_xy = kron({sx, sx});
+    SparseXcd z_yx = kron({sx, sx});
+
+}
+
 int main(int argc, char* argv[]) {
-    // debug();
 
     int rc = ini::load(argc, argv);
     if (rc != 0) {
@@ -215,6 +245,9 @@ int main(int argc, char* argv[]) {
         default:
             return 1;
     }
+    if (model->supports_helper_hamiltonian() && ini::helper_strength != 0.) {
+        model->add_helper_hamiltonian(ini::helper_strength);
+    }
 
     std::unique_ptr<machine::rbm_base> rbm;
     switch (ini::rbm) {
@@ -236,7 +269,8 @@ int main(int argc, char* argv[]) {
         rbm->add_correlators(c);
     }
     if (ini::rbm_force || !rbm->load(ini::name)) {
-        rbm->initialize_weights(rng, ini::rbm_weights, ini::rbm_weights_imag);
+        rbm->initialize_weights(rng, ini::rbm_weights, ini::rbm_weights_imag,
+                                ini::rbm_weights_init_type);
     }
 
     std::unique_ptr<machine::abstract_sampler> sampler;
@@ -337,6 +371,7 @@ int main(int argc, char* argv[]) {
     ws << rbm->get_v_bias();
     ws.close();
 
+    model->remove_helper_hamiltoian();
     machine::full_sampler samp{*rbm, 3};
     operators::aggregator agg{model->get_hamiltonian()};
     samp.register_op(&(model->get_hamiltonian()));

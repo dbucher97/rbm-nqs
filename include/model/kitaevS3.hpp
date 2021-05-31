@@ -31,13 +31,6 @@
  */
 namespace model {
 
-extern Eigen::Matrix4cd zz;    ///< 2 site Pauli-z operator
-extern Eigen::Matrix4cd x_yz;  ///< 2 site Pauli-x operator in y z basis
-extern Eigen::Matrix4cd x_zy;  ///< 2 site Pauli-x operator in z y basis
-extern Eigen::Matrix4cd y_xz;  ///< 2 site Pauli-y operator in x z basis
-extern Eigen::Matrix4cd y_zx;  ///< 2 site Pauli-y operator in z x basis
-extern Eigen::Matrix4cd z_xy;  ///< 2 site Pauli-z operator in x y basis
-extern Eigen::Matrix4cd z_yx;  ///< 2 site Pauli-z operator in y x basis
 /**
  * @brief The Honeycomb Kitaev Model.
  */

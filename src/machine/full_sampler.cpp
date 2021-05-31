@@ -69,23 +69,25 @@ void full_sampler::sample(bool keep_state) {
             auto psi = rbm_.psi(state, thetas);
             double p = std::pow(std::abs(psi), 2);
 
-            // If keep state store \psi into the state vector
-            if (keep_state) {
+            if (p > 1e-20) {
+                // If keep state store \psi into the state vector
+                if (keep_state) {
 #pragma omp critical
-                vec(tools::state_to_num(state)) = psi;
-            }
+                    vec(tools::state_to_num(state)) = psi;
+                }
 
-            // Cumulate probability for normalization
+                // Cumulate probability for normalization
 #pragma omp critical
-            p_total += p;
+                p_total += p;
 
-            // Evaluate operators
-            for (auto op : ops_) {
-                op->evaluate(rbm_, state, thetas);
-            }
-            // Evaluate aggregators
-            for (auto agg : aggs_) {
-                agg->aggregate(p);
+                // Evaluate operators
+                for (auto op : ops_) {
+                    op->evaluate(rbm_, state, thetas);
+                }
+                // Evaluate aggregators
+                for (auto agg : aggs_) {
+                    agg->aggregate(p);
+                }
             }
 
             // Do the gray code update

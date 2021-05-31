@@ -24,22 +24,11 @@
 #include <operators/local_op.hpp>
 #include <operators/local_op_chain.hpp>
 
-namespace model {
-// Definition of the 2 site Pauli matrices.
-Matrix2cd sx = ((Matrix2cd() << 0, 1, 1, 0).finished());
-Matrix2cd sz = ((Matrix2cd() << 1, 0, 0, -1).finished());
-
-Matrix16cd vertex = Eigen::kroneckerProduct(
-    sx, Eigen::kroneckerProduct(sx, Eigen::kroneckerProduct(sx, sx)));
-Matrix16cd plaq = Eigen::kroneckerProduct(
-    sz, Eigen::kroneckerProduct(sz, Eigen::kroneckerProduct(sz, sz)));
-
-}  // namespace model
-
 using namespace model;
 
 toric::toric(size_t size, double J = -1.)
-    : plaq_{J * plaq}, vertex_{J * vertex} {
+    : plaq_{J * kron({sx(), sx(), sx(), sx()})},
+      vertex_{J * kron({sz(), sz(), sz(), sz()})} {
     auto lat = new lattice::toric_lattice(size);
     auto ham = new operators::local_op_chain();
     auto plaqs = lat->construct_plaqs();
@@ -52,5 +41,5 @@ toric::toric(size_t size, double J = -1.)
         }
     }
     lattice_ = std::unique_ptr<lattice::bravais>(lat);
-    hamiltonian_ = std::unique_ptr<operators::base_op>(ham);
+    hamiltonian_ = std::unique_ptr<operators::local_op_chain>(ham);
 }

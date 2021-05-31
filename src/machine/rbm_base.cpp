@@ -58,7 +58,8 @@ size_t rbm_base::get_n_params() const {
 }
 
 void rbm_base::initialize_weights(std::mt19937& rng, double std_dev,
-                                  double std_dev_imag) {
+                                  double std_dev_imag,
+                                  const std::string& init_type) {
     n_updates_ = 0;
 
     // If std_dev_imag < 0, use the normal std_dev;
@@ -69,8 +70,13 @@ void rbm_base::initialize_weights(std::mt19937& rng, double std_dev,
     std::normal_distribution<double> imag_dist{0, std_dev_imag};
 
     // Fill all weigthts and biases
-    for (size_t i = 0; i < n_vb_; i++) {
-        v_bias_(i) = std::complex<double>(real_dist(rng), imag_dist(rng));
+    if (n_vb_ == n_visible &&
+        lattice_.supports_custom_weight_initialization() && init_type != "") {
+        lattice_.initialize_vb(init_type, v_bias_);
+    } else {
+        for (size_t i = 0; i < n_vb_; i++) {
+            v_bias_(i) = std::complex<double>(real_dist(rng), imag_dist(rng));
+        }
     }
     for (size_t i = 0; i < n_alpha; i++) {
         h_bias_(i) = std::complex<double>(real_dist(rng), imag_dist(rng));
@@ -79,10 +85,8 @@ void rbm_base::initialize_weights(std::mt19937& rng, double std_dev,
                 std::complex<double>(real_dist(rng), imag_dist(rng));
         }
     }
-
-    /* h_bias_.setZero();
-    v_bias_.setZero(); */
-
+    
+    // Initialize weights
     for (auto& c : correlators_)
         c->initialize_weights(rng, std_dev, std_dev_imag);
 }
@@ -125,7 +129,6 @@ void rbm_base::update_thetas(const Eigen::MatrixXcd& state,
         c->get_cidxs_from_flips(flips, cidxs);
         c->update_thetas(state, *(cidxs.end() - 1), thetas);
     }
-
 }
 
 Eigen::MatrixXcd rbm_base::derivative(const Eigen::MatrixXcd& state,

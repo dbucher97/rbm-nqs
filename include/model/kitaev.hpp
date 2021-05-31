@@ -31,10 +31,6 @@
  */
 namespace model {
 
-extern Eigen::Matrix4cd sxsx;  ///< 2 site Pauli-x operator
-extern Eigen::Matrix4cd sysy;  ///< 2 site Pauli-y operator
-extern Eigen::Matrix4cd szsz;  ///< 2 site Pauli-z operator
-
 /**
  * @brief The Honeycomb Kitaev Model.
  */
@@ -56,5 +52,10 @@ class kitaev : public abstract_model {
      * @param J Array of coupling constant {J_x, J_y, J_z}.
      */
     kitaev(size_t size, const std::array<double, 3>& J);
+
+
+    virtual bool supports_helper_hamiltonian() const override { return true; }
+
+    virtual void add_helper_hamiltonian(double strength) override;
 };
 }  // namespace model

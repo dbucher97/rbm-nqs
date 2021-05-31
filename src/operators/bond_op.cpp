@@ -26,7 +26,7 @@
 using namespace operators;
 
 bond_op::bond_op(const std::vector<lattice::bond>& bonds,
-                 const std::vector<Eigen::MatrixXcd>& ops)
+                 const std::vector<const SparseXcd>& ops)
     : Base{}, bops_{} {
     // Copy operators
     for (auto& op : ops) {

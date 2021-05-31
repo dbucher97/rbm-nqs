@@ -139,9 +139,11 @@ class rbm_base {
      * @param std_dev Standard Deviation.
      * @param std_dev_imag Standard Deviation for the imaginary part, default
      * -1. will use the same as real part.
+     * @param type Type of default initialization. Lattice dependent.
      */
     void initialize_weights(std::mt19937& rng, double std_dev,
-                            double std_dev_imag = -1.);
+                            double std_dev_imag = -1.,
+                            const std::string& type = "");
 
     /**
      * @brief Updates the weights with a vector received from the optimizer.

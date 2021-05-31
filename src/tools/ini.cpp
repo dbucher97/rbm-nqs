@@ -41,15 +41,17 @@ bool train = false;
 model_t model = KITAEV;
 size_t n_cells = 2;
 double J = -1.;
+double helper_strength = 0.;
 
 // RBM
-rbm_t rbm = SYMMETRY;
+rbm_t rbm = BASIC;
 size_t n_hidden = 3;
 bool rbm_force = false;
 size_t rbm_pop_mode = 0;
 size_t rbm_cosh_mode = 0;
 double rbm_weights = 0.0001;
 double rbm_weights_imag = -1;
+std::string rbm_weights_init_type = "";
 size_t rbm_correlators = 1;
 
 // Sampler
@@ -120,12 +122,14 @@ int ini::load(int argc, char* argv[]) {
     ("model.type",                            po::value(&model),                            "Model type.")
     ("model.n_cells,c",                       po::value(&n_cells),                          "set number of unit cells in one dimension")
     ("model.J",                               po::value(&J),                                "Interaction coefficient")
+    ("model.helper_strength",                 po::value(&helper_strength),                  "Helper Hamiltonian strength")
     // RBM
     ("rbm.type",                              po::value(&rbm),                              "set rbm type")
     ("rbm.n_hidden",                          po::value(&n_hidden),                         "set number of hidden units")
     ("rbm.force,f",                           po::bool_switch(&rbm_force),                  "force retraining of RBM")
     ("rbm.weights",                           po::value(&rbm_weights),                      "set stddev for weights initialization")
     ("rbm.weights_imag",                      po::value(&rbm_weights_imag),                 "set stddev for imag weights initialization (if not set = rbm.weights)")
+    ("rbm.weights_type",                      po::value(&rbm_weights_init_type),            "Initialization type for RBM weights, for special initial states")
     ("rbm.correlators",                       po::value(&rbm_correlators),                  "enables correlators if set to 1 and correlators are available for the model")
     ("rbm.pop_mode",                          po::value(&rbm_pop_mode),                     "switches between Psi calculation modes.")
     ("rbm.cosh_mode",                         po::value(&rbm_cosh_mode),                    "turns cosh approximation on")

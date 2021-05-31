@@ -134,6 +134,7 @@ extern bool train;
 extern model_t model;
 extern size_t n_cells;
 extern double J;
+extern double helper_strength;
 
 // RBM
 extern rbm_t rbm;
@@ -141,6 +142,7 @@ extern size_t n_hidden;
 extern bool rbm_force;
 extern double rbm_weights;
 extern double rbm_weights_imag;
+extern std::string rbm_weights_init_type;
 extern size_t rbm_correlators;
 extern size_t rbm_pop_mode;
 extern size_t rbm_cosh_mode;

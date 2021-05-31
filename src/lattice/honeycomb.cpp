@@ -139,6 +139,20 @@ size_t honeycomb::count_occurances_(size_t idx,
     return ret;
 }
 
+void honeycomb::initialize_vb(const std::string& type,
+                              Eigen::MatrixXcd& v_bias) const {
+    v_bias.setZero();
+    if (type == "stripy") {
+        std::vector<size_t> l;
+        for (size_t i = 0; i < n_total; i++) {
+            size_t u = uc_idx(i);
+            if (((u / n_uc_b) % 2 + u % n_uc_b) % 2 == 0) {
+                v_bias(i) = std::complex<double>(0, 1.57079632679);
+            }
+        }
+    }
+}
+
 #ifndef FULL_SYMMETRY
 std::vector<honeycomb::correlator_group> honeycomb::get_correlators() const {
     correlator_group zbonds;
@@ -148,3 +162,13 @@ std::vector<honeycomb::correlator_group> honeycomb::get_correlators() const {
     return {zbonds};
 }
 #endif
+
+std::vector<std::vector<size_t>> honeycomb::get_hexagons() const {
+    std::vector<std::vector<size_t>> ret;
+    for (size_t uc = 0; uc < n_total_uc; uc++) {
+        ret.push_back({idx(down(uc, 1), 1), idx(uc, 0), idx(uc, 1),
+                       idx(up(uc), 0), idx(down(up(uc), 1), 1),
+                       idx(down(up(uc), 1), 0)});
+    }
+    return ret;
+}

@@ -18,6 +18,7 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
 #include <vector>
 //
 #include <machine/rbm_base.hpp>
@@ -30,8 +31,10 @@ namespace operators {
  */
 class local_op : public base_op {
     using Base = base_op;
+    typedef Eigen::SparseMatrix<std::complex<double>> SparseXcd;
+
     std::vector<size_t> acts_on_;  ///< List of site indices operator acts on.
-    Eigen::MatrixXcd& op_;  ///< Operator Matrix of size `2**len(acts_on_)`.
+    const SparseXcd op_;  ///< Operator Matrix of size `2**len(acts_on_)`.l
 
    public:
     /**
@@ -40,7 +43,7 @@ class local_op : public base_op {
      * @param acts_on Vector of site indices, the operator acts on.
      * @param op Operator Matrix of size `2**len(acts_on)`
      */
-    local_op(const std::vector<size_t>& acts_on, Eigen::MatrixXcd& op);
+    local_op(const std::vector<size_t>& acts_on, const SparseXcd& op);
 
     void evaluate(machine::rbm_base&, const Eigen::MatrixXcd&,
                   const Eigen::MatrixXcd&) final;

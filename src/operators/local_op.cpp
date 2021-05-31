@@ -27,11 +27,13 @@
 
 using namespace operators;
 
-local_op::local_op(const std::vector<size_t>& acts_on, Eigen::MatrixXcd& op)
-    : Base{}, acts_on_{acts_on}, op_{op} {}
+local_op::local_op(const std::vector<size_t>& acts_on, const SparseXcd& op)
+    : Base{}, acts_on_{acts_on}, op_{op} {
+    }
 
 void local_op::evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
                         const Eigen::MatrixXcd& thetas) {
+    typedef Eigen::SparseVector<std::complex<double>> SpVec;
     // Get the result of the current thread
     auto& result = get_result_();
     result.setZero();
@@ -39,28 +41,21 @@ void local_op::evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
     // The next two lines are basicelly <\psi| Op, since |\psi> has only one
     // non-zero element, which is one.
     size_t loc = tools::state_to_num_loc(state, acts_on_);
-    Eigen::MatrixXcd res = op_.row(loc);
+    SpVec res = op_.row(loc);
 
     // Initialize the flips vector.
     std::vector<size_t> flips;
 
-    for (size_t i = 0; i < static_cast<size_t>(res.size()); i++) {
-        if (std::abs(res(i)) > 1e-12) {
-            if (i == loc) {
-                // Diagonal operator contribution
-                result(0) += res(i);
-            } else {
-                // Off diagonal elements.
-                // Get the flips to get from `loc` to `i` and calculate the
-                // `psi_over_psi` local weight.
-                tools::get_flips(i ^ loc, flips, acts_on_);
-                result(0) +=
-#ifndef ALT_POP
-                    res(i) * rbm.psi_over_psi(state, flips, thetas);
-#else
-                    res(i) * rbm.psi_over_psi_alt(state, flips, thetas);
-#endif
-            }
+    for (SpVec::InnerIterator it(res); it; ++it) {
+        if (it.index() == loc) {
+            // Diagonal operator contribution
+            result(0) += it.value();
+        } else {
+            // Off diagonal elements.
+            // Get the flips to get from `loc` to `i` and calculate the
+            // `psi_over_psi` local weight.
+            tools::get_flips(it.index() ^ loc, flips, acts_on_);
+            result(0) += it.value() * rbm.psi_over_psi(state, flips, thetas);
         }
     }
 }

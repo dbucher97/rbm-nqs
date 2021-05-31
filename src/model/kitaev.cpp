@@ -19,25 +19,29 @@
 #include <Eigen/Dense>
 //
 #include <model/kitaev.hpp>
-
-namespace model {
-// Definition of the 2 site Pauli matrices.
-Eigen::Matrix4cd sxsx =
-    ((Eigen::Matrix4cd() << 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
-         .finished());
-Eigen::Matrix4cd sysy =
-    ((Eigen::Matrix4cd() << 0, 0, 0, -1, 0, 0, 1, 0, 0, 1, 0, 0, -1, 0, 0, 0)
-         .finished());
-Eigen::Matrix4cd szsz =
-    ((Eigen::Matrix4cd() << 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1)
-         .finished());
-}  // namespace model
+#include <operators/local_op.hpp>
+#include <operators/local_op_chain.hpp>
 
 using namespace model;
 
 kitaev::kitaev(size_t size, const std::array<double, 3>& J) {
     lattice_ = std::make_unique<lattice::honeycomb>(size);
-    hamiltonian_ = std::make_unique<operators::bond_op>(
-        lattice_->get_bonds(),
-        std::vector<Eigen::MatrixXcd>{J[0] * sxsx, J[1] * sysy, J[2] * szsz});
+    std::vector<const SparseXcd> bond_ops = {
+        J[0] * kron({sx(), sx()}),
+        J[1] * kron({sy(), sy()}),
+        J[2] * kron({sz(), sz()}),
+    };
+    hamiltonian_ =
+        std::make_unique<operators::bond_op>(lattice_->get_bonds(), bond_ops);
+}
+
+void kitaev::add_helper_hamiltonian(double strength) {
+    auto hex =
+        dynamic_cast<lattice::honeycomb*>(lattice_.get())->get_hexagons();
+    const SparseXcd plaq_op =
+        kron({-strength * sx(), sy(), sz(), sx(), sy(), sz()});
+    helpers_ = hex.size();
+    for (auto& h : hex) {
+        hamiltonian_->push_back(operators::local_op(h, plaq_op));
+    }
 }
