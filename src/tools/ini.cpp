@@ -74,6 +74,7 @@ double opt_adam_beta1 = 0.9;
 double opt_adam_beta2 = 0.999;
 double opt_adam_eps = 1e-8;
 double opt_mom_alpha = 0.3;
+bool opt_sr_use_gmres = false;
 
 // Train
 size_t n_epochs = 600;
@@ -146,6 +147,7 @@ int ini::load(int argc, char* argv[]) {
     ("optimizer.type",                        po::value(&opt_type),                         "set optimizer type")
     ("optimizer.learning_rate,l",             po::value(&opt_lr)->multitoken(),             "set learning rate optionally with decay factor")
     ("optimizer.sr.regularization,r",         po::value(&opt_sr_reg)->multitoken(),         "set regularization diagonal shift decay rate optionally with decay factor")
+    ("optimizer.sr.use_gmres,r",              po::value(&opt_sr_use_gmres),                 "Use efficient GMRES for covariance matrix inversion")
     ("optimizer.sgd.real_factor,r",           po::value(&opt_sgd_real_factor),              "set the factor the real part of the update vector is divided by (default 1.)")
     ("optimizer.plugin",                      po::value(&opt_plugin),                       "set optional plugin for SR adam/momentum")
     ("optimizer.adam.beta1",                  po::value(&opt_adam_beta1),                   "set ADAM plug beta1")

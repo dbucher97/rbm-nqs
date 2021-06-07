@@ -66,17 +66,18 @@ class metropolis_sampler : public abstract_sampler {
      * @brief The Metropolis sampler constructor.
      *
      * @param rbm The RBM reference.
+     * @param n_samples Number of samples.
      * @param rng The RNG reference.
      * @param n_chains The number of Markov chains
      * @param step_size The steps taken between two samples
      * @param warmup_steps The warmup steps before sampling
      * @param bond_flips Use bond flips for update proposal
      */
-    metropolis_sampler(rbm_base& rbm, std::mt19937& rng, size_t n_chains = 1,
+    metropolis_sampler(rbm_base& rbm, size_t n_samples, std::mt19937& rng, size_t n_chains = 1,
                        size_t step_size = 5, size_t warmup_steps = 100,
                        bool bond_flips = true);
 
-    virtual void sample(size_t) override;
+    virtual void sample() override;
 
     virtual void log() override;
 

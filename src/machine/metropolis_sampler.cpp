@@ -29,10 +29,11 @@
 
 using namespace machine;
 
-metropolis_sampler::metropolis_sampler(rbm_base& rbm, std::mt19937& rng,
-                                       size_t n_chains, size_t step_size,
-                                       size_t warmup_steps, bool bond_flips)
-    : Base{rbm},
+metropolis_sampler::metropolis_sampler(rbm_base& rbm, size_t n_samples,
+                                       std::mt19937& rng, size_t n_chains,
+                                       size_t step_size, size_t warmup_steps,
+                                       bool bond_flips)
+    : Base{rbm, n_samples},
       rng_{rng},
       n_chains_{n_chains},
       step_size_{step_size},
@@ -40,15 +41,15 @@ metropolis_sampler::metropolis_sampler(rbm_base& rbm, std::mt19937& rng,
       bond_flips_{bond_flips},
       f_dist_{0, rbm.n_visible - 1} {}
 
-void metropolis_sampler::sample(size_t total_samples) {
+void metropolis_sampler::sample() {
     // Initialize aggregators
     for (auto agg : aggs_) {
         agg->set_zero();
     }
 
     // Divide the `total_samples` between the chains.
-    size_t samples_per_chain = total_samples / n_chains_;
-    size_t residue = total_samples - samples_per_chain * n_chains_;
+    size_t samples_per_chain = n_samples_ / n_chains_;
+    size_t residue = n_samples_ - samples_per_chain * n_chains_;
 
     // Initialize acceptance_rate
     acceptance_rate_ = 0;
@@ -66,7 +67,7 @@ void metropolis_sampler::sample(size_t total_samples) {
 
     // Finalize aggregators
     for (auto agg : aggs_) {
-        agg->finalize(total_samples);
+        agg->finalize(n_samples_);
     }
 }
 

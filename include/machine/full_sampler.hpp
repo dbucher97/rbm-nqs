@@ -56,7 +56,7 @@ class full_sampler : public abstract_sampler {
      */
     full_sampler(rbm_base&, size_t bits_parallel);
 
-    virtual void sample(size_t n_samples = 0) override { sample(false); };
+    virtual void sample() override { sample(false); };
 
     /**
      * @brief Sample over all basis states.

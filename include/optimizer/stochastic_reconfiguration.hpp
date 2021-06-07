@@ -53,23 +53,28 @@ class stochastic_reconfiguration : public abstract_optimizer {
      * @param hamiltonian Reference to the Hamiltonian operator.
      * @param learning_rate Learing rate `ini::decay_t`.
      * @param regularization Regularization `ini::decay_t`.
+     * @param use_gmres Use GMRES for Matrix inversion flag (default true).
      */
     stochastic_reconfiguration(machine::rbm_base& rbm,
                                machine::abstract_sampler& sampler,
                                operators::base_op& hamiltonian,
                                const ini::decay_t& learning_rate,
-                               const ini::decay_t& regularization);
+                               const ini::decay_t& regularization,
+                               bool use_gmres = true);
 
     virtual void register_observables() override;
 
     virtual void optimize() override;
 
    private:
+    bool use_gmres_; ///< Use GMRES flag
+
     operators::prod_aggregator
         a_dh_;  ///< Derivative Hamiltonian aggregator <D^* H>
-    operators::outer_aggregator
+    std::unique_ptr<operators::aggregator>
         a_dd_;  ///< Outer product derivative aggregator <D^* D^T>
 
     decay_t kp_;  ///< Regularization
+
 };
 }  // namespace optimizer

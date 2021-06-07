@@ -31,7 +31,7 @@
 using namespace machine;
 
 full_sampler::full_sampler(rbm_base& rbm_, size_t bp)
-    : Base{rbm_}, bits_parallel_{bp} {}
+    : Base{rbm_, (size_t)(1 << rbm_.n_visible)}, bits_parallel_{bp} {}
 
 void full_sampler::sample(bool keep_state) {
     // Initialize aggregators

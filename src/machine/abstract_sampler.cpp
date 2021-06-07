@@ -23,7 +23,8 @@
 
 using namespace machine;
 
-abstract_sampler::abstract_sampler(rbm_base& rbm) : rbm_{rbm} {}
+abstract_sampler::abstract_sampler(rbm_base& rbm, size_t n_samples)
+    : rbm_{rbm}, n_samples_{n_samples} {}
 
 void abstract_sampler::register_ops(
     const std::vector<operators::base_op*>& ops) {
@@ -54,3 +55,5 @@ void abstract_sampler::register_agg(operators::aggregator* agg_ptr) {
 }
 
 void abstract_sampler::clear_aggs() { aggs_.clear(); }
+
+size_t abstract_sampler::get_n_samples() { return n_samples_; }

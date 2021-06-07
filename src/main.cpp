@@ -164,8 +164,8 @@ void debug() {
     model::kitaev m{3, -1};
     machine::file_psi rbm{m.get_lattice(), "notebooks/n3.state"};
     machine::full_sampler sampler{rbm, 3};
-    machine::metropolis_sampler msampler{rbm,       rng,          n_chains,
-                                         step_size, warmup_steps, bond_flips};
+    machine::metropolis_sampler msampler{
+        rbm, n_samples, rng, n_chains, step_size, warmup_steps, bond_flips};
     operators::aggregator agg{m.get_hamiltonian()};
     agg.track_variance();
     sampler.register_op(&(m.get_hamiltonian()));
@@ -174,7 +174,7 @@ void debug() {
     msampler.register_agg(&agg);
 
     for (size_t i = 0; i < 10; i++) {
-        msampler.sample(n_samples);
+        msampler.sample();
         std::cout << "Metropolis Sampler: " << agg.get_result() / rbm.n_visible
                   << " += " << agg.get_variance() / rbm.n_visible << std::endl;
         std::cout << msampler.get_acceptance_rate() << std::endl;
@@ -211,11 +211,9 @@ void debug1() {
 
     SparseXcd z_xy = kron({sx, sx});
     SparseXcd z_yx = kron({sx, sx});
-
 }
 
 int main(int argc, char* argv[]) {
-
     int rc = ini::load(argc, argv);
     if (rc != 0) {
         return rc;
@@ -281,7 +279,7 @@ int main(int argc, char* argv[]) {
             break;
         case ini::sampler_t::METROPOLIS:
             sampler = std::make_unique<machine::metropolis_sampler>(
-                *rbm, rng, ini::sa_metropolis_n_chains,
+                *rbm, ini::sa_n_samples, rng, ini::sa_metropolis_n_chains,
                 ini::sa_metropolis_n_steps_per_sample,
                 ini::sa_metropolis_n_warmup_steps,
                 ini::sa_metropolis_bond_flips);
@@ -295,7 +293,7 @@ int main(int argc, char* argv[]) {
         case ini::optimizer_t::SR:
             optimizer = std::make_unique<optimizer::stochastic_reconfiguration>(
                 *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr,
-                ini::opt_sr_reg);
+                ini::opt_sr_reg, ini::opt_sr_use_gmres);
             break;
         case ini::optimizer_t::SGD:
             optimizer = std::make_unique<optimizer::gradient_descent>(
@@ -338,12 +336,10 @@ int main(int argc, char* argv[]) {
         progress_bar(0, ini::n_epochs, -1, 'S');
         int ch = 0;
         for (size_t i = 0; i < ini::n_epochs && ch != ''; i++) {
-            sampler->sample(ini::sa_n_samples);
-            Eigen::setNbThreads(ini::n_threads);
+            sampler->sample();
             progress_bar(i + 1, ini::n_epochs,
                          optimizer->get_current_energy() / rbm->n_visible, 'O');
             optimizer->optimize();
-            Eigen::setNbThreads(1);
             logger::newline();
             progress_bar(i + 1, ini::n_epochs,
                          optimizer->get_current_energy() / rbm->n_visible, 'S');

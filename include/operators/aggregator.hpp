@@ -21,6 +21,7 @@
 #include <Eigen/Dense>
 //
 #include <operators/base_op.hpp>
+#include <optimizer/outer_matrix.hpp>
 
 /**
  * @brief Namespace for all operator related objects
@@ -32,12 +33,12 @@ namespace operators {
  * Operator op results of each sample. `agg.result_ = <op>`
  */
 class aggregator {
+   protected:
     bool track_variance_ =
         false;  ///< If is set, track the variance of a observable
     Eigen::MatrixXcd result_;   ///< The result Matrix
     Eigen::MatrixXd variance_;  ///< The variance Matrix
 
-   protected:
     const base_op&
         op_;  ///< Operator, for which the results should be accumulated.
 
@@ -76,7 +77,7 @@ class aggregator {
      *
      * @param weight Weight (Default = 1.).
      */
-    void aggregate(double weight = 1.);
+    virtual void aggregate(double weight = 1.);
 
     /**
      * @brief Turn on `track_variance_`.
@@ -100,12 +101,12 @@ class aggregator {
      *
      * @param normalization divide by normalization factor.
      */
-    void finalize(double normalization);
+    virtual void finalize(double normalization);
 
     /**
      * @brief Sets result to zero.
      */
-    void set_zero();
+    virtual void set_zero();
 };
 
 /**
@@ -145,6 +146,34 @@ class outer_aggregator : public aggregator {
      * @param base_op Reference to the vector sized operator.
      */
     outer_aggregator(const base_op&);
+};
+
+/**
+ * @brief Outer aggregator calculates the expectation value of the outer
+ * product of a vector sized operator with itself. agg.result_ = <op^* op^T>
+ */
+class outer_aggregator_lazy : public aggregator {
+    using Base = aggregator;
+
+    size_t current_index_ = 0;
+    double norm_ = 0;
+
+   public:
+    /**
+     * @brief Outer aggregator constructor.
+     *
+     * @param base_op Reference to the vector sized operator.
+     */
+    outer_aggregator_lazy(const base_op&, size_t samples);
+
+    virtual void aggregate(double weight = 1.) override;
+
+    virtual void finalize(double val) override;
+    virtual void set_zero() override;
+    
+    optimizer::OuterMatrix construct_outer_matrix(aggregator& derv, double reg);
+
+    double get_norm() { return norm_; }
 };
 
 }  // namespace operators

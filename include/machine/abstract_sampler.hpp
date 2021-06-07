@@ -44,12 +44,14 @@ class abstract_sampler {
     std::vector<operators::base_op*> ops_;      ///< The vector of operators
     std::vector<operators::aggregator*> aggs_;  ///< The vector of aggregators
 
+    size_t n_samples_; ///< Number of samples
+
     /**
      * @brief Abstract sampler constructor.
      *
      * @param rbm The RBM object reference.
      */
-    abstract_sampler(rbm_base& rbm);
+abstract_sampler(rbm_base& rbm, size_t n_samples);
 
    public:
     /**
@@ -60,10 +62,8 @@ class abstract_sampler {
     /**
      * @brief The sample function
      *
-     * @param n_samples number of samples wich should be done; ignore if not
-     * needed.
      */
-    virtual void sample(size_t n_samples) = 0;
+    virtual void sample() = 0;
 
     /**
      * @brief Log message (needs to be invoked after optimization log).
@@ -107,6 +107,13 @@ class abstract_sampler {
      * @brief Clear the registered aggregators.
      */
     void clear_aggs();
+
+    /**
+     * @brief Get number of samples
+     *
+     * @return Number of samples
+     */
+    size_t get_n_samples();
 };
 
 }  // namespace machine

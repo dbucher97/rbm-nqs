@@ -64,9 +64,7 @@ void aggregator::aggregate(double weight) {
     Eigen::MatrixXcd x = weight * aggregate_();
     // Safly aggeregte the result
 #pragma omp critical
-    {
-        result_ += x;
-    }
+    { result_ += x; }
 
     if (track_variance_) {
         // Calculate the resul of the squared observable
@@ -101,4 +99,32 @@ outer_aggregator::outer_aggregator(const base_op& op)
 Eigen::MatrixXcd outer_aggregator::aggregate_() {
     // Calculate op^* op^T
     return op_.get_result().conjugate() * op_.get_result().transpose();
+}
+
+outer_aggregator_lazy::outer_aggregator_lazy(const base_op& op, size_t samples)
+    : Base{op, op.rows() * op.cols(), samples} {}
+
+void outer_aggregator_lazy::aggregate(double weight) {
+    size_t m_current_index;
+#pragma omp critical
+    {
+        m_current_index = current_index_;
+        current_index_++;
+    }
+    result_.col(m_current_index).noalias() =
+        std::sqrt(weight) * Eigen::Map<const Eigen::MatrixXcd>(
+                                op_.get_result().data(), result_.rows(), 1);
+}
+
+void outer_aggregator_lazy::finalize(double val) { norm_ = val; }
+
+void outer_aggregator_lazy::set_zero() {
+    Base::set_zero();
+    current_index_ = 0;
+    norm_ = 0;
+}
+
+optimizer::OuterMatrix outer_aggregator_lazy::construct_outer_matrix(
+    aggregator& derivative, double reg) {
+    return {result_, derivative.get_result(), norm_, reg};
 }
