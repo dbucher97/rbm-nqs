@@ -10,3 +10,5 @@ tsf-out/
 !trained/*.rbm
 .ipynb_checkpoints/
 __pycache__/
+
+notebooks/Plots/
