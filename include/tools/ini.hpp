@@ -133,6 +133,7 @@ extern bool train;
 // Model
 extern model_t model;
 extern size_t n_cells;
+extern int n_cells_b;
 extern double J;
 extern double helper_strength;
 

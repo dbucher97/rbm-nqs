@@ -27,7 +27,10 @@ using namespace lattice;
 
 // The Honeycomb lattice is a 2 dimensional bravais lattice with 2 basis sites
 // and a coordination of three.
-honeycomb::honeycomb(size_t n_uc) : Base{n_uc, 2, 2, 3} { construct_bonds(); }
+honeycomb::honeycomb(size_t n_uc, int n_uc_b)
+    : Base{n_uc, 2, 2, 3, n_uc_b == -1 ? n_uc : n_uc_b} {
+    construct_bonds();
+}
 
 std::vector<size_t> honeycomb::nns(size_t i) const {
     // Get the Honeycomb NNs. different positions for the two basis indices.

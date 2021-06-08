@@ -24,8 +24,8 @@
 
 using namespace model;
 
-kitaev::kitaev(size_t size, const std::array<double, 3>& J) {
-    lattice_ = std::make_unique<lattice::honeycomb>(size);
+kitaev::kitaev(size_t size, const std::array<double, 3>& J, int size_b) {
+    lattice_ = std::make_unique<lattice::honeycomb>(size, size_b);
     std::vector<const SparseXcd> bond_ops = {
         J[0] * kron({sx(), sx()}),
         J[1] * kron({sy(), sy()}),

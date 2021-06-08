@@ -52,8 +52,9 @@ class honeycomb : public bravais {
      * @brief Constructor of the Honeycomb lattice.
      *
      * @param n_uc Number of unitcells in one direction.
+     * @param n_uc_b Number of unitcells in another direction.
      */
-    honeycomb(size_t n_uc);
+    honeycomb(size_t n_uc, int n_uc_b = -1);
 
     virtual std::vector<size_t> nns(size_t) const override;
 

@@ -40,6 +40,7 @@ bool train = false;
 // Model
 model_t model = KITAEV;
 size_t n_cells = 2;
+int n_cells_b = -1;
 double J = -1.;
 double helper_strength = 0.;
 
@@ -122,6 +123,7 @@ int ini::load(int argc, char* argv[]) {
     // Model
     ("model.type",                            po::value(&model),                            "Model type.")
     ("model.n_cells,c",                       po::value(&n_cells),                          "set number of unit cells in one dimension")
+    ("model.n_cells_b",                       po::value(&n_cells_b),                        "set number of unit cells in another dimension (if set to -1, use n_cells)")
     ("model.J",                               po::value(&J),                                "Interaction coefficient")
     ("model.helper_strength",                 po::value(&helper_strength),                  "Helper Hamiltonian strength")
     // RBM
