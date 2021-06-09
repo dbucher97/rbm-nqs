@@ -45,7 +45,7 @@ class kitaev : public abstract_model {
      * @param J the coupling in all three directions
      * @param size Number of unitcells in another direction.
      */
-    kitaev(size_t size, double J, int size_b = -1) : kitaev(size, {J, J, J}) {}
+    kitaev(size_t size, double J, int size_b = -1) : kitaev(size, {J, J, J}, size_b) {}
     /**
      * @brief Kitaev model constructor.
      *

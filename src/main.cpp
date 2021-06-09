@@ -28,6 +28,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <chrono>
+#include <cmath>
 #include <complex>
 #include <csignal>
 #include <cstdio>
@@ -229,7 +230,8 @@ int main(int argc, char* argv[]) {
     std::unique_ptr<model::abstract_model> model;
     switch (ini::model) {
         case ini::model_t::KITAEV:
-            model = std::make_unique<model::kitaev>(ini::n_cells, ini::J);
+            model = std::make_unique<model::kitaev>(ini::n_cells, ini::J,
+                                                    ini::n_cells_b);
             break;
         case ini::model_t::KITAEV_S3:
             model = std::make_unique<model::kitaevS3>(ini::n_cells, ini::J);
@@ -248,15 +250,23 @@ int main(int argc, char* argv[]) {
     }
 
     std::unique_ptr<machine::rbm_base> rbm;
+
+    size_t n_hidden = ini::n_hidden;
+    if (ini::alpha > 0.) {
+        n_hidden =
+            (size_t)std::round(ini::alpha * model->get_lattice().n_total);
+    }
+    std::cout << "Number of hidden units: " << n_hidden << std::endl;
+
     switch (ini::rbm) {
         case ini::rbm_t::BASIC:
             rbm = std::make_unique<machine::rbm_base>(
-                ini::n_hidden, model->get_lattice(), ini::rbm_pop_mode,
+                n_hidden, model->get_lattice(), ini::rbm_pop_mode,
                 ini::rbm_cosh_mode);
             break;
         case ini::rbm_t::SYMMETRY:
             rbm = std::make_unique<machine::rbm_symmetry>(
-                ini::n_hidden, model->get_lattice(), ini::rbm_pop_mode,
+                n_hidden, model->get_lattice(), ini::rbm_pop_mode,
                 ini::rbm_cosh_mode);
             break;
         default:
@@ -336,9 +346,11 @@ int main(int argc, char* argv[]) {
         progress_bar(0, ini::n_epochs, -1, 'S');
         int ch = 0;
         for (size_t i = 0; i < ini::n_epochs && ch != ''; i++) {
+            Eigen::setNbThreads(1);
             sampler->sample();
             progress_bar(i + 1, ini::n_epochs,
                          optimizer->get_current_energy() / rbm->n_visible, 'O');
+            Eigen::setNbThreads(-1);
             optimizer->optimize();
             logger::newline();
             progress_bar(i + 1, ini::n_epochs,

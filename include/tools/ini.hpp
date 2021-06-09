@@ -140,6 +140,7 @@ extern double helper_strength;
 // RBM
 extern rbm_t rbm;
 extern size_t n_hidden;
+extern double alpha; // Overrides n_hidden
 extern bool rbm_force;
 extern double rbm_weights;
 extern double rbm_weights_imag;

@@ -47,6 +47,7 @@ double helper_strength = 0.;
 // RBM
 rbm_t rbm = BASIC;
 size_t n_hidden = 3;
+double alpha = 0.;
 bool rbm_force = false;
 size_t rbm_pop_mode = 0;
 size_t rbm_cosh_mode = 0;
@@ -129,6 +130,7 @@ int ini::load(int argc, char* argv[]) {
     // RBM
     ("rbm.type",                              po::value(&rbm),                              "set rbm type")
     ("rbm.n_hidden",                          po::value(&n_hidden),                         "set number of hidden units")
+    ("rbm.alpha",                             po::value(&alpha),                            "set number of hidden units = alpha * n_visbile")
     ("rbm.force,f",                           po::bool_switch(&rbm_force),                  "force retraining of RBM")
     ("rbm.weights",                           po::value(&rbm_weights),                      "set stddev for weights initialization")
     ("rbm.weights_imag",                      po::value(&rbm_weights_imag),                 "set stddev for imag weights initialization (if not set = rbm.weights)")

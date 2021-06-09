@@ -39,7 +39,7 @@ void kitaev::add_helper_hamiltonian(double strength) {
     auto hex =
         dynamic_cast<lattice::honeycomb*>(lattice_.get())->get_hexagons();
     const SparseXcd plaq_op =
-        kron({-strength * sx(), sy(), sz(), sx(), sy(), sz()});
+        kron({strength * sx(), sy(), sz(), sx(), sy(), sz()});
     helpers_ = hex.size();
     for (auto& h : hex) {
         hamiltonian_->push_back(operators::local_op(h, plaq_op));
