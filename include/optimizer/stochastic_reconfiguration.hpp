@@ -44,6 +44,8 @@ namespace optimizer {
 class stochastic_reconfiguration : public abstract_optimizer {
     using Base = abstract_optimizer;
 
+    using VectorXcd = Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>;
+
    public:
     /**
      * @brief Stochastic Reconfiguration Constructor
@@ -53,21 +55,25 @@ class stochastic_reconfiguration : public abstract_optimizer {
      * @param hamiltonian Reference to the Hamiltonian operator.
      * @param learning_rate Learing rate `ini::decay_t`.
      * @param regularization Regularization `ini::decay_t`.
-     * @param use_gmres Use GMRES for Matrix inversion flag (default true).
+     * @param iterative Use ConjugateGradient for Matrix inversion flag (default
+     * true).
+     * @param max_iterations Number of max iterations for iterative scheme
      */
     stochastic_reconfiguration(machine::rbm_base& rbm,
                                machine::abstract_sampler& sampler,
                                operators::base_op& hamiltonian,
                                const ini::decay_t& learning_rate,
                                const ini::decay_t& regularization,
-                               bool use_gmres = true);
+                               bool iterative = true,
+                               size_t max_iterations = 0);
 
     virtual void register_observables() override;
 
     virtual void optimize() override;
 
    private:
-    bool use_gmres_; ///< Use GMRES flag
+    bool iterative_;         ///< Use ConjugateGradient flag
+    size_t max_iterations_;  ///< Number of maximum iterations
 
     operators::prod_aggregator
         a_dh_;  ///< Derivative Hamiltonian aggregator <D^* H>
@@ -75,6 +81,5 @@ class stochastic_reconfiguration : public abstract_optimizer {
         a_dd_;  ///< Outer product derivative aggregator <D^* D^T>
 
     decay_t kp_;  ///< Regularization
-
 };
 }  // namespace optimizer

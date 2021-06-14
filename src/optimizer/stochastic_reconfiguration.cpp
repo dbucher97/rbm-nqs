@@ -39,12 +39,13 @@ using namespace optimizer;
 stochastic_reconfiguration::stochastic_reconfiguration(
     machine::rbm_base& rbm, machine::abstract_sampler& sampler,
     operators::base_op& hamiltonian, const ini::decay_t& lr,
-    const ini::decay_t& kp, bool use_gmres)
+    const ini::decay_t& kp, bool iterative, size_t max_iterations)
     : Base{rbm, sampler, hamiltonian, lr},
       // Initialize SR aggregators
-      use_gmres_{use_gmres},
+      iterative_{iterative},
+      max_iterations_{max_iterations},
       a_dh_{derivative_, hamiltonian_},
-      a_dd_{use_gmres_ ? (std::unique_ptr<operators::aggregator>)
+      a_dd_{iterative_ ? (std::unique_ptr<operators::aggregator>)
                              std::make_unique<operators::outer_aggregator_lazy>(
                                  derivative_, sampler.get_n_samples())
                        : (std::unique_ptr<operators::aggregator>)
@@ -67,28 +68,30 @@ void stochastic_reconfiguration::optimize() {
 
     // Log energy, energy variance and sampler properties.
     logger::log(std::real(h(0)) / rbm_.n_visible, "Energy");
-    logger::log(std::real(a_h_.get_variance()(0)) / rbm_.n_visible,
-                "EnergyVariance");
     // logger::log(std::abs(std::imag(h(0))), "EnergyImag");
     sampler_.log();
 
     Eigen::MatrixXcd dw(rbm_.get_n_params(), 1);
+
     double reg = kp_.get();
 
     // Calculate Gradient
-    Eigen::MatrixXcd F = dh - h(0) * d.conjugate();
+    VectorXcd F = dh - h(0) * d.conjugate();
 
-
-    if (use_gmres_) {
+    if (iterative_) {
         // Get covariance matrix in GMRES form
-        
+
         OuterMatrix S =
             dynamic_cast<operators::outer_aggregator_lazy*>(a_dd_.get())
                 ->construct_outer_matrix(a_d_, reg);
 
-        Eigen::GMRES<OuterMatrix, Eigen::IdentityPreconditioner> gmres;
-        gmres.compute(S);
-        dw = gmres.solve(F);
+        Eigen::ConjugateGradient<OuterMatrix, Eigen::Upper | Eigen::Lower,
+                                 Eigen::IdentityPreconditioner>
+            cg;
+        if (max_iterations_) cg.setMaxIterations(max_iterations_);
+        cg.compute(S);
+        // dw = gmres.solveWithGuess(F, dw_);
+        dw = cg.solve(F);
 
     } else {
         auto& dd = a_dd_->get_result();
@@ -99,12 +102,13 @@ void stochastic_reconfiguration::optimize() {
         dw = S.completeOrthogonalDecomposition().solve(F);
     }
 
+    logger::log(dw.norm() / dw.size(), "DW Norm");
+
     // Apply plugin if set
-    if (!plug_) {
-        dw *= lr_.get();
-    } else {
-        dw = lr_.get() * plug_->apply(dw);
+    if (plug_) {
+        dw = plug_->apply(dw);
     }
+    dw *= lr_.get();
 
     // Update the weights.
     rbm_.update_weights(dw);

@@ -303,7 +303,8 @@ int main(int argc, char* argv[]) {
         case ini::optimizer_t::SR:
             optimizer = std::make_unique<optimizer::stochastic_reconfiguration>(
                 *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr,
-                ini::opt_sr_reg, ini::opt_sr_use_gmres);
+                ini::opt_sr_reg, ini::opt_sr_iterative,
+                ini::opt_sr_max_iterations);
             break;
         case ini::optimizer_t::SGD:
             optimizer = std::make_unique<optimizer::gradient_descent>(

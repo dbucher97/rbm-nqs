@@ -27,7 +27,6 @@
 
 namespace optimizer {
 
-
 class OuterMatrix;
 }  // namespace optimizer
 
@@ -69,10 +68,7 @@ class OuterMatrix : public Eigen::EigenBase<OuterMatrix> {
     // Custom API:
     OuterMatrix(const Eigen::MatrixXcd& mat, const Eigen::MatrixXcd& vec,
                 double norm, double reg = 0.)
-        : mp_mat(&mat),
-          mp_vec(&vec),
-          norm{norm},
-          reg{reg} {}
+        : mp_mat(&mat), mp_vec(&vec), norm{norm}, reg{reg} {}
 
     const Eigen::MatrixXcd& my_matrix() const { return *mp_mat; }
     const Eigen::MatrixXcd& my_vector() const { return *mp_vec; }
@@ -108,7 +104,8 @@ struct generic_product_impl<OuterMatrix, Rhs, SparseShape, DenseShape,
 
         auto& mat = lhs.my_matrix();
         auto& vec = lhs.my_vector();
-        dst.noalias() += (mat.conjugate() * (mat.transpose() * rhs)) / lhs.get_norm();
+        dst.noalias() += ((rhs.transpose() * mat) * mat.adjoint()).transpose() /
+                         lhs.get_norm();
         dst.noalias() -= (vec.conjugate() * (vec.transpose() * rhs));
         dst.noalias() += lhs.get_reg() * rhs;
     }
