@@ -12,3 +12,6 @@ tsf-out/
 __pycache__/
 
 notebooks/Plots/
+
+*.o
+*.a
