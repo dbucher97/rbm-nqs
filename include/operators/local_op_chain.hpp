@@ -42,7 +42,7 @@ class local_op_chain : public base_op {
     local_op_chain(const std::vector<local_op>& ops = std::vector<local_op>{});
 
     virtual void evaluate(machine::rbm_base&, const Eigen::MatrixXcd&,
-                          const Eigen::MatrixXcd&) override;
+                          const machine::rbm_context&) override;
 
     /**
      * @brief Push back another local operator.

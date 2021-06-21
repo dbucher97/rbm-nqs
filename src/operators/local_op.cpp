@@ -32,7 +32,7 @@ local_op::local_op(const std::vector<size_t>& acts_on, const SparseXcd& op)
     }
 
 void local_op::evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
-                        const Eigen::MatrixXcd& thetas) {
+                        const machine::rbm_context& context) {
     typedef Eigen::SparseVector<std::complex<double>> SpVec;
     // Get the result of the current thread
     auto& result = get_result_();
@@ -55,7 +55,7 @@ void local_op::evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
             // Get the flips to get from `loc` to `i` and calculate the
             // `psi_over_psi` local weight.
             tools::get_flips(it.index() ^ loc, flips, acts_on_);
-            result(0) += it.value() * rbm.psi_over_psi(state, flips, thetas);
+            result(0) += it.value() * rbm.psi_over_psi(state, flips, context);
         }
     }
 }

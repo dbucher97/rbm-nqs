@@ -30,6 +30,10 @@
 
 namespace machine {
 
+struct rbm_context {
+    Eigen::MatrixXcd thetas;
+};
+
 /**
  * @brief The RBM base class, which functions also as a RBM with no symmetry
  * used.
@@ -53,11 +57,11 @@ class rbm_base {
     size_t n_updates_;  ///< The number of updates received.
 
     std::complex<double> (rbm_base::*psi_)(const Eigen::MatrixXcd&,
-                                           const Eigen::MatrixXcd&) const;
+                                           const rbm_context&) const;
     std::complex<double> (rbm_base::*psi_over_psi_)(const Eigen::MatrixXcd&,
                                                     const std::vector<size_t>&,
-                                                    const Eigen::MatrixXcd&,
-                                                    Eigen::MatrixXcd&) const;
+                                                    const rbm_context&,
+                                                    rbm_context&) const;
 
     Eigen::MatrixXcd (*cosh_)(const Eigen::MatrixXcd&);
     Eigen::MatrixXcd (*tanh_)(const Eigen::MatrixXcd&);
@@ -157,47 +161,47 @@ class rbm_base {
      *
      * @param state Te \sigma, the z-basis state in MatrixXcd vector form.
      *
-     * @return A new MatrixXcd with the calculated \thetas, 2D if symmetry
+     * @return A new RBM context, including the thetas.
      * involved.
      */
-    virtual Eigen::MatrixXcd get_thetas(const Eigen::MatrixXcd& state) const;
+    virtual rbm_context get_context(const Eigen::MatrixXcd& state) const;
 
     /**
-     * @brief Updates the thetas if a number of particular spins are flipped.
-     * This is a more efficient computation than just recalculating the thetas
+     * @brief Updates the context if a number of particular spins are flipped.
+     * This is a more efficient computation than just recalculating the context
      * in each step.
      *
      * @param state The old state.
      * @param flips A vector if indices, which spins are going to be flipped.
-     * @param thetas The precalculated \thetas.
+     * @param context The precalculated context.
      */
-    virtual void update_thetas(const Eigen::MatrixXcd& state,
-                               const std::vector<size_t>& flips,
-                               Eigen::MatrixXcd& thetas) const;
+    virtual void update_context(const Eigen::MatrixXcd& state,
+                                const std::vector<size_t>& flips,
+                                rbm_context& context) const;
 
     /**
      * @brief Calculates the derivative of the RBM with repsect to the
      * parameters.
      *
      * @param state The current state.
-     * @param thetas The precalculated \thetas.
+     * @param context The precalculated context.
      *
      * @return MatrixXcd vector of size `n_params`.
      */
     virtual Eigen::MatrixXcd derivative(const Eigen::MatrixXcd& state,
-                                        const Eigen::MatrixXcd& thetas) const;
+                                        const rbm_context& context) const;
 
     /**
      * @brief Get the \psi(\sigma) form the RBM.
      *
      * @param state The \sigma or the z-basis state.
-     * @param thetas The pre calculated angles \theta, see the paper.
+     * @param context The precalculated context.
      *
      * @return \psi(\sigma)
      */
     inline std::complex<double> psi(const Eigen::MatrixXcd& state,
-                                    const Eigen::MatrixXcd& thetas) const {
-        return (this->*psi_)(state, thetas);
+                                    const rbm_context& context) const {
+        return (this->*psi_)(state, context);
     }
 
     /**
@@ -206,17 +210,16 @@ class rbm_base {
      *
      * @param state The current state.
      * @param flips The vector of indices of spins to flip.
-     * @param thetas The precalculated thetas.
-     * @param updated_thetas A updated thetas reference to spare the reupdating
-     * of the thetas if a flip combination was accepted.
+     * @param context The precalculated context.
+     * @param updated_context A updated context reference to spare the
+     * reupdating of the context if a flip combination was accepted.
      *
      * @return returns the ratio \psi(\sigma')/\psi(\sigma)
      */
     inline std::complex<double> psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const Eigen::MatrixXcd& thetas,
-        Eigen::MatrixXcd& updated_thetas) const {
-        return (this->*psi_over_psi_)(state, flips, thetas, updated_thetas);
+        const rbm_context& context, rbm_context& updated_context) const {
+        return (this->*psi_over_psi_)(state, flips, context, updated_context);
     }
 
     /**
@@ -225,15 +228,16 @@ class rbm_base {
      *
      * @param state The current state.
      * @param flips The vector of indices of spins to flip.
-     * @param thetas The precalculated thetas.
+     * @param context The precalculated context.
      *
      * @return returns the ratio \psi(\sigma')/\psi(\sigma)
      */
-    inline std::complex<double> psi_over_psi(
-        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const Eigen::MatrixXcd& thetas) const {
-        Eigen::MatrixXcd updated_thetas = thetas;
-        return psi_over_psi(state, flips, thetas, updated_thetas);
+    inline std::complex<double> psi_over_psi(const Eigen::MatrixXcd& state,
+                                             const std::vector<size_t>& flips,
+                                             const rbm_context& context) const {
+        rbm_context updated_context;
+        updated_context.thetas = context.thetas;
+        return psi_over_psi(state, flips, context, updated_context);
     }
 
     /**
@@ -243,13 +247,13 @@ class rbm_base {
      * @param prob Random double between zero and one.
      * @param state The current state.
      * @param flips The vector of proposed spin flips.
-     * @param thetas The precalculated \thetas.
+     * @param context The precalculated context.
      *
      * @return A bool if proposed flips have been accepted.
      */
     bool flips_accepted(double prob, const Eigen::MatrixXcd& state,
                         const std::vector<size_t>& flips,
-                        Eigen::MatrixXcd& thetas) const;
+                        rbm_context& context) const;
 
     /**
      * @brief Saves the current state to the file '`name`.rbm'.
@@ -289,23 +293,23 @@ class rbm_base {
      * @brief Get the \psi(\sigma) form the RBM. Alternative version
      *
      * @param state The \sigma or the z-basis state.
-     * @param thetas The pre calculated angles \theta, see the paper.
+     * @param context The precalculated context.
      *
      * @return \psi(\sigma)
      */
-    virtual std::complex<double> psi_default(
-        const Eigen::MatrixXcd& state, const Eigen::MatrixXcd& thetas) const;
+    virtual std::complex<double> psi_default(const Eigen::MatrixXcd& state,
+                                             const rbm_context& context) const;
 
     /**
      * @brief Get the \psi(\sigma) form the RBM. Alternative version
      *
      * @param state The \sigma or the z-basis state.
-     * @param thetas The pre calculated angles \theta, see the paper.
+     * @param context The precalculated context.
      *
      * @return \psi(\sigma)
      */
     virtual std::complex<double> psi_alt(const Eigen::MatrixXcd& state,
-                                         const Eigen::MatrixXcd& thetas) const;
+                                         const rbm_context& context) const;
 
     /**
      * @brief Computes the log of a ratio of \psi with some spins flipped to the
@@ -313,15 +317,15 @@ class rbm_base {
      *
      * @param state The current state.
      * @param flips The vector of indices of spins to flip.
-     * @param thetas The precalculated thetas.
-     * @param updated_thetas A updated thetas reference to spare the reupdating
-     * of the thetas if a flip combination was accepted.
+     * @param context The precalculated context.
+     * @param updated_context A updated context reference to spare the
+     * reupdating of the context if a flip combination was accepted.
      *
      * @return returns the ratio log(\psi(\sigma')/\psi(\sigma))
      */
     virtual std::complex<double> log_psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& updated_thetas) const;
+        const rbm_context& context, rbm_context& updated_context) const;
 
     /**
      * @brief Computes the ratio of \psi with some spins
@@ -330,17 +334,17 @@ class rbm_base {
      *
      * @param state The current state.
      * @param flips The vector of indices of spins to flip.
-     * @param thetas The precalculated thetas.
-     * @param updated_thetas A updated thetas reference to spare the reupdating
-     * of the thetas if a flip combination was accepted.
+     * @param context The precalculated context.
+     * @param updated_context A updated context reference to spare the
+     * reupdating of the context if a flip combination was accepted.
      *
      * @return returns the ratio \psi(\sigma')/\psi(\sigma)
      */
     inline std::complex<double> psi_over_psi_default(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const Eigen::MatrixXcd& thetas,
-        Eigen::MatrixXcd& updated_thetas) const {
-        return std::exp(log_psi_over_psi(state, flips, thetas, updated_thetas));
+        const rbm_context& context, rbm_context& updated_context) const {
+        return std::exp(
+            log_psi_over_psi(state, flips, context, updated_context));
     }
 
     /**
@@ -350,14 +354,14 @@ class rbm_base {
      *
      * @param state The current state.
      * @param flips The vector of indices of spins to flip.
-     * @param thetas The precalculated thetas.
-     * @param updated_thetas A updated thetas reference to spare the reupdating
-     * of the thetas if a flip combination was accepted.
+     * @param context The precalculated context.
+     * @param updated_context A updated context reference to spare the
+     * reupdating of the context if a flip combination was accepted.
      *
      * @return returns the ratio \psi(\sigma')/\psi(\sigma)
      */
     virtual std::complex<double> psi_over_psi_alt(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& updated_thetas) const;
+        const rbm_context& context, rbm_context& updated_context) const;
 };
 }  // namespace machine

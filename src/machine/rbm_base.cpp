@@ -85,7 +85,7 @@ void rbm_base::initialize_weights(std::mt19937& rng, double std_dev,
                 std::complex<double>(real_dist(rng), imag_dist(rng));
         }
     }
-    
+
     // Initialize weights
     for (auto& c : correlators_)
         c->initialize_weights(rng, std_dev, std_dev_imag);
@@ -109,16 +109,17 @@ void rbm_base::update_weights(const Eigen::MatrixXcd& dw) {
     n_updates_++;
 }
 
-Eigen::MatrixXcd rbm_base::get_thetas(const Eigen::MatrixXcd& state) const {
+rbm_context rbm_base::get_context(const Eigen::MatrixXcd& state) const {
     // Calculate the thetas from `state`
     Eigen::MatrixXcd ret = (state.transpose() * weights_).transpose() + h_bias_;
     for (auto& c : correlators_) c->add_thetas(state, ret);
-    return ret;
+    return {ret};
 }
 
-void rbm_base::update_thetas(const Eigen::MatrixXcd& state,
-                             const std::vector<size_t>& flips,
-                             Eigen::MatrixXcd& thetas) const {
+void rbm_base::update_context(const Eigen::MatrixXcd& state,
+                              const std::vector<size_t>& flips,
+                              rbm_context& context) const {
+    Eigen::MatrixXcd& thetas = context.thetas;
     // Update the thetas for a given number of flips
     for (auto& f : flips) {
         // Just subtract a row from weights from the thetas
@@ -132,13 +133,13 @@ void rbm_base::update_thetas(const Eigen::MatrixXcd& state,
 }
 
 Eigen::MatrixXcd rbm_base::derivative(const Eigen::MatrixXcd& state,
-                                      const Eigen::MatrixXcd& thetas) const {
+                                      const rbm_context& context) const {
     // Calculate thr derivative of the RBM with respect to the parameters.
     // The formula for this can be calculated by pen and paper.
     Eigen::MatrixXcd result = Eigen::MatrixXcd::Zero(get_n_params(), 1);
     result.block(0, 0, n_vb_, 1) = state;
     // Eigen::MatrixXcd tanh = thetas.array().tanh();
-    Eigen::MatrixXcd tanh = (*tanh_)(thetas);
+    Eigen::MatrixXcd tanh = (*tanh_)(context.thetas);
 
     result.block(n_vb_, 0, n_alpha, 1) = tanh;
     Eigen::MatrixXcd x = state * tanh.transpose();
@@ -154,18 +155,19 @@ Eigen::MatrixXcd rbm_base::derivative(const Eigen::MatrixXcd& state,
 
 bool rbm_base::flips_accepted(double prob, const Eigen::MatrixXcd& state,
                               const std::vector<size_t>& flips,
-                              Eigen::MatrixXcd& thetas) const {
+                              rbm_context& context) const {
     // First copy the old thetas
-    Eigen::MatrixXcd new_thetas = thetas;
+    rbm_context new_context;
+    new_context.thetas = context.thetas;
 
     // Calculate the acceptance value
     double a =
-        std::pow(std::abs(psi_over_psi(state, flips, thetas, new_thetas)), 2);
+        std::pow(std::abs(psi_over_psi(state, flips, context, new_context)), 2);
 
     // accept with given probability
     if (prob < a) {
         // Update the thetas
-        thetas = new_thetas;
+        context.thetas = new_context.thetas;
         return true;
     } else {
         return false;
@@ -237,23 +239,23 @@ std::complex<double> rbm_base::psi_notheta(
     return corr_part * (v_bias_.array() * state.array()).exp().prod();
 }
 
-std::complex<double> rbm_base::psi_default(
-    const Eigen::MatrixXcd& state, const Eigen::MatrixXcd& thetas) const {
+std::complex<double> rbm_base::psi_default(const Eigen::MatrixXcd& state,
+                                           const rbm_context& context) const {
     // Calculate the \psi with `thetas`
-    std::complex<double> cosh_part = math::lncosh(thetas).sum();
+    std::complex<double> cosh_part = math::lncosh(context.thetas).sum();
     return psi_notheta(state) * std::exp(cosh_part);
 }
 
 std::complex<double> rbm_base::psi_alt(const Eigen::MatrixXcd& state,
-                                       const Eigen::MatrixXcd& thetas) const {
+                                       const rbm_context& context) const {
     // Calculate the \psi with `thetas`
-    std::complex<double> cosh_part = (*cosh_)(thetas).array().prod();
+    std::complex<double> cosh_part = (*cosh_)(context.thetas).array().prod();
     return psi_notheta(state) * cosh_part;
 }
 
 std::complex<double> rbm_base::log_psi_over_psi(
     const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& updated_thetas) const {
+    const rbm_context& context, rbm_context& updated_context) const {
     if (flips.empty()) return 0.;
 
     std::complex<double> ret = 0;
@@ -267,18 +269,18 @@ std::complex<double> rbm_base::log_psi_over_psi(
     }
 
     // Update the thetas with the flips
-    update_thetas(state, flips, updated_thetas);
+    update_context(state, flips, updated_context);
 
     // Caclulate the diffrenece of the lncoshs, which is the same as the log
     // of the ratio of coshes.
-    ret += math::lncoshdiff(updated_thetas, thetas);
+    ret += math::lncoshdiff(updated_context.thetas, context.thetas);
 
     return ret;
 }
 
 std::complex<double> rbm_base::psi_over_psi_alt(
     const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& updated_thetas) const {
+    const rbm_context& context, rbm_context& updated_context) const {
     if (flips.empty()) return 1.;
 
     std::complex<double> ret = 1;
@@ -291,9 +293,11 @@ std::complex<double> rbm_base::psi_over_psi_alt(
         ret *= std::exp(c->log_psi_over_psi(state, *(cidxs.end() - 1)));
     }
     // Update the thetas with the flips
-    update_thetas(state, flips, updated_thetas);
+    update_context(state, flips, updated_context);
 
-    ret *= ((*cosh_)(updated_thetas).array() / (*cosh_)(thetas).array()).prod();
+    ret *= ((*cosh_)(updated_context.thetas).array() /
+            (*cosh_)(context.thetas).array())
+               .prod();
 
     return ret;
 }

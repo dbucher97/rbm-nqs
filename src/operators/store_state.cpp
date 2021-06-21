@@ -34,7 +34,7 @@ store_state::store_state(const std::string& filename) : Base{}, file_{} {
 
 void store_state::evaluate(machine::rbm_base& rbm,
                            const Eigen::MatrixXcd& state,
-                           const Eigen::MatrixXcd& thetas) {
+                           const machine::rbm_context& context) {
     // print state vecotr as 1 <=> +1, 0 <=> -1.
 #pragma omp critical
     for (size_t i = 0; i < rbm.n_visible; i++) {

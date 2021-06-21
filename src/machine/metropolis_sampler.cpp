@@ -89,8 +89,8 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
     auto bonds = rbm_.get_lattice().get_bonds();
     std::uniform_int_distribution<size_t> b_dist(0, bonds.size() - 1);
 
-    // Retrieve thetas for state
-    Eigen::MatrixXcd thetas = rbm_.get_thetas(state);
+    // Retrieve context for state
+    auto context = rbm_.get_context(state);
 
     std::vector<size_t> flips;
 
@@ -106,9 +106,9 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
             flips.push_back(f_dist_(rng_));
         }
 
-        // try to accept flips, if flips are accepted, thetas are automatically
+        // try to accept flips, if flips are accepted, context are automatically
         // updated and state needs updating.
-        if (rbm_.flips_accepted(u_dist_(rng_), state, flips, thetas)) {
+        if (rbm_.flips_accepted(u_dist_(rng_), state, flips, context)) {
             ar++;
             for (auto& flip : flips) state(flip) *= -1;
         }
@@ -118,7 +118,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
             ((step - warmup_steps_) % step_size_ == 0)) {
             // Evaluate oprators
             for (auto op : ops_) {
-                op->evaluate(rbm_, state, thetas);
+                op->evaluate(rbm_, state, context);
             }
             // Evaluate aggregators
             for (auto agg : aggs_) {

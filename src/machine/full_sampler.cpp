@@ -60,13 +60,13 @@ void full_sampler::sample(bool keep_state) {
         Eigen::MatrixXcd state(rbm_.n_visible, 1);
         tools::num_to_state(b, state);
 
-        // Precalculate thetas
-        Eigen::MatrixXcd thetas = rbm_.get_thetas(state);
+        // Precalculate context
+        auto context = rbm_.get_context(state);
 
         // Do the spin flips according to gray codes and evalueate observables
         for (size_t i = 1; i <= max; i++) {
             // Get the \psi of the current state and calculate probability
-            auto psi = rbm_.psi(state, thetas);
+            auto psi = rbm_.psi(state, context);
             double p = std::pow(std::abs(psi), 2);
 
             if (p > 1e-20) {
@@ -82,7 +82,7 @@ void full_sampler::sample(bool keep_state) {
 
                 // Evaluate operators
                 for (auto op : ops_) {
-                    op->evaluate(rbm_, state, thetas);
+                    op->evaluate(rbm_, state, context);
                 }
                 // Evaluate aggregators
                 for (auto agg : aggs_) {
@@ -100,7 +100,7 @@ void full_sampler::sample(bool keep_state) {
                 x_last = x;
 
                 // Update \thetas and state
-                rbm_.update_thetas(state, {flip}, thetas);
+                rbm_.update_context(state, {flip}, context);
                 state(flip) *= -1;
             }
         }

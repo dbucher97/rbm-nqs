@@ -65,7 +65,7 @@ class overlap_op : public base_op {
     overlap_op(const std::string& file, size_t n_visible);
 
     virtual void evaluate(machine::rbm_base&, const Eigen::MatrixXcd&,
-                          const Eigen::MatrixXcd&) override;
+                          const machine::rbm_context&) override;
 };
 
 }  // namespace operators

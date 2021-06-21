@@ -47,16 +47,16 @@ class rbm_symmetry : public rbm_base {
 
     virtual size_t symmetry_size() const override { return symmetry_.size(); };
 
-    virtual Eigen::MatrixXcd get_thetas(
+    virtual rbm_context get_context(
         const Eigen::MatrixXcd& state) const override;
 
-    virtual void update_thetas(const Eigen::MatrixXcd& state,
+    virtual void update_context(const Eigen::MatrixXcd& state,
                                const std::vector<size_t>& flips,
-                               Eigen::MatrixXcd& thetas) const override;
+                               rbm_context& context) const override;
 
     virtual Eigen::MatrixXcd derivative(
         const Eigen::MatrixXcd& state,
-        const Eigen::MatrixXcd& thetas) const override;
+        const rbm_context& context) const override;
 
     virtual void add_correlator(
         const std::vector<std::vector<size_t>>& corr) override;
@@ -67,13 +67,13 @@ class rbm_symmetry : public rbm_base {
 
     virtual std::complex<double> log_psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const Eigen::MatrixXcd& thetas,
-        Eigen::MatrixXcd& updated_thetas) const override;
+        const rbm_context& context,
+        rbm_context& updated_context) const override;
 
     virtual std::complex<double> psi_over_psi_alt(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const Eigen::MatrixXcd& thetas,
-        Eigen::MatrixXcd& updated_thetas) const override;
+        const rbm_context& context,
+        rbm_context& updated_context) const override;
 };
 
 }  // namespace machine

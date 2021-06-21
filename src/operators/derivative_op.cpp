@@ -29,9 +29,9 @@ derivative_op::derivative_op(size_t n_params) : Base{n_params} {}
 
 void derivative_op::evaluate(machine::rbm_base& rbm,
                              const Eigen::MatrixXcd& state,
-                             const Eigen::MatrixXcd& thetas) {
+                             const machine::rbm_context& context) {
     auto& result = get_result_();
     // Get the result from `rbm.derivative`
     // This is done to more easily allow for different RBM types
-    result = rbm.derivative(state, thetas);
+    result = rbm.derivative(state, context);
 }

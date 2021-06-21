@@ -38,19 +38,20 @@ rbm_symmetry::rbm_symmetry(size_t n_alpha, lattice::bravais& l, size_t pop_mode,
       symmetry_{lattice_.construct_symmetry()} {
 }
 
-Eigen::MatrixXcd rbm_symmetry::get_thetas(const Eigen::MatrixXcd& state) const {
+rbm_context rbm_symmetry::get_context(const Eigen::MatrixXcd& state) const {
     // Get thetas with symmetries involved
     Eigen::MatrixXcd ret(n_alpha, symmetry_.size());
     for (size_t s = 0; s < symmetry_.size(); s++) {
         ret.col(s) = weights_.transpose() * (symmetry_[s] * state) + h_bias_;
         for (auto& c : correlators_) c->add_thetas(state, ret, s);
     }
-    return ret;
+    return {ret};
 }
 
-void rbm_symmetry::update_thetas(const Eigen::MatrixXcd& state,
-                                 const std::vector<size_t>& flips,
-                                 Eigen::MatrixXcd& thetas) const {
+void rbm_symmetry::update_context(const Eigen::MatrixXcd& state,
+                                  const std::vector<size_t>& flips,
+                                  rbm_context& context) const {
+    Eigen::MatrixXcd& thetas = context.thetas;
     // Same as base class but with symmetries involved
     std::vector<std::vector<size_t>> cidxs;
     for (auto& c : correlators_) {
@@ -69,8 +70,8 @@ void rbm_symmetry::update_thetas(const Eigen::MatrixXcd& state,
     }
 }
 
-Eigen::MatrixXcd rbm_symmetry::derivative(
-    const Eigen::MatrixXcd& state, const Eigen::MatrixXcd& thetas) const {
+Eigen::MatrixXcd rbm_symmetry::derivative(const Eigen::MatrixXcd& state,
+                                          const rbm_context& context) const {
     Eigen::MatrixXcd result = Eigen::MatrixXcd::Zero(get_n_params(), 1);
 #ifndef FULL_SYMMETRY
     result.block(0, 0, n_vb_, 1) = Eigen::Map<const Eigen::MatrixXcd>(
@@ -82,7 +83,7 @@ Eigen::MatrixXcd rbm_symmetry::derivative(
 #endif
     // Same as baseclass
     // Eigen::MatrixXcd tanh = thetas.array().tanh();
-    Eigen::MatrixXcd tanh = (*tanh_)(thetas);
+    Eigen::MatrixXcd tanh = (*tanh_)(context.thetas);
     result.block(n_vb_, 0, n_alpha, 1) = tanh.rowwise().sum();
     size_t n_tot = n_visible * n_alpha;
     // Symmetries involved
@@ -122,7 +123,7 @@ std::complex<double> rbm_symmetry::psi_notheta(
 
 std::complex<double> rbm_symmetry::log_psi_over_psi(
     const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& updated_thetas) const {
+    const rbm_context& context, rbm_context& updated_context) const {
     if (flips.empty()) return 0.;
 
     // Just adjusted for the single v_bias
@@ -136,16 +137,17 @@ std::complex<double> rbm_symmetry::log_psi_over_psi(
     }
 
     // Same as base class
-    update_thetas(state, flips, updated_thetas);
+    update_context(state, flips, updated_context);
 
-    ret += (math::lncosh(updated_thetas) - math::lncosh(thetas)).sum();
+    ret += (math::lncosh(updated_context.thetas) - math::lncosh(context.thetas))
+               .sum();
 
     return ret;
 }
 
 std::complex<double> rbm_symmetry::psi_over_psi_alt(
     const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& updated_thetas) const {
+    const rbm_context& context, rbm_context& updated_context) const {
     if (flips.empty()) return 1.;
 
     // Just adjusted for the single v_bias
@@ -159,10 +161,13 @@ std::complex<double> rbm_symmetry::psi_over_psi_alt(
     }
 
     // Same as base class
-    update_thetas(state, flips, updated_thetas);
+    update_context(state, flips, updated_context);
 
-    // ret *= (updated_thetas.array().cosh() / thetas.array().cosh()).prod();
-    ret *= ((*cosh_)(updated_thetas).array() / (*cosh_)(thetas).array()).prod();
+    // ret *= (updated_context.thetas.array().cosh() /
+    // context.thetas.array().cosh()).prod();
+    ret *= ((*cosh_)(updated_context.thetas).array() /
+            (*cosh_)(context.thetas).array())
+               .prod();
 
     return ret;
 }

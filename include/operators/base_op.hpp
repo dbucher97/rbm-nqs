@@ -74,10 +74,10 @@ class base_op {
      *
      * @param rbm Reference to the RBM.
      * @param state Reference to the current state.
-     * @param thetas Reference to the precalculated thetas.
+     * @param context Reference to the precalculated context.
      */
     virtual void evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
-                          const Eigen::MatrixXcd& thetas) {};
+                          const machine::rbm_context& context) {};
 
     /**
      * @brief Checks if operator is scalar

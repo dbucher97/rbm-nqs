@@ -47,16 +47,12 @@ void overlap_op::fill_vec(const std::string& file) {
 }
 
 void overlap_op::evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
-                          const Eigen::MatrixXcd& thetas) {
+                          const machine::rbm_context& context) {
     auto& result = get_result_();
     // Get the loaded psi for the state.
     std::complex<double> psi_gs = get_psi(state);
     // Get the RBM psi for the state.
-#ifndef ALT_POP
-    std::complex<double> psi = rbm.psi(state, thetas);
-#else
-    std::complex<double> psi = rbm.psi_alt(state, thetas);
-#endif
+    std::complex<double> psi = rbm.psi(state, context);
     // Calculate the overlap of psi with the state.
     result(0) = psi_gs / psi;
     // evaluate 1/p for normalization of the overlap.

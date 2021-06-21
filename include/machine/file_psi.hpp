@@ -32,33 +32,33 @@ class file_psi : public rbm_base {
    public:
     file_psi(lattice::bravais& lattice, const std::string& filename);
 
-    virtual Eigen::MatrixXcd get_thetas(
+    virtual rbm_context get_context(
         const Eigen::MatrixXcd& state) const override {
-        return Eigen::MatrixXcd::Zero(1, 1);
+        return {Eigen::MatrixXcd::Zero(1, 1)};
     }
 
-    virtual void update_thetas(const Eigen::MatrixXcd& state,
+    virtual void update_context(const Eigen::MatrixXcd& state,
                                const std::vector<size_t>& flips,
-                               Eigen::MatrixXcd& thetas) const override {}
+                               rbm_context& thetas) const override {}
 
    protected:
     virtual std::complex<double> psi_default(
-        const Eigen::MatrixXcd& state, const Eigen::MatrixXcd&) const override;
+        const Eigen::MatrixXcd& state, const rbm_context&) const override;
 
     virtual std::complex<double> psi_alt(
         const Eigen::MatrixXcd& state,
-        const Eigen::MatrixXcd& t) const override {
+        const rbm_context& t) const override {
         return psi(state, t);
     }
 
     virtual std::complex<double> log_psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& ut) const override {
-        return std::log(psi_over_psi_alt(state, flips, thetas, ut));
+        const rbm_context& context, rbm_context& ut) const override {
+        return std::log(psi_over_psi_alt(state, flips, context, ut));
     }
 
     virtual std::complex<double> psi_over_psi_alt(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd&) const override;
+        const rbm_context& thetas, rbm_context&) const override;
 };
 }  // namespace machine

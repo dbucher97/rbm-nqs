@@ -43,7 +43,7 @@ class store_state : public base_op {
     store_state(const std::string& filename);
 
     void evaluate(machine::rbm_base&, const Eigen::MatrixXcd&,
-                  const Eigen::MatrixXcd&) final;
+                  const machine::rbm_context&) final;
 
     /**
      * @brief Destructor closes output stream.
