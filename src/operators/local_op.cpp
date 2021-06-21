@@ -47,7 +47,7 @@ void local_op::evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
     std::vector<size_t> flips;
 
     for (SpVec::InnerIterator it(res); it; ++it) {
-        if (it.index() == loc) {
+        if (loc == (size_t)it.index()) {
             // Diagonal operator contribution
             result(0) += it.value();
         } else {

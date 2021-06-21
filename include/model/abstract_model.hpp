@@ -29,10 +29,10 @@ namespace model {
 
 typedef Eigen::SparseMatrix<std::complex<double>> SparseXcd;
 
-extern const SparseXcd kron(const std::vector<const SparseXcd>&);
-extern const SparseXcd sx();
-extern const SparseXcd sy();
-extern const SparseXcd sz();
+extern SparseXcd kron(const std::vector<SparseXcd>&);
+extern SparseXcd sx();
+extern SparseXcd sy();
+extern SparseXcd sz();
 
 class abstract_model {
    protected:

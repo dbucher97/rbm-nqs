@@ -34,7 +34,7 @@ class local_op : public base_op {
     typedef Eigen::SparseMatrix<std::complex<double>> SparseXcd;
 
     std::vector<size_t> acts_on_;  ///< List of site indices operator acts on.
-    const SparseXcd op_;  ///< Operator Matrix of size `2**len(acts_on_)`.l
+    SparseXcd op_;  ///< Operator Matrix of size `2**len(acts_on_)`.l
 
    public:
     /**

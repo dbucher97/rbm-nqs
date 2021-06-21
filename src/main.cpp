@@ -25,6 +25,8 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include <pfapack.h>
+
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <chrono>
@@ -101,13 +103,13 @@ void progress_bar(size_t i, size_t n_epochs, double energy, char state) {
 
 std::vector<size_t> to_indices(const MatrixXcd& vec) {
     std::vector<size_t> ret;
-    for (size_t v = 0; v < vec.size(); v++) {
+    for (size_t v = 0; v < (size_t)vec.size(); v++) {
         if (std::real(vec(v)) > 0) ret.push_back(v);
     }
     return ret;
 }
 size_t to_idx(const MatrixXcd& vec) {
-    for (size_t v = 0; v < vec.size(); v++) {
+    for (size_t v = 0; v < (size_t)vec.size(); v++) {
         if (std::real(vec(v)) > 0) return v;
     }
     return -1;
@@ -215,6 +217,14 @@ void debug1() {
 }
 
 int main(int argc, char* argv[]) {
+    /* Eigen::MatrixXcd mat = Eigen::MatrixXcd::Random(10, 10);
+    mat -= mat.transpose().eval();
+    std::complex<double> x;
+    skpfa(10, mat.data(), &x, "L", "P");
+    std::cout << x << std::endl;
+
+    return 0; */
+
     int rc = ini::load(argc, argv);
     if (rc != 0) {
         return rc;

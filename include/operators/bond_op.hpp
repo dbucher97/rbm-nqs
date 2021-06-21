@@ -34,7 +34,7 @@ class bond_op : public local_op_chain {
     using Base = local_op_chain;
     typedef Eigen::SparseMatrix<std::complex<double>> SparseXcd;
 
-    std::vector<const SparseXcd> bops_;  ///< List of operators.
+    std::vector<SparseXcd> bops_;  ///< List of operators.
 
    public:
     /**
@@ -44,6 +44,6 @@ class bond_op : public local_op_chain {
      * @param ops List of bond type operators.
      */
     bond_op(const std::vector<lattice::bond>& bonds,
-            const std::vector<const SparseXcd>& ops);
+            const std::vector<SparseXcd>& ops);
 };
 }  // namespace operators

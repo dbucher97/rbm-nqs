@@ -26,7 +26,7 @@ using namespace model;
 
 kitaev::kitaev(size_t size, const std::array<double, 3>& J, int size_b) {
     lattice_ = std::make_unique<lattice::honeycomb>(size, size_b);
-    std::vector<const SparseXcd> bond_ops = {
+    std::vector<SparseXcd> bond_ops = {
         J[0] * kron({sx(), sx()}),
         J[1] * kron({sy(), sy()}),
         J[2] * kron({sz(), sz()}),
@@ -38,7 +38,7 @@ kitaev::kitaev(size_t size, const std::array<double, 3>& J, int size_b) {
 void kitaev::add_helper_hamiltonian(double strength) {
     auto hex =
         dynamic_cast<lattice::honeycomb*>(lattice_.get())->get_hexagons();
-    const SparseXcd plaq_op =
+    SparseXcd plaq_op =
         kron({strength * sx(), sy(), sz(), sx(), sy(), sz()});
     helpers_ = hex.size();
     for (auto& h : hex) {

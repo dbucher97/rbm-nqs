@@ -39,7 +39,8 @@ std::ifstream& operator>>(std::ifstream& file, Eigen::MatrixXcd& mat) {
     file.read((char*)&rows, sizeof(size_t));
     file.read((char*)&cols, sizeof(size_t));
     // Guard matrix `mat` to be of same size.
-    if (rows != mat.rows() && cols != mat.cols()) {
+    if (rows != static_cast<size_t>(mat.rows()) &&
+        cols != static_cast<size_t>(mat.cols())) {
         throw std::runtime_error(
             "Unable to load Eigen Matrix: dimension mismatch!");
     }

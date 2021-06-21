@@ -82,6 +82,24 @@ extern inline Eigen::MatrixXcd lncosh(const Eigen::MatrixXcd& x) {
     return ret;
 }
 
+/**
+ * @brief A wrapper for calculating the sum of all elements of the diffrence
+ * lncosh(A) - lncosh(B).
+ *
+ * @param x The reference to the matrix A.
+ * @param x The reference to the matrix B.
+ *
+ * @return compelx result.
+ */
+extern inline std::complex<double> lncoshdiff(const Eigen::MatrixXcd& x,
+                                              const Eigen::MatrixXcd& y) {
+    std::complex<double> ret;
+    for (size_t i = 0; i < static_cast<size_t>(x.size()); i++) {
+        ret += lncosh(x(i)) - lncosh(y(i));
+    }
+    return ret;
+}
+
 extern inline Eigen::MatrixXcd cosh2(const Eigen::MatrixXcd& x) {
     return (1 + x.real().array().pow(2) / 2) * x.imag().array().cos() +
            std::complex<double>(0, 1) * x.real().array() *

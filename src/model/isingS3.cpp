@@ -27,7 +27,7 @@ model::isingS3::isingS3(size_t size, double J) {
     if (size % 3 != 0)
         throw std::runtime_error("Size not valid for Kitaev S3.");
     lattice_ = std::make_unique<lattice::honeycombS3>(size / 3);
-    std::vector<const SparseXcd> bond_ops = {
+    std::vector<SparseXcd> bond_ops = {
         J * kron({sx(), sx()}),
         J * kron({sx(), sx()}),
         J * kron({sz(), sz()}),

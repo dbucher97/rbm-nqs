@@ -25,28 +25,28 @@
 namespace model {
 // Definition of the 1 site sparse Pauli matrices.
 
-const SparseXcd kron(const std::vector<const SparseXcd>& args) {
+SparseXcd kron(const std::vector<SparseXcd>& args) {
     SparseXcd so(1, 1);
     so.insert(0, 0) = 1;
     for (const auto& arg : args) so = kroneckerProduct(arg, so).eval();
     return so;
 }
 
-const SparseXcd sx() {
+SparseXcd sx() {
     SparseXcd ret(2, 2);
     ret.insert(0, 1) = 1;
     ret.insert(1, 0) = 1;
     return ret;
 }
 
-const SparseXcd sy() {
+SparseXcd sy() {
     SparseXcd ret(2, 2);
     ret.insert(0, 1) = std::complex<double>(0, -1);
     ret.insert(1, 0) = std::complex<double>(0, 1);
     return ret;
 }
 
-const SparseXcd sz() {
+SparseXcd sz() {
     SparseXcd ret(2, 2);
     ret.insert(0, 0) = 1;
     ret.insert(1, 1) = -1;
