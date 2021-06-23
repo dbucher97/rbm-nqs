@@ -27,12 +27,9 @@
 //
 #include <lattice/bravais.hpp>
 #include <machine/correlator.hpp>
+#include <machine/context.hpp>
 
 namespace machine {
-
-struct rbm_context {
-    Eigen::MatrixXcd thetas;
-};
 
 /**
  * @brief The RBM base class, which functions also as a RBM with no symmetry
@@ -205,7 +202,7 @@ class rbm_base {
     }
 
     /**
-     * @briefComputes the ratio of \psi with some spins. Function pointer
+     * @brief Computes the ratio of \psi with some spins. Function pointer
      * wrapper
      *
      * @param state The current state.

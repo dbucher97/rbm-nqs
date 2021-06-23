@@ -19,6 +19,8 @@
 
 #define LNCOSH_CUTOFF 16.7
 
+#include <pfapack.h>
+
 #include <Eigen/Dense>
 #include <cmath>
 #include <complex>
@@ -120,6 +122,19 @@ extern inline Eigen::MatrixXcd cosh1(const Eigen::MatrixXcd& x) {
 extern inline Eigen::MatrixXcd tanh1(const Eigen::MatrixXcd& x) {
     Eigen::MatrixXcd r = x.array().tanh();
     return r.array().isFinite().select(r, 0.);
+}
+
+extern inline std::complex<double> pfaffian(Eigen::MatrixXcd& x) {
+    std::complex<double> ret;
+    skpfa(x.cols(), x.data(), &ret, "L", "P");
+    return ret;
+}
+
+extern inline std::complex<double> pfaffian10(Eigen::MatrixXcd& x, int& exp) {
+    std::complex<double> ret[2];
+    skpf10(x.cols(), x.data(), ret, "L", "P");
+    exp = (int) std::real(ret[1]);
+    return ret[0];
 }
 
 }  // namespace math

@@ -25,8 +25,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include <pfapack.h>
-
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <chrono>
