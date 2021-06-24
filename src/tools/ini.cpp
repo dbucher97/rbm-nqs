@@ -54,7 +54,9 @@ size_t rbm_cosh_mode = 0;
 double rbm_weights = 0.0001;
 double rbm_weights_imag = -1;
 std::string rbm_weights_init_type = "";
-size_t rbm_correlators = 1;
+size_t rbm_correlators = 0;
+bool rbm_pfaffian = false;
+size_t rbm_pfaffian_symmetry = 0;
 
 // Sampler
 sampler_t sa_type = METROPOLIS;
@@ -126,7 +128,7 @@ int ini::load(int argc, char* argv[]) {
     ("model.type",                            po::value(&model),                            "Model type.")
     ("model.n_cells,c",                       po::value(&n_cells),                          "set number of unit cells in one dimension")
     ("model.n_cells_b",                       po::value(&n_cells_b),                        "set number of unit cells in another dimension (if set to -1, use n_cells)")
-    ("model.J",                               po::value(&J),                                "Interaction coefficient")
+    ("model.J",                               po::value(&J),                                "Interaction strength")
     ("model.helper_strength",                 po::value(&helper_strength),                  "Helper Hamiltonian strength")
     // RBM
     ("rbm.type",                              po::value(&rbm),                              "set rbm type")
@@ -139,6 +141,8 @@ int ini::load(int argc, char* argv[]) {
     ("rbm.correlators",                       po::value(&rbm_correlators),                  "enables correlators if set to 1 and correlators are available for the model")
     ("rbm.pop_mode",                          po::value(&rbm_pop_mode),                     "switches between Psi calculation modes.")
     ("rbm.cosh_mode",                         po::value(&rbm_cosh_mode),                    "turns cosh approximation on")
+    ("rbm.pfaffian",                          po::value(&rbm_pfaffian),                     "enables use of pfaffian wave function addition")
+    ("rbm.pfaffian_symmetry",                 po::value(&rbm_pfaffian_symmetry),            "number of unit cells for symmetry condition of pfaffian parameters")
     // Sampler
     ("sampler.type",                          po::value(&sa_type),                          "set sampler type")
     ("sampler.n_samples",                     po::value(&sa_n_samples),                     "set sampler n sampler (metropolis only)")

@@ -15,9 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
+#pragma once
 
 #include <complex>
 #include <vector>
+#include <random>
 //
 #include <lattice/bravais.hpp>
 #include <machine/context.hpp>
@@ -35,6 +37,8 @@ class pfaffian {
 
    public:
     pfaffian(const lattice::bravais&, size_t n_uc = 0);
+
+    void init_weights(std::mt19937& rng, double std, bool normalize = false); 
 
     pfaff_context get_context(const Eigen::MatrixXcd& state) const;
 
@@ -60,6 +64,13 @@ class pfaffian {
 
     Eigen::MatrixXcd& get_weights() { return fs_; }
 
+    size_t get_n_params() { return fs_.size(); }
+
+    Eigen::MatrixXi& get_bs() { return bs_; }
+    Eigen::MatrixXi& get_ss() { return ss_; }
+
+    Eigen::MatrixXcd get_mat(const Eigen::MatrixXcd& state) const;
+
    private:
     inline bool spidx(size_t i, const Eigen::MatrixXcd& state,
                       bool flip) const {
@@ -69,7 +80,7 @@ class pfaffian {
     inline size_t idx(size_t i, size_t j, const Eigen::MatrixXcd& state,
                       bool flipi = false, bool flipj = false) const {
         size_t ret =
-            (ns_ - 1) * (2 * spidx(i, state, flipi) + spidx(j, state, flipi));
+            (ns_ - 1) * (2 * spidx(i, state, flipi) + spidx(j, state, flipj));
         return ret + bs_(i, j);
     }
 

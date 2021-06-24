@@ -47,6 +47,7 @@
 #include <machine/file_psi.hpp>
 #include <machine/full_sampler.hpp>
 #include <machine/metropolis_sampler.hpp>
+#include <machine/pfaffian.hpp>
 #include <machine/rbm_base.hpp>
 #include <machine/rbm_symmetry.hpp>
 #include <math.hpp>
@@ -214,14 +215,43 @@ void debug1() {
     SparseXcd z_yx = kron({sx, sx});
 }
 
-int main(int argc, char* argv[]) {
-    /* Eigen::MatrixXcd mat = Eigen::MatrixXcd::Random(10, 10);
-    mat -= mat.transpose().eval();
-    std::complex<double> x;
-    skpfa(10, mat.data(), &x, "L", "P");
-    std::cout << x << std::endl;
+void debug_pfaffian() {
+    lattice::honeycomb lat{8};
+    machine::pfaffian pfaff{lat, 4};
+    Eigen::MatrixXcd state = Eigen::MatrixXd::Random(lat.n_total, 1);
+    state.array() /= state.array().abs();
 
-    return 0; */
+    std::mt19937 rng{static_cast<std::mt19937::result_type>(ini::seed)};
+    pfaff.init_weights(rng, 0.1, false);
+
+    auto context = pfaff.get_context(state);
+
+    std::vector<size_t> flips;
+
+    std::uniform_int_distribution<size_t> f_dist(0, lat.n_total - 1);
+    for (size_t x = 0; x < 1000; x++) {
+        flips.clear();
+        for (size_t i = 0; i < 2; i++) {
+            size_t r = f_dist(rng);
+            if (std::find(flips.begin(), flips.end(), r) == flips.end()) {
+                flips.push_back(r);
+            }
+        }
+        pfaff.update_context(state, flips, context);
+        for(auto& f : flips) state(f) *= -1;
+    }
+    std::cout << context.pfaff << " x10^" << context.exp << std::endl;
+
+    auto context2 = pfaff.get_context(state);
+    std::cout << context2.pfaff << " x10^" << context2.exp << std::endl;
+    Eigen::MatrixXcd mat = pfaff.get_mat(state).inverse();
+    std::cout << (context.inv - mat).norm() / mat.size() << std::endl;
+
+}
+
+int main(int argc, char* argv[]) {
+    debug_pfaffian();
+    return 0;
 
     int rc = ini::load(argc, argv);
     if (rc != 0) {

@@ -16,6 +16,8 @@
  *
  */
 
+#include <iostream>
+//
 #include <machine/pfaffian.hpp>
 #include <math.hpp>
 
@@ -24,37 +26,55 @@ using namespace machine;
 pfaffian::pfaffian(const lattice::bravais& lattice, size_t n_sy)
     : lattice_{lattice},
       ns_{lattice.n_total},
-      n_symm_{n_sy * n_sy * lattice.n_basis},
+      n_symm_{n_sy ? n_sy * n_sy * lattice.n_basis : ns_},
       fs_(4 * (lattice.n_total - 1), n_symm_),
       bs_(ns_, ns_),
       ss_(ns_, 1) {
     size_t n_uc = lattice_.n_uc;
     size_t n_tuc = lattice_.n_total_uc;
     size_t n_b = lattice_.n_basis;
-    size_t n_b2 = n_b * n_b;
 
-    int uci, ucj, bi, bj, xi, yi, x, y;
+    if (n_sy == 0) {
+        n_sy = n_uc;
+    }
+
+    size_t uci, ucj, bi, bj, xi, yi, x, y;
 
     for (size_t i = 0; i < ns_; i++) {
         uci = lattice_.uc_idx(i);
         bi = lattice_.b_idx(i);
         xi = uci / n_uc;
         yi = uci % n_uc;
-        ss_(i) = ((xi + n_sy) % n_sy * n_sy) * n_b + bi;
+        ss_(i) = ((xi % n_sy) * n_sy + yi % n_sy) * n_b + bi;
+        // ss_(i) = ((xi % n_sy) * n_sy + yi % n_sy);
         for (size_t j = 0; j < ns_; j++) {
             ucj = lattice_.uc_idx(j);
             bj = lattice_.b_idx(j);
 
-            x = xi - ucj / n_uc;
-            y = yi - ucj % n_uc + n_tuc;
-            bs_(i, j) = n_b2 * ((x * n_uc + y) % n_tuc) + n_b * bi + bj;
+            x = (ucj / n_uc - xi + n_uc) % n_uc;
+            y = (ucj % n_uc - yi + n_uc) % n_uc;
+
+            bs_(i, j) = n_b * ((x * n_uc + y) % n_tuc) + (bi ^ bj) - 1;
+            // bs_(i, j) = ((x * n_uc + y) % n_tuc) - 1;
         }
     }
 }
 
-pfaff_context pfaffian::get_context(const Eigen::MatrixXcd& state) const {
-    pfaff_context ret;
+void pfaffian::init_weights(std::mt19937& rng, double std, bool normalize) {
+    std::normal_distribution<double> dist{0, std};
+    for (size_t i = 0; i < (size_t)fs_.size(); i++) {
+        fs_(i) = std::complex<double>(dist(rng), dist(rng));
+    }
 
+    if (normalize) {
+        Eigen::MatrixXcd mat = get_mat(Eigen::MatrixXcd::Ones(ns_, 1));
+        int exp;
+        math::pfaffian10(mat, exp);
+        fs_ /= std::pow(10, (2.0 * exp) / ns_);
+    }
+}
+
+Eigen::MatrixXcd pfaffian::get_mat(const Eigen::MatrixXcd& state) const {
     Eigen::MatrixXcd mat(ns_, ns_);
     mat.setZero();
     for (size_t i = 0; i < ns_; i++) {
@@ -62,7 +82,17 @@ pfaff_context pfaffian::get_context(const Eigen::MatrixXcd& state) const {
             mat(i, j) = a(i, j, state);
         }
     }
-    mat -= mat.transpose().eval();
+    mat.triangularView<Eigen::Upper>() =
+        mat.triangularView<Eigen::Lower>().transpose();
+    mat.triangularView<Eigen::Upper>() *= -1;
+    return mat;
+}
+
+pfaff_context pfaffian::get_context(const Eigen::MatrixXcd& state) const {
+    pfaff_context ret;
+
+    Eigen::MatrixXcd mat = get_mat(state);
+
     ret.inv = mat.inverse();
     ret.inv -= ret.inv.transpose().eval();
     ret.inv /= 2;
@@ -86,32 +116,40 @@ std::complex<double> pfaffian::update_context(const Eigen::MatrixXcd& state,
 
     Cinv.block(m, 0, m, m).setIdentity();
 
-    bool flipi;
+    std::vector<bool> flipi(ns_);
+    for (auto& f : flips) {
+        flipi[f] = true;
+    }
 
-    for (size_t i = 0; i < ns_; i++) {
-        flipi = std::find(flips.begin(), flips.end(), i) != flips.end();
-        for (size_t k = 0; k < m; k++) {
-            B(i, k) =
-                a(i, flips[k], state, flipi, true) - a(i, flips[k], state);
-            B(i, m + k) = (i == flips[k]) ? 1 : 0;
-            for (size_t l = 0; l < k; l++) {
-                Cinv(k, l) = -a(flips[k], flips[l], state, true, true) +
-                             a(flips[k], flips[l], state);
+    for (size_t k = 0; k < m; k++) {
+        B(flips[k], m + k) = 1;
+        for (size_t i = 0; i < ns_; i++) {
+            if (flips[k] != i) {
+                B(i, k) = a(i, flips[k], state, flipi[i], true) -
+                          a(i, flips[k], state);
             }
         }
+
+        for (size_t l = 0; l < k; l++) {
+            Cinv(k, l) = -a(flips[k], flips[l], state, true, true) +
+                         a(flips[k], flips[l], state);
+        }
     }
-    Cinv -= Cinv.transpose().eval();
+
+    Cinv.triangularView<Eigen::Upper>() =
+        Cinv.triangularView<Eigen::Lower>().transpose();
+    Cinv.triangularView<Eigen::Upper>() *= -1;
 
     Eigen::MatrixXcd invB = context.inv * B;
 
     Eigen::MatrixXcd tmp = (B.transpose() * invB);
-    Cinv.noalias() += 0.5 * tmp - 0.5 * tmp.transpose();
+    Cinv.noalias() += 0.5 * tmp;
+    Cinv.noalias() -= 0.5 * tmp.transpose();
 
-    Eigen::MatrixXcd C = Cinv.inverse();
+    Eigen::MatrixXcd C = 0.25 * Cinv.inverse();
     C -= C.transpose().eval();
-    C /= 2;
     tmp = invB * C * invB.transpose();
-    context.inv.noalias() += 0.5 * tmp - 0.5 * tmp.transpose();
+    context.inv.noalias() += tmp - tmp.transpose();
 
     std::complex<double> c2;
     skpfa(2 * m, Cinv.data(), &c2, "L", "P");

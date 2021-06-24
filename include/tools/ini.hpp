@@ -148,6 +148,8 @@ extern std::string rbm_weights_init_type;
 extern size_t rbm_correlators;
 extern size_t rbm_pop_mode;
 extern size_t rbm_cosh_mode;
+extern bool rbm_pfaffian;
+extern size_t rbm_pfaffian_symmetry;
 
 // Sampler
 extern sampler_t sa_type;
