@@ -57,6 +57,8 @@ std::string rbm_weights_init_type = "";
 size_t rbm_correlators = 0;
 bool rbm_pfaffian = false;
 size_t rbm_pfaffian_symmetry = 0;
+bool rbm_pfaffian_normalize = false;
+double rbm_pfaffian_weights = 0.1;
 
 // Sampler
 sampler_t sa_type = METROPOLIS;
@@ -72,7 +74,8 @@ bool sa_metropolis_bond_flips = true;
 optimizer_t opt_type = SR;
 std::string opt_plugin = "";
 decay_t opt_lr = {0.001, 0.001, 1.};
-decay_t opt_sr_reg = {1, 1e-4, 0.9};
+decay_t opt_sr_reg1 = {1e-3, 1e-5, 0.9};
+decay_t opt_sr_reg2 = {1e-3, 1e-7, 0.9};
 double opt_sgd_real_factor = 1.;
 double opt_adam_beta1 = 0.9;
 double opt_adam_beta2 = 0.999;
@@ -142,7 +145,9 @@ int ini::load(int argc, char* argv[]) {
     ("rbm.pop_mode",                          po::value(&rbm_pop_mode),                     "switches between Psi calculation modes.")
     ("rbm.cosh_mode",                         po::value(&rbm_cosh_mode),                    "turns cosh approximation on")
     ("rbm.pfaffian",                          po::value(&rbm_pfaffian),                     "enables use of pfaffian wave function addition")
-    ("rbm.pfaffian_symmetry",                 po::value(&rbm_pfaffian_symmetry),            "number of unit cells for symmetry condition of pfaffian parameters")
+    ("rbm.pfaffian.symmetry",                 po::value(&rbm_pfaffian_symmetry),            "number of unit cells for symmetry condition of pfaffian parameters")
+    ("rbm.pfaffian.weights",                  po::value(&rbm_pfaffian_weights),             "stdev of pfaffian parameters")
+    ("rbm.pfaffian.normalize",                po::value(&rbm_pfaffian_normalize),           "normalize pfaffian parameters to pfaffian prop to 1")
     // Sampler
     ("sampler.type",                          po::value(&sa_type),                          "set sampler type")
     ("sampler.n_samples",                     po::value(&sa_n_samples),                     "set sampler n sampler (metropolis only)")
@@ -155,7 +160,8 @@ int ini::load(int argc, char* argv[]) {
     // Optimizer
     ("optimizer.type",                        po::value(&opt_type),                         "set optimizer type")
     ("optimizer.learning_rate,l",             po::value(&opt_lr)->multitoken(),             "set learning rate optionally with decay factor")
-    ("optimizer.sr.regularization,r",         po::value(&opt_sr_reg)->multitoken(),         "set regularization diagonal shift decay rate optionally with decay factor")
+    ("optimizer.sr.reg1",                     po::value(&opt_sr_reg1)->multitoken(),         "set regularization diagonal scaling decay rate optionally with decay factor")
+    ("optimizer.sr.reg2",                     po::value(&opt_sr_reg2)->multitoken(),         "set regularization diagonal shift decay rate optionally with decay factor")
     ("optimizer.sr.iterative",                po::value(&opt_sr_iterative),                 "use efficient ConjugateGradiant for covariance matrix inversion")
     ("optimizer.sr.max_iterations",           po::value(&opt_sr_max_iterations),            "set number of max iterations for iterative method")
     ("optimizer.sgd.real_factor",             po::value(&opt_sgd_real_factor),              "set the factor the real part of the update vector is divided by (default 1.)")

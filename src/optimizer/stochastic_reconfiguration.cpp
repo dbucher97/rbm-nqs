@@ -22,7 +22,6 @@
 #include <cmath>
 #include <complex>
 #include <tools/logger.hpp>
-#include <unsupported/Eigen/IterativeSolvers>
 #include <vector>
 //
 #include <machine/abstract_sampler.hpp>
@@ -39,7 +38,8 @@ using namespace optimizer;
 stochastic_reconfiguration::stochastic_reconfiguration(
     machine::rbm_base& rbm, machine::abstract_sampler& sampler,
     operators::base_op& hamiltonian, const ini::decay_t& lr,
-    const ini::decay_t& kp, bool iterative, size_t max_iterations)
+    const ini::decay_t& kp1, const ini::decay_t& kp2, bool iterative,
+    size_t max_iterations)
     : Base{rbm, sampler, hamiltonian, lr},
       // Initialize SR aggregators
       iterative_{iterative},
@@ -52,7 +52,8 @@ stochastic_reconfiguration::stochastic_reconfiguration(
                              std::make_unique<operators::outer_aggregator>(
                                  derivative_)},
       // Initialize the regularization.
-      kp_{kp, rbm_.get_n_updates()} {}
+      kp1_{kp1, rbm_.get_n_updates()},
+      kp2_{kp2, rbm_.get_n_updates()} {}
 
 void stochastic_reconfiguration::register_observables() {
     // Register operators and aggregators
@@ -73,7 +74,8 @@ void stochastic_reconfiguration::optimize() {
 
     Eigen::MatrixXcd dw(rbm_.get_n_params(), 1);
 
-    double reg = kp_.get();
+    double reg1 = kp1_.get();
+    double reg2 = kp2_.get();
 
     // Calculate Gradient
     VectorXcd F = dh - h(0) * d.conjugate();
@@ -83,14 +85,13 @@ void stochastic_reconfiguration::optimize() {
 
         OuterMatrix S =
             dynamic_cast<operators::outer_aggregator_lazy*>(a_dd_.get())
-                ->construct_outer_matrix(a_d_, reg);
+                ->construct_outer_matrix(a_d_, reg1, reg2);
 
         Eigen::ConjugateGradient<OuterMatrix, Eigen::Upper | Eigen::Lower,
                                  Eigen::IdentityPreconditioner>
             cg;
         if (max_iterations_) cg.setMaxIterations(max_iterations_);
         cg.compute(S);
-        // dw = gmres.solveWithGuess(F, dw_);
         dw = cg.solve(F);
 
     } else {
@@ -98,7 +99,11 @@ void stochastic_reconfiguration::optimize() {
         // Calculate Covariance matrix.
         Eigen::MatrixXcd S = dd - d.conjugate() * d.transpose();
         // Add regularization.
-        S += reg * Eigen::MatrixXcd::Identity(S.rows(), S.cols());
+        auto Sdiag = S.diagonal();
+        S += Eigen::DiagonalMatrix<std::complex<double>, Eigen::Dynamic>(reg1 *
+                                                                         Sdiag);
+        S += reg2 * Sdiag.cwiseAbs().maxCoeff() *
+             Eigen::MatrixXcd::Identity(S.rows(), S.cols());
         dw = S.completeOrthogonalDecomposition().solve(F);
     }
 

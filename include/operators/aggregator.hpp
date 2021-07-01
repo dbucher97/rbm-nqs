@@ -157,6 +157,7 @@ class outer_aggregator_lazy : public aggregator {
 
     size_t current_index_ = 0;
     double norm_ = 0;
+    Eigen::Matrix<double, Eigen::Dynamic, 1> diag_;
 
    public:
     /**
@@ -171,7 +172,7 @@ class outer_aggregator_lazy : public aggregator {
     virtual void finalize(double val) override;
     virtual void set_zero() override;
     
-    optimizer::OuterMatrix construct_outer_matrix(aggregator& derv, double reg);
+    optimizer::OuterMatrix construct_outer_matrix(aggregator& derv, double reg1, double reg2);
 
     double get_norm() { return norm_; }
 };

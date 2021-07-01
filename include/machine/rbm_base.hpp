@@ -18,16 +18,15 @@
 
 #pragma once
 
-// #define ALT_POP
-
 #include <Eigen/Dense>
 #include <complex>
 #include <memory>
 #include <random>
 //
 #include <lattice/bravais.hpp>
-#include <machine/correlator.hpp>
 #include <machine/context.hpp>
+#include <machine/correlator.hpp>
+#include <machine/pfaffian.hpp>
 
 namespace machine {
 
@@ -63,7 +62,9 @@ class rbm_base {
     Eigen::MatrixXcd (*cosh_)(const Eigen::MatrixXcd&);
     Eigen::MatrixXcd (*tanh_)(const Eigen::MatrixXcd&);
 
-    std::vector<std::unique_ptr<correlator>> correlators_;
+    std::vector<std::unique_ptr<correlator>>
+        correlators_;                     ///< Correlator references
+    std::unique_ptr<pfaffian> pfaffian_;  ///< Pfaffian reference
 
     /**
      * @brief Hidden Constructor for the RBM used by derived classes to get
@@ -216,7 +217,12 @@ class rbm_base {
     inline std::complex<double> psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
         const rbm_context& context, rbm_context& updated_context) const {
-        return (this->*psi_over_psi_)(state, flips, context, updated_context);
+        std::complex<double> ret = 1.;
+        if (pfaffian_)
+            ret =
+                pfaffian_->psi_over_psi(state, flips, updated_context.pfaff());
+        return ret *
+               (this->*psi_over_psi_)(state, flips, context, updated_context);
     }
 
     /**
@@ -232,8 +238,7 @@ class rbm_base {
     inline std::complex<double> psi_over_psi(const Eigen::MatrixXcd& state,
                                              const std::vector<size_t>& flips,
                                              const rbm_context& context) const {
-        rbm_context updated_context;
-        updated_context.thetas = context.thetas;
+        rbm_context updated_context = context;
         return psi_over_psi(state, flips, context, updated_context);
     }
 
@@ -274,6 +279,8 @@ class rbm_base {
         const std::vector<std::vector<size_t>>& correlator);
     void add_correlators(
         const std::vector<std::vector<std::vector<size_t>>>& correlators);
+
+    std::unique_ptr<pfaffian>& add_pfaffian(size_t symm);
 
    protected:
     /**

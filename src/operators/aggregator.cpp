@@ -102,7 +102,7 @@ Eigen::MatrixXcd outer_aggregator::aggregate_() {
 }
 
 outer_aggregator_lazy::outer_aggregator_lazy(const base_op& op, size_t samples)
-    : Base{op, op.rows() * op.cols(), samples} {}
+    : Base{op, op.rows() * op.cols(), samples}, diag_(op.rows()) {}
 
 void outer_aggregator_lazy::aggregate(double weight) {
     size_t m_current_index;
@@ -125,6 +125,7 @@ void outer_aggregator_lazy::set_zero() {
 }
 
 optimizer::OuterMatrix outer_aggregator_lazy::construct_outer_matrix(
-    aggregator& derivative, double reg) {
-    return {result_, derivative.get_result(), norm_, reg};
+    aggregator& derivative, double reg1, double reg2) {
+    diag_ = result_.cwiseAbs2().rowwise().sum() / norm_;
+    return {result_, derivative.get_result(), diag_, norm_, reg1, reg2};
 }

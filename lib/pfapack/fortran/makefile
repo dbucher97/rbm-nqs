@@ -18,7 +18,7 @@ FORT ?= gfortran
 FFLAGS = -O3 -fimplicit-none
 
 all: $(OBJECTS)
-	$(AR) rvu libpfapack.a $(OBJECTS)
+	$(AR) ru libpfapack.a $(OBJECTS)
 
 clean:
 	rm -f *.o

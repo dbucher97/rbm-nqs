@@ -54,7 +54,8 @@ class stochastic_reconfiguration : public abstract_optimizer {
      * @param sampler Reference to the Sampler.
      * @param hamiltonian Reference to the Hamiltonian operator.
      * @param learning_rate Learing rate `ini::decay_t`.
-     * @param regularization Regularization `ini::decay_t`.
+     * @param regularization1 Regularization scale `ini::decay_t`.
+     * @param regularization2 Regularization shift `ini::decay_t`.
      * @param iterative Use ConjugateGradient for Matrix inversion flag (default
      * true).
      * @param max_iterations Number of max iterations for iterative scheme
@@ -63,7 +64,8 @@ class stochastic_reconfiguration : public abstract_optimizer {
                                machine::abstract_sampler& sampler,
                                operators::base_op& hamiltonian,
                                const ini::decay_t& learning_rate,
-                               const ini::decay_t& regularization,
+                               const ini::decay_t& regularization1,
+                               const ini::decay_t& regularization2,
                                bool iterative = true,
                                size_t max_iterations = 0);
 
@@ -80,6 +82,7 @@ class stochastic_reconfiguration : public abstract_optimizer {
     std::unique_ptr<operators::aggregator>
         a_dd_;  ///< Outer product derivative aggregator <D^* D^T>
 
-    decay_t kp_;  ///< Regularization
+    decay_t kp1_;  ///< Regularization scale
+    decay_t kp2_;  ///< Regularization shift
 };
 }  // namespace optimizer

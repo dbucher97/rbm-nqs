@@ -20,56 +20,44 @@
 
 #include <Eigen/Dense>
 #include <memory>
+#include <iostream>
 
 namespace machine {
 
 struct pfaff_context {
     Eigen::MatrixXcd inv;
     std::complex<double> pfaff;
+    std::complex<double> update_factor;
     int exp;
 
     pfaff_context() {}
 
-    pfaff_context(const pfaff_context &other) {
-        inv = other.inv;
-        pfaff = other.pfaff;
-    }
+    pfaff_context(const pfaff_context& other);
 
-    pfaff_context& operator=(const pfaff_context& other) {
-        inv = other.inv;
-        pfaff = other.pfaff;
-        return *this;
-    }
+    pfaff_context(pfaff_context&& other) noexcept;
 
-    pfaff_context& operator=(pfaff_context&& other) {
-        inv = std::move(other.inv);
-        pfaff = std::move(other.pfaff);
-        return *this;
-    }
+    pfaff_context& operator=(const pfaff_context& other);
+
+    pfaff_context& operator=(pfaff_context&& other);
+
 };
 
 struct rbm_context {
     Eigen::MatrixXcd thetas;
 
     rbm_context() {}
-    rbm_context(const Eigen::MatrixXcd& thetas) : thetas{thetas} {}
 
-    rbm_context(const rbm_context &other) {
-        thetas = other.thetas;
-        if (other.pfaff_)
-            pfaff_ = std::make_unique<pfaff_context>(*other.pfaff_);
-    }
+    rbm_context(const Eigen::MatrixXcd& thetas);
+    rbm_context(const Eigen::MatrixXcd& thetas, const pfaff_context& other);
+    rbm_context(const Eigen::MatrixXcd& thetas, pfaff_context&& other);
 
-    rbm_context &operator=(rbm_context &other) {
-        std::swap(thetas, other.thetas);
-        std::swap(pfaff_, other.pfaff_);
-        return *this;
-    }
+    rbm_context(const rbm_context& other);
 
-    pfaff_context &pfaff() {
-        if (!pfaff_) pfaff_ = std::make_unique<pfaff_context>();
-        return *pfaff_;
-    }
+    rbm_context& operator=(rbm_context& other);
+
+    pfaff_context& pfaff();
+
+    const pfaff_context& pfaff() const;
 
    private:
     std::unique_ptr<pfaff_context> pfaff_;

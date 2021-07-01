@@ -20,6 +20,7 @@
 //
 #include <machine/pfaffian.hpp>
 #include <math.hpp>
+#include <tools/eigen_fstream.hpp>
 
 using namespace machine;
 
@@ -102,10 +103,10 @@ pfaff_context pfaffian::get_context(const Eigen::MatrixXcd& state) const {
     return ret;
 }
 
-std::complex<double> pfaffian::update_context(const Eigen::MatrixXcd& state,
-                                              const std::vector<size_t>& flips,
-                                              pfaff_context& context) const {
-    if (flips.size() == 0) return 1;
+void pfaffian::update_context(const Eigen::MatrixXcd& state,
+                              const std::vector<size_t>& flips,
+                              pfaff_context& context) const {
+    if (flips.size() == 0) return;
 
     size_t m = flips.size();
     double sign = ((m * (m + 1) / 2) % 2 == 0 ? 1 : -1);
@@ -156,11 +157,12 @@ std::complex<double> pfaffian::update_context(const Eigen::MatrixXcd& state,
 
     c2 *= sign;
     context.pfaff *= c2;
-    return c2;
+    context.update_factor = c2;
 }
 
-Eigen::MatrixXcd pfaffian::derivative(const Eigen::MatrixXcd& state,
-                                      const pfaff_context& context) const {
+void pfaffian::derivative(const Eigen::MatrixXcd& state,
+                          const pfaff_context& context,
+                          Eigen::MatrixXcd& result, size_t& offset) const {
     Eigen::MatrixXcd d(fs_.rows(), fs_.cols());
     d.setZero();
     std::complex<double> x;
@@ -171,7 +173,16 @@ Eigen::MatrixXcd pfaffian::derivative(const Eigen::MatrixXcd& state,
             d(idx(j, i, state), ss_(j)) = x;
         }
     }
-    return Eigen::Map<Eigen::MatrixXcd>(d.data(), fs_.size(), 1);
+    result.block(offset, 0, get_n_params(), 1) =
+        Eigen::Map<Eigen::MatrixXcd>(d.data(), get_n_params(), 1);
+    offset += get_n_params();
 }
 
-void pfaffian::update_weights(Eigen::MatrixXcd& dw) {}
+void pfaffian::update_weights(const Eigen::MatrixXcd& dw, size_t& offset) {
+    fs_ -= Eigen::Map<const Eigen::MatrixXcd>(
+        dw.block(offset, 0, get_n_params(), 1).data(), fs_.rows(), fs_.cols());
+    offset += get_n_params();
+}
+
+void pfaffian::load(std::ifstream& input) { input >> fs_; }
+void pfaffian::save(std::ofstream& output) { output << fs_; }

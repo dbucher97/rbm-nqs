@@ -150,6 +150,8 @@ extern size_t rbm_pop_mode;
 extern size_t rbm_cosh_mode;
 extern bool rbm_pfaffian;
 extern size_t rbm_pfaffian_symmetry;
+extern bool rbm_pfaffian_normalize;
+extern double rbm_pfaffian_weights;
 
 // Sampler
 extern sampler_t sa_type;
@@ -165,7 +167,8 @@ extern bool sa_metropolis_bond_flips;
 extern optimizer_t opt_type;
 extern std::string opt_plugin;
 extern decay_t opt_lr;
-extern decay_t opt_sr_reg;
+extern decay_t opt_sr_reg1;
+extern decay_t opt_sr_reg2;
 extern bool opt_sr_iterative;
 extern size_t opt_sr_max_iterations;
 extern double opt_sgd_real_factor;

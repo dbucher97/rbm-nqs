@@ -238,21 +238,17 @@ void debug_pfaffian() {
             }
         }
         pfaff.update_context(state, flips, context);
-        for(auto& f : flips) state(f) *= -1;
+        for (auto& f : flips) state(f) *= -1;
     }
     std::cout << context.pfaff << " x10^" << context.exp << std::endl;
 
     auto context2 = pfaff.get_context(state);
     std::cout << context2.pfaff << " x10^" << context2.exp << std::endl;
-    Eigen::MatrixXcd mat = pfaff.get_mat(state).inverse();
-    std::cout << (context.inv - mat).norm() / mat.size() << std::endl;
-
+    // Eigen::MatrixXcd mat = pfaff.get_mat(state).inverse();
+    // std::cout << (context.inv - mat).norm() / mat.size() << std::endl;
 }
 
 int main(int argc, char* argv[]) {
-    debug_pfaffian();
-    return 0;
-
     int rc = ini::load(argc, argv);
     if (rc != 0) {
         return rc;
@@ -310,13 +306,22 @@ int main(int argc, char* argv[]) {
         default:
             return 1;
     }
+
     if (ini::rbm_correlators && model->get_lattice().has_correlators()) {
         auto c = model->get_lattice().get_correlators();
         rbm->add_correlators(c);
     }
+
+    std::unique_ptr<machine::pfaffian>* pfaff;
+    if (ini::rbm_pfaffian) {
+        pfaff = &rbm->add_pfaffian(ini::rbm_pfaffian_symmetry);
+    }
     if (ini::rbm_force || !rbm->load(ini::name)) {
         rbm->initialize_weights(rng, ini::rbm_weights, ini::rbm_weights_imag,
                                 ini::rbm_weights_init_type);
+        if(ini::rbm_pfaffian)
+            (*pfaff)->init_weights(rng, ini::rbm_pfaffian_weights,
+                                ini::rbm_pfaffian_normalize);
     }
 
     std::unique_ptr<machine::abstract_sampler> sampler;
@@ -341,7 +346,7 @@ int main(int argc, char* argv[]) {
         case ini::optimizer_t::SR:
             optimizer = std::make_unique<optimizer::stochastic_reconfiguration>(
                 *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr,
-                ini::opt_sr_reg, ini::opt_sr_iterative,
+                ini::opt_sr_reg1, ini::opt_sr_reg2, ini::opt_sr_iterative,
                 ini::opt_sr_max_iterations);
             break;
         case ini::optimizer_t::SGD:

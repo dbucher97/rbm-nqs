@@ -54,6 +54,7 @@ size_t rbm_base::get_n_params() const {
     for (auto& c : correlators_) {
         x += c->get_n_params();
     }
+    if (pfaffian_) x += pfaffian_->get_n_params();
     return x;
 }
 
@@ -104,6 +105,7 @@ void rbm_base::update_weights(const Eigen::MatrixXcd& dw) {
     for (auto& c : correlators_) {
         c->update_weights(dw, offset);
     }
+    if(pfaffian_) pfaffian_->update_weights(dw, offset);
 
     // Increment updates tracker.
     n_updates_++;
@@ -111,9 +113,14 @@ void rbm_base::update_weights(const Eigen::MatrixXcd& dw) {
 
 rbm_context rbm_base::get_context(const Eigen::MatrixXcd& state) const {
     // Calculate the thetas from `state`
-    Eigen::MatrixXcd ret = (state.transpose() * weights_).transpose() + h_bias_;
-    for (auto& c : correlators_) c->add_thetas(state, ret);
-    return {ret};
+    Eigen::MatrixXcd thetas =
+        (state.transpose() * weights_).transpose() + h_bias_;
+    for (auto& c : correlators_) c->add_thetas(state, thetas);
+    if (pfaffian_) {
+        return {thetas, pfaffian_->get_context(state)};
+    } else {
+        return {thetas};
+    }
 }
 
 void rbm_base::update_context(const Eigen::MatrixXcd& state,
@@ -149,6 +156,7 @@ Eigen::MatrixXcd rbm_base::derivative(const Eigen::MatrixXcd& state,
 
     size_t offset = n_params_;
     for (auto& c : correlators_) c->derivative(state, tanh, result, offset);
+    if(pfaffian_) pfaffian_->derivative(state, context.pfaff(), result, offset);
 
     return result;
 }
@@ -157,8 +165,7 @@ bool rbm_base::flips_accepted(double prob, const Eigen::MatrixXcd& state,
                               const std::vector<size_t>& flips,
                               rbm_context& context) const {
     // First copy the old thetas
-    rbm_context new_context;
-    new_context.thetas = context.thetas;
+    rbm_context new_context = context;
 
     // Calculate the acceptance value
     double a =
@@ -167,7 +174,7 @@ bool rbm_base::flips_accepted(double prob, const Eigen::MatrixXcd& state,
     // accept with given probability
     if (prob < a) {
         // Update the thetas
-        context.thetas = new_context.thetas;
+        context = new_context;
         return true;
     } else {
         return false;
@@ -185,6 +192,8 @@ bool rbm_base::save(const std::string& name) {
         output.write((char*)&n_updates_, sizeof(size_t));
 
         for (auto& c : correlators_) c->save(output);
+
+        if(pfaffian_) pfaffian_->save(output);
 
         output.close();
         // Give a status update.
@@ -207,6 +216,8 @@ bool rbm_base::load(const std::string& name) {
 
         for (auto& c : correlators_) c->load(input);
 
+        if(pfaffian_) pfaffian_->load(input);
+
         input.close();
 
         // Give a status update.
@@ -228,28 +239,36 @@ void rbm_base::add_correlators(
     }
 }
 
+std::unique_ptr<pfaffian>& rbm_base::add_pfaffian(size_t symm) {
+    pfaffian_ = std::make_unique<pfaffian>(lattice_, symm);
+    return pfaffian_;
+}
+
 //
 // Overrideable functions, specific to the basic RBM.
 //
 
 std::complex<double> rbm_base::psi_notheta(
     const Eigen::MatrixXcd& state) const {
-    std::complex<double> corr_part = 1.;
-    for (auto& c : correlators_) c->psi(state, corr_part);
-    return corr_part * (v_bias_.array() * state.array()).exp().prod();
+    return (v_bias_.array() * state.array()).exp().prod();
 }
 
 std::complex<double> rbm_base::psi_default(const Eigen::MatrixXcd& state,
                                            const rbm_context& context) const {
     // Calculate the \psi with `thetas`
-    std::complex<double> cosh_part = math::lncosh(context.thetas).sum();
-    return psi_notheta(state) * std::exp(cosh_part);
+    std::complex<double> cosh_part =
+        std::exp(math::lncosh(context.thetas).sum());
+    for (auto& c : correlators_) c->psi(state, cosh_part);
+    if (pfaffian_) cosh_part *= pfaffian_->psi(state, context.pfaff());
+    return psi_notheta(state) * cosh_part;
 }
 
 std::complex<double> rbm_base::psi_alt(const Eigen::MatrixXcd& state,
                                        const rbm_context& context) const {
     // Calculate the \psi with `thetas`
     std::complex<double> cosh_part = (*cosh_)(context.thetas).array().prod();
+    for (auto& c : correlators_) c->psi(state, cosh_part);
+    if (pfaffian_) cosh_part *= pfaffian_->psi(state, context.pfaff());
     return psi_notheta(state) * cosh_part;
 }
 

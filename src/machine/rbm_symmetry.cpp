@@ -45,7 +45,11 @@ rbm_context rbm_symmetry::get_context(const Eigen::MatrixXcd& state) const {
         ret.col(s) = weights_.transpose() * (symmetry_[s] * state) + h_bias_;
         for (auto& c : correlators_) c->add_thetas(state, ret, s);
     }
-    return {ret};
+    if(pfaffian_) {
+        return {ret, pfaffian_->get_context(state)};
+    } else {
+        return {ret};
+    }
 }
 
 void rbm_symmetry::update_context(const Eigen::MatrixXcd& state,
@@ -116,9 +120,7 @@ std::complex<double> rbm_symmetry::psi_notheta(
 #else
     auto vbias_part = v_bias_(0) * state;
 #endif
-    std::complex<double> corr_part = 1.;
-    for (auto& c : correlators_) c->psi(state, corr_part);
-    return vbias_part.array().exp().prod() * corr_part;
+    return vbias_part.array().exp().prod();
 }
 
 std::complex<double> rbm_symmetry::log_psi_over_psi(

@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <omp.h>
+#include <iostream>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -66,20 +66,31 @@ class OuterMatrix : public Eigen::EigenBase<OuterMatrix> {
     }
 
     // Custom API:
-    OuterMatrix(const Eigen::MatrixXcd& mat, const Eigen::MatrixXcd& vec,
-                double norm, double reg = 0.)
-        : mp_mat(&mat), mp_vec(&vec), norm{norm}, reg{reg} {}
+    OuterMatrix(
+        const Eigen::MatrixXcd& mat, const Eigen::MatrixXcd& vec,
+        const Eigen::Matrix<double, Eigen::Dynamic, 1>& diag,
+        double norm, double reg1 = 0., double reg2 = 0.)
+        : mp_mat(&mat),
+          mp_vec(&vec),
+          diag(&diag),
+          norm{norm},
+          reg1{reg1},
+          reg2{reg2 * diag.maxCoeff()} {}
 
     const Eigen::MatrixXcd& my_matrix() const { return *mp_mat; }
     const Eigen::MatrixXcd& my_vector() const { return *mp_vec; }
+    const Eigen::Matrix<double, Eigen::Dynamic, 1>& get_diag() const { return *diag; }
     const double get_norm() const { return norm; }
-    const double get_reg() const { return reg; }
+    const double get_reg1() const { return reg1; }
+    const double get_reg2() const { return reg2; }
 
    private:
     const Eigen::MatrixXcd* mp_mat;
     const Eigen::MatrixXcd* mp_vec;
+    const Eigen::Matrix<double, Eigen::Dynamic, 1>* diag;
     const double norm;
-    const double reg;
+    const double reg1;
+    const double reg2;
 };
 }  // namespace optimizer
 
@@ -104,10 +115,12 @@ struct generic_product_impl<OuterMatrix, Rhs, SparseShape, DenseShape,
 
         auto& mat = lhs.my_matrix();
         auto& vec = lhs.my_vector();
+        auto& diag = lhs.get_diag();
         dst.noalias() += ((rhs.transpose() * mat) * mat.adjoint()).transpose() /
                          lhs.get_norm();
         dst.noalias() -= (vec.conjugate() * (vec.transpose() * rhs));
-        dst.noalias() += lhs.get_reg() * rhs;
+        dst.noalias() += lhs.get_reg1() * (rhs.array() * diag.array()).matrix();
+        dst.noalias() += lhs.get_reg2() * rhs;
     }
 };
 

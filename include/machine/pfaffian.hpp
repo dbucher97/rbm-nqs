@@ -18,8 +18,9 @@
 #pragma once
 
 #include <complex>
-#include <vector>
 #include <random>
+#include <vector>
+#include <fstream>
 //
 #include <lattice/bravais.hpp>
 #include <machine/context.hpp>
@@ -38,16 +39,17 @@ class pfaffian {
    public:
     pfaffian(const lattice::bravais&, size_t n_uc = 0);
 
-    void init_weights(std::mt19937& rng, double std, bool normalize = false); 
+    void init_weights(std::mt19937& rng, double std, bool normalize = false);
 
     pfaff_context get_context(const Eigen::MatrixXcd& state) const;
 
-    std::complex<double> update_context(const Eigen::MatrixXcd& state,
-                                        const std::vector<size_t>& flips,
-                                        pfaff_context& context) const;
+    void update_context(const Eigen::MatrixXcd& state,
+                        const std::vector<size_t>& flips,
+                        pfaff_context& context) const;
 
-    Eigen::MatrixXcd derivative(const Eigen::MatrixXcd& state,
-                                const pfaff_context& context) const;
+    void derivative(const Eigen::MatrixXcd& state,
+                                const pfaff_context& context,
+                                Eigen::MatrixXcd& result, size_t& offset) const;
 
     inline std::complex<double> psi(const Eigen::MatrixXcd& state,
                                     const pfaff_context& context) const {
@@ -57,19 +59,20 @@ class pfaffian {
     inline std::complex<double> psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
         pfaff_context& updated_context) const {
-        return update_context(state, flips, updated_context);
+        update_context(state, flips, updated_context);
+        return updated_context.update_factor;
     }
 
-    void update_weights(Eigen::MatrixXcd& dw);
+    void update_weights(const Eigen::MatrixXcd& dw, size_t& offset);
 
     Eigen::MatrixXcd& get_weights() { return fs_; }
 
-    size_t get_n_params() { return fs_.size(); }
+    inline size_t get_n_params() const { return fs_.size(); }
 
-    Eigen::MatrixXi& get_bs() { return bs_; }
-    Eigen::MatrixXi& get_ss() { return ss_; }
-
-    Eigen::MatrixXcd get_mat(const Eigen::MatrixXcd& state) const;
+    void save(std::ofstream& output);
+    void load(std::ifstream& input);
+    /* Eigen::MatrixXi& get_bs() { return bs_; }
+    Eigen::MatrixXi& get_ss() { return ss_; } */
 
    private:
     inline bool spidx(size_t i, const Eigen::MatrixXcd& state,
@@ -91,6 +94,8 @@ class pfaffian {
         return fs_(idx(i, j, state, flipi, flipj), ss_(i)) -
                fs_(idx(j, i, state, flipj, flipi), ss_(j));
     }
+
+    Eigen::MatrixXcd get_mat(const Eigen::MatrixXcd& state) const;
 };
 
 }  // namespace machine
