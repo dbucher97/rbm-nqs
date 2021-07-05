@@ -131,6 +131,13 @@ class rbm_base {
      */
     size_t get_n_params() const;
 
+    /**
+     * @brief n_params_ getter
+     *
+     * @return n_params of RBM without pfaffian
+     */
+    size_t get_n_neural_params() const;
+
     virtual size_t symmetry_size() const { return 1; }
 
     /**

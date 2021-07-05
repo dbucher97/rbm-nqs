@@ -50,11 +50,16 @@ rbm_base::rbm_base(size_t n_alpha, lattice::bravais& l, size_t pop_mode,
     : rbm_base{n_alpha, l.n_total, l, pop_mode, cosh_mode} {}
 
 size_t rbm_base::get_n_params() const {
+    size_t x = get_n_neural_params();
+    if (pfaffian_) x += pfaffian_->get_n_params();
+    return x;
+}
+
+size_t rbm_base::get_n_neural_params() const {
     size_t x = n_params_;
     for (auto& c : correlators_) {
         x += c->get_n_params();
     }
-    if (pfaffian_) x += pfaffian_->get_n_params();
     return x;
 }
 

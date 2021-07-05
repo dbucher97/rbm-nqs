@@ -1,3 +1,5 @@
+#pragma once
+
 #include <complex>
 
 typedef std::complex<double> cmplx;
@@ -42,6 +44,6 @@ inline int minresqlp(int n, void (*Aprod)(int *, double *, double *), double *b,
     int istop;
     __minresqlpmodule_MOD_minresqlp(
         &n, Aprod, b, shift, Msolve, disable, nout, itnlim, rtol, maxnorm,
-        trancond, Acondlim, x, &istop, itn, rnorm, Arnorm, xnorm, Anorm, Acond);
+    trancond, Acondlim, x, &istop, itn, rnorm, Arnorm, xnorm, Anorm, Acond);
     return istop;
 }

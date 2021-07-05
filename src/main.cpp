@@ -64,6 +64,7 @@
 #include <operators/store_state.hpp>
 #include <optimizer/abstract_optimizer.hpp>
 #include <optimizer/gradient_descent.hpp>
+#include <optimizer/minres_adapter.hpp>
 #include <optimizer/plugin.hpp>
 #include <optimizer/stochastic_reconfiguration.hpp>
 #include <tools/ini.hpp>
@@ -248,6 +249,57 @@ void debug_pfaffian() {
     // std::cout << (context.inv - mat).norm() / mat.size() << std::endl;
 }
 
+void test_minresqlp() {
+    int na = 10000, nb = 500, nn = 300;
+    Eigen::MatrixXcd mat(na, nb);
+    double norm = 0.1;
+
+    double e1 = 0.1;
+    double de = 0.1;
+    double e2 = 0.1;
+    mat.setRandom();
+
+    Eigen::MatrixXcd vec;
+    vec = mat.rowwise().sum().conjugate() / std::sqrt(norm);
+
+    MatrixXcd S(na, na);
+    S = mat.conjugate() * mat.transpose() / norm;
+    S -= vec * vec.transpose().conjugate();
+
+    /* MatrixXcd d = mat.cwiseAbs2().rowwise().sum() / norm - vec.cwiseAbs2();
+    std::cout << (S.diagonal() - d).norm() << std::endl; */
+
+    double maxDiag = S.diagonal().real().maxCoeff();
+    S.diagonal().topRows(nn) *= (1 + e1);
+    S.diagonal().bottomRows(na - nn) *= (1 + e1 + de);
+    S += e2 * maxDiag * Eigen::MatrixXcd::Identity(na, na);
+    // S += e2 * Eigen::MatrixXcd::Identity(na, na);
+
+    Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1> x(na), y(na);
+    Eigen::MatrixXcd z(na, 1);
+    x.setRandom();
+    x.normalize();
+    y.setZero();
+    z.setZero();
+
+    // y = S.inverse() * x;
+    // y.array() += d.array() * x.array() * e1;
+
+    optimizer::minresqlp_adapter min{mat, vec, e1, e2, de, norm, nn};
+
+    min.itnlim = 50;
+    std::cout << "start" << std::endl;
+    std::cout << min.apply(x, z) << std::endl;
+    std::cout << min.getItn() << std::endl;
+    std::cout << min.getAcond() << std::endl;
+    std::cout << min.getRnorm() << std::endl;
+
+    y = S * z;
+    // y.normalize();
+
+    std::cout << std::pow(std::abs(x.dot(y)), 2) << std::endl;
+}
+
 int main(int argc, char* argv[]) {
     int rc = ini::load(argc, argv);
     if (rc != 0) {
@@ -259,6 +311,7 @@ int main(int argc, char* argv[]) {
     omp_set_num_threads(ini::n_threads);
     Eigen::setNbThreads(1);
 
+    std::cout << "SEED: "  << ini::seed << std::endl;
     std::mt19937 rng{static_cast<std::mt19937::result_type>(ini::seed)};
 
     std::unique_ptr<model::abstract_model> model;
@@ -319,9 +372,9 @@ int main(int argc, char* argv[]) {
     if (ini::rbm_force || !rbm->load(ini::name)) {
         rbm->initialize_weights(rng, ini::rbm_weights, ini::rbm_weights_imag,
                                 ini::rbm_weights_init_type);
-        if(ini::rbm_pfaffian)
+        if (ini::rbm_pfaffian)
             (*pfaff)->init_weights(rng, ini::rbm_pfaffian_weights,
-                                ini::rbm_pfaffian_normalize);
+                                   ini::rbm_pfaffian_normalize);
     }
 
     std::unique_ptr<machine::abstract_sampler> sampler;
@@ -346,8 +399,8 @@ int main(int argc, char* argv[]) {
         case ini::optimizer_t::SR:
             optimizer = std::make_unique<optimizer::stochastic_reconfiguration>(
                 *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr,
-                ini::opt_sr_reg1, ini::opt_sr_reg2, ini::opt_sr_iterative,
-                ini::opt_sr_max_iterations);
+                ini::opt_sr_reg1, ini::opt_sr_reg2, ini::opt_sr_deltareg1,
+                ini::opt_sr_iterative, ini::opt_sr_max_iterations, ini::opt_sr_rtol);
             break;
         case ini::optimizer_t::SGD:
             optimizer = std::make_unique<optimizer::gradient_descent>(

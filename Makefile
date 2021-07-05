@@ -64,7 +64,7 @@ endif
 
 LDFLAGS += -lboost_program_options
 
-LDFLAGS += $(PFAPACK) $(PFAPACKC) $(MINRESQLP)
+LDFLAGS += $(PFAPACK) $(PFAPACKC) $(MINRESQLP) -lgfortran
 
 install: all
 	cp $(BUILD_DIR)/$(TARGET_EXEC) $(DESTDIR)/$(TARGET_EXEC)

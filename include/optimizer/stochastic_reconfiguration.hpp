@@ -66,8 +66,10 @@ class stochastic_reconfiguration : public abstract_optimizer {
                                const ini::decay_t& learning_rate,
                                const ini::decay_t& regularization1,
                                const ini::decay_t& regularization2,
+                               const ini::decay_t& regularization1delta,
                                bool iterative = true,
-                               size_t max_iterations = 0);
+                               size_t max_iterations = 0,
+                               double rtol = 0.0);
 
     virtual void register_observables() override;
 
@@ -76,6 +78,7 @@ class stochastic_reconfiguration : public abstract_optimizer {
    private:
     bool iterative_;         ///< Use ConjugateGradient flag
     size_t max_iterations_;  ///< Number of maximum iterations
+    double rtol_;            ///< Residue tolerance for iterative solution
 
     operators::prod_aggregator
         a_dh_;  ///< Derivative Hamiltonian aggregator <D^* H>
@@ -84,5 +87,6 @@ class stochastic_reconfiguration : public abstract_optimizer {
 
     decay_t kp1_;  ///< Regularization scale
     decay_t kp2_;  ///< Regularization shift
+    decay_t kp1d_;  ///< Regularization scale offset pfaffian parameters
 };
 }  // namespace optimizer

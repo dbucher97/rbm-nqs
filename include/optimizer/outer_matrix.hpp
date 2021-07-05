@@ -17,6 +17,8 @@
 
 // See https://eigen.tuxfamily.org/dox/group__MatrixfreeSolverExample.html
 
+// DEPRECATED moved to minres
+
 #pragma once
 
 #include <iostream>

@@ -28,6 +28,7 @@
 #include <machine/rbm_base.hpp>
 #include <operators/base_op.hpp>
 #include <operators/derivative_op.hpp>
+#include <optimizer/minres_adapter.hpp>
 #include <optimizer/outer_matrix.hpp>
 #include <optimizer/plugin.hpp>
 #include <optimizer/stochastic_reconfiguration.hpp>
@@ -38,12 +39,13 @@ using namespace optimizer;
 stochastic_reconfiguration::stochastic_reconfiguration(
     machine::rbm_base& rbm, machine::abstract_sampler& sampler,
     operators::base_op& hamiltonian, const ini::decay_t& lr,
-    const ini::decay_t& kp1, const ini::decay_t& kp2, bool iterative,
-    size_t max_iterations)
+    const ini::decay_t& kp1, const ini::decay_t& kp2, const ini::decay_t& kp1d,
+    bool iterative, size_t max_iterations, double rtol)
     : Base{rbm, sampler, hamiltonian, lr},
       // Initialize SR aggregators
       iterative_{iterative},
       max_iterations_{max_iterations},
+      rtol_{rtol},
       a_dh_{derivative_, hamiltonian_},
       a_dd_{iterative_ ? (std::unique_ptr<operators::aggregator>)
                              std::make_unique<operators::outer_aggregator_lazy>(
@@ -53,7 +55,8 @@ stochastic_reconfiguration::stochastic_reconfiguration(
                                  derivative_)},
       // Initialize the regularization.
       kp1_{kp1, rbm_.get_n_updates()},
-      kp2_{kp2, rbm_.get_n_updates()} {}
+      kp2_{kp2, rbm_.get_n_updates()},
+      kp1d_{kp1d, rbm_.get_n_updates()} {}
 
 void stochastic_reconfiguration::register_observables() {
     // Register operators and aggregators
@@ -69,6 +72,8 @@ void stochastic_reconfiguration::optimize() {
 
     // Log energy, energy variance and sampler properties.
     logger::log(std::real(h(0)) / rbm_.n_visible, "Energy");
+    logger::log(std::real(a_h_.get_variance()(0)) / rbm_.n_visible,
+                "Energy Variance");
     // logger::log(std::abs(std::imag(h(0))), "EnergyImag");
     sampler_.log();
 
@@ -76,6 +81,7 @@ void stochastic_reconfiguration::optimize() {
 
     double reg1 = kp1_.get();
     double reg2 = kp2_.get();
+    double reg1delta = kp1d_.get();
 
     // Calculate Gradient
     VectorXcd F = dh - h(0) * d.conjugate();
@@ -83,8 +89,8 @@ void stochastic_reconfiguration::optimize() {
     if (iterative_) {
         // Get covariance matrix in GMRES form
 
-        OuterMatrix S =
-            dynamic_cast<operators::outer_aggregator_lazy*>(a_dd_.get())
+        /* OuterMatrix S =
+        dynamic_cast<operators::outer_aggregator_lazy*>(a_dd_.get())
                 ->construct_outer_matrix(a_d_, reg1, reg2);
 
         Eigen::ConjugateGradient<OuterMatrix, Eigen::Upper | Eigen::Lower,
@@ -92,8 +98,21 @@ void stochastic_reconfiguration::optimize() {
             cg;
         if (max_iterations_) cg.setMaxIterations(max_iterations_);
         cg.compute(S);
-        dw = cg.solve(F);
+        dw = cg.solve(F); */
 
+        auto oa = dynamic_cast<operators::outer_aggregator_lazy*>(a_dd_.get());
+        minresqlp_adapter min(oa->get_result(), a_d_.get_result(), reg1, reg2,
+                              reg1delta, oa->get_norm(),
+                              rbm_.get_n_neural_params());
+        if (max_iterations_) min.itnlim = max_iterations_;
+        if (rtol_ > 0.0) min.rtol = rtol_;
+        min.apply(F, dw);
+        /* std::cout << std::endl;
+        std::cout << "Acond: " << min.getAcond() << std::endl;
+        std::cout << "Rnorm: " << min.getRnorm() << std::endl;
+        std::cout << "Rtol: " << min.rtol << std::endl;
+        std::cout << "Itn: " << min.getItn() << std::endl;
+        std::cout << "Istop: " << min.getIstop() << std::endl; */
     } else {
         auto& dd = a_dd_->get_result();
         // Calculate Covariance matrix.
@@ -104,10 +123,24 @@ void stochastic_reconfiguration::optimize() {
                                                                          Sdiag);
         S += reg2 * Sdiag.cwiseAbs().maxCoeff() *
              Eigen::MatrixXcd::Identity(S.rows(), S.cols());
+        double Sd = 0, Sod = 0;
+        int acc = 0;
+        for (size_t i = 0; i < static_cast<size_t>(S.rows()); i++) {
+            Sd = 0;
+            Sod = 0;
+            for (size_t j = 0; j < static_cast<size_t>(S.cols()); j++) {
+                if (i == j) {
+                    Sd = std::abs(S(i, i));
+                } else {
+                    Sod += std::abs(S(i, j));
+                }
+            }
+            acc += Sod < Sd;
+        }
         dw = S.completeOrthogonalDecomposition().solve(F);
     }
 
-    logger::log(dw.norm() / dw.size(), "DW Norm");
+    // logger::log(dw.norm() / dw.size(), "DW Norm");
 
     // Apply plugin if set
     if (plug_) {
