@@ -45,6 +45,7 @@
 #include <lattice/toric_lattice.hpp>
 #include <machine/correlator.hpp>
 #include <machine/file_psi.hpp>
+#include <machine/pfaffian_psi.hpp>
 #include <machine/full_sampler.hpp>
 #include <machine/metropolis_sampler.hpp>
 #include <machine/pfaffian.hpp>
@@ -250,6 +251,7 @@ void debug_pfaffian() {
 }
 
 void test_minresqlp() {
+
     int na = 10000, nb = 500, nn = 300;
     Eigen::MatrixXcd mat(na, nb);
     double norm = 0.1;
@@ -301,6 +303,11 @@ void test_minresqlp() {
 }
 
 int main(int argc, char* argv[]) {
+    Eigen::MatrixXcd mat(0, 0);
+    Eigen::MatrixXcd d(0, 1);
+    std::cout << mat.block(0, 0, 0, 1) << std::endl;
+    return 0;
+
     int rc = ini::load(argc, argv);
     if (rc != 0) {
         return rc;
@@ -311,7 +318,7 @@ int main(int argc, char* argv[]) {
     omp_set_num_threads(ini::n_threads);
     Eigen::setNbThreads(1);
 
-    std::cout << "SEED: "  << ini::seed << std::endl;
+    std::cout << "Seed: "  << ini::seed << std::endl;
     std::mt19937 rng{static_cast<std::mt19937::result_type>(ini::seed)};
 
     std::unique_ptr<model::abstract_model> model;
@@ -356,6 +363,9 @@ int main(int argc, char* argv[]) {
                 n_hidden, model->get_lattice(), ini::rbm_pop_mode,
                 ini::rbm_cosh_mode);
             break;
+        case ini::rbm_t::PFAFFIAN:
+            rbm = std::make_unique<machine::pfaffian_psi>(model->get_lattice());
+            break;
         default:
             return 1;
     }
@@ -365,15 +375,15 @@ int main(int argc, char* argv[]) {
         rbm->add_correlators(c);
     }
 
-    std::unique_ptr<machine::pfaffian>* pfaff;
-    if (ini::rbm_pfaffian) {
-        pfaff = &rbm->add_pfaffian(ini::rbm_pfaffian_symmetry);
+    machine::pfaffian* pfaff = 0;
+    if (ini::rbm_pfaffian || ini::rbm == ini::rbm_t::PFAFFIAN) {
+        pfaff = rbm->add_pfaffian(ini::rbm_pfaffian_symmetry).get();
     }
     if (ini::rbm_force || !rbm->load(ini::name)) {
         rbm->initialize_weights(rng, ini::rbm_weights, ini::rbm_weights_imag,
                                 ini::rbm_weights_init_type);
-        if (ini::rbm_pfaffian)
-            (*pfaff)->init_weights(rng, ini::rbm_pfaffian_weights,
+        if (pfaff)
+            pfaff->init_weights(rng, ini::rbm_pfaffian_weights,
                                    ini::rbm_pfaffian_normalize);
     }
 

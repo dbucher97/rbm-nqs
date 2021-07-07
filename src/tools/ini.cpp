@@ -220,6 +220,8 @@ std::istream& ini::operator>>(std::istream& is, ini::rbm_t& rbm) {
         rbm = ini::rbm_t::BASIC;
     } else if (token == "symmetry") {
         rbm = ini::rbm_t::SYMMETRY;
+    } else if (token == "pfaffian") {
+        rbm = ini::rbm_t::PFAFFIAN;
     } else {
         throw std::runtime_error("RBM Type '" + token + "' not available!");
     }

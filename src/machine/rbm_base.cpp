@@ -110,7 +110,7 @@ void rbm_base::update_weights(const Eigen::MatrixXcd& dw) {
     for (auto& c : correlators_) {
         c->update_weights(dw, offset);
     }
-    if(pfaffian_) pfaffian_->update_weights(dw, offset);
+    if (pfaffian_) pfaffian_->update_weights(dw, offset);
 
     // Increment updates tracker.
     n_updates_++;
@@ -161,7 +161,8 @@ Eigen::MatrixXcd rbm_base::derivative(const Eigen::MatrixXcd& state,
 
     size_t offset = n_params_;
     for (auto& c : correlators_) c->derivative(state, tanh, result, offset);
-    if(pfaffian_) pfaffian_->derivative(state, context.pfaff(), result, offset);
+    if (pfaffian_)
+        pfaffian_->derivative(state, context.pfaff(), result, offset);
 
     return result;
 }
@@ -198,7 +199,7 @@ bool rbm_base::save(const std::string& name) {
 
         for (auto& c : correlators_) c->save(output);
 
-        if(pfaffian_) pfaffian_->save(output);
+        if (pfaffian_) pfaffian_->save(output);
 
         output.close();
         // Give a status update.
@@ -221,7 +222,7 @@ bool rbm_base::load(const std::string& name) {
 
         for (auto& c : correlators_) c->load(input);
 
-        if(pfaffian_) pfaffian_->load(input);
+        if (pfaffian_) pfaffian_->load(input);
 
         input.close();
 

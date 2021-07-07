@@ -41,7 +41,7 @@ struct decay_t {
 /**
  * @brief RBM Type enum
  */
-enum rbm_t { BASIC, SYMMETRY };
+enum rbm_t { BASIC, SYMMETRY, PFAFFIAN };
 /**
  * @brief Sampler Type enum
  */

@@ -106,9 +106,13 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
             flips.push_back(f_dist_(rng_));
         }
 
-        // try to accept flips, if flips are accepted, context are automatically
-        // updated and state needs updating.
-        if (rbm_.flips_accepted(u_dist_(rng_), state, flips, context)) {
+        rbm_context new_context = context;
+        // Calculate the probability of changing to new configuration
+        double acc = std::pow(
+            std::abs(rbm_.psi_over_psi(state, flips, context, new_context)), 2);
+        // Accept new configuration with given probability
+        if (u_dist_(rng_) < acc) {
+            context = new_context;
             ar++;
             for (auto& flip : flips) state(flip) *= -1;
         }

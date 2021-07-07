@@ -129,14 +129,14 @@ class rbm_base {
      *
      * @return n_params of RBM (without correlators)
      */
-    size_t get_n_params() const;
+    virtual size_t get_n_params() const;
 
     /**
      * @brief n_params_ getter
      *
      * @return n_params of RBM without pfaffian
      */
-    size_t get_n_neural_params() const;
+    virtual size_t get_n_neural_params() const;
 
     virtual size_t symmetry_size() const { return 1; }
 
@@ -159,7 +159,7 @@ class rbm_base {
      *
      * @param Eigen::MatrixXcd A update vector of size `n_params`.
      */
-    void update_weights(const Eigen::MatrixXcd&);
+    virtual void update_weights(const Eigen::MatrixXcd&);
 
     /**
      * @brief Calculates the angles \theta_{js}
@@ -225,9 +225,10 @@ class rbm_base {
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
         const rbm_context& context, rbm_context& updated_context) const {
         std::complex<double> ret = 1.;
-        if (pfaffian_)
+        /* if (pfaffian_)
             ret =
                 pfaffian_->psi_over_psi(state, flips, updated_context.pfaff());
+         */
         return ret *
                (this->*psi_over_psi_)(state, flips, context, updated_context);
     }
