@@ -471,7 +471,7 @@ int main(int argc, char* argv[]) {
         rbm->save(ini::name);
 
     } else {
-        std::cout << "noing to do!" << std::endl;
+        std::cout << "nothing to do!" << std::endl;
     }
 
     // std::ofstream ws{"weights/weights_" + ini::name + ".txt"};
