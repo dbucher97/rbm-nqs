@@ -23,9 +23,9 @@
 #include <Eigen/Dense>
 //
 #include <machine/abstract_machine.hpp>
-#include <machine/abstract_sampler.hpp>
+#include <sampler/abstract_sampler.hpp>
 
-namespace machine {
+namespace sampler {
 
 /**
  * @brief full_sampler is a sampler which samples over all basis states.
@@ -54,7 +54,7 @@ class full_sampler : public abstract_sampler {
      * @param rbm_base Reference to the RBM.
      * @param bits_parallel Number of parallel bits.
      */
-    full_sampler(abstract_machine&, size_t bits_parallel);
+    full_sampler(machine::abstract_machine&, size_t bits_parallel);
 
     virtual void sample() override { sample(false); };
 
@@ -66,4 +66,4 @@ class full_sampler : public abstract_sampler {
     virtual void sample(bool keep_state);
 };
 
-}  // namespace machine
+}  // namespace sampler

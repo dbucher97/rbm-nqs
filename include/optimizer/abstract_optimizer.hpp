@@ -18,10 +18,10 @@
 #pragma once
 
 #include <machine/abstract_machine.hpp>
-#include <machine/abstract_sampler.hpp>
 #include <operators/base_op.hpp>
 #include <operators/derivative_op.hpp>
 #include <optimizer/plugin.hpp>
+#include <sampler/abstract_sampler.hpp>
 #include <tools/ini.hpp>
 
 namespace optimizer {
@@ -79,7 +79,7 @@ class decay_t {
 class abstract_optimizer {
    protected:
     machine::abstract_machine& rbm_;       ///< RBM reference
-    machine::abstract_sampler& sampler_;   ///< Sampler reference
+    sampler::abstract_sampler& sampler_;   ///< Sampler reference
     operators::base_op& hamiltonian_;      ///< Hamiltonian operator reference
     operators::derivative_op derivative_;  ///< Derivative oprator
 
@@ -98,7 +98,7 @@ class abstract_optimizer {
      * @param learning_rate Learing rate `ini::decay_t`
      */
     abstract_optimizer(machine::abstract_machine& rbm,
-                       machine::abstract_sampler& sampler,
+                       sampler::abstract_sampler& sampler,
                        operators::base_op& hamiltonian,
                        const ini::decay_t& learning_rate);
 

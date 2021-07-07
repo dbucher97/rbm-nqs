@@ -22,13 +22,9 @@
 #include <complex>
 #include <vector>
 //
-#include <machine/abstract_sampler.hpp>
 #include <operators/aggregator.hpp>
-#include <operators/base_op.hpp>
-#include <operators/derivative_op.hpp>
 #include <optimizer/abstract_optimizer.hpp>
 #include <optimizer/plugin.hpp>
-#include <tools/ini.hpp>
 
 namespace optimizer {
 
@@ -49,7 +45,7 @@ class gradient_descent : public abstract_optimizer {
      * @param regularization Regularization `ini::decay_t`.
      */
     gradient_descent(machine::abstract_machine& rbm,
-                     machine::abstract_sampler& sampler,
+                     sampler::abstract_sampler& sampler,
                      operators::base_op& hamiltonian,
                      const ini::decay_t& learning_rate,
                      double real_factor = 1.);

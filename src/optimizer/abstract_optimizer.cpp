@@ -49,7 +49,7 @@ void decay_t::reset() {
 }
 
 abstract_optimizer::abstract_optimizer(machine::abstract_machine& rbm,
-                                       machine::abstract_sampler& sampler,
+                                       sampler::abstract_sampler& sampler,
                                        operators::base_op& hamiltonian,
                                        const ini::decay_t& learning_rate)
     : rbm_{rbm},

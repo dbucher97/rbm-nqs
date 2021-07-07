@@ -31,7 +31,7 @@
  * @brief namespace machine hosts the classes related to the restricted
  * boltzmann machine and the sampling
  */
-namespace machine {
+namespace sampler {
 
 /**
  * @brief abstract_sampler is the base class to the samplers. It is capable
@@ -39,7 +39,7 @@ namespace machine {
  */
 class abstract_sampler {
    protected:
-    abstract_machine& rbm_;  ///< The RBM reference
+    machine::abstract_machine& rbm_;  ///< The RBM reference
 
     std::vector<operators::base_op*> ops_;      ///< The vector of operators
     std::vector<operators::aggregator*> aggs_;  ///< The vector of aggregators
@@ -51,7 +51,7 @@ class abstract_sampler {
      *
      * @param rbm The RBM object reference.
      */
-    abstract_sampler(abstract_machine& rbm, size_t n_samples);
+    abstract_sampler(machine::abstract_machine& rbm, size_t n_samples);
 
    public:
     /**
@@ -116,4 +116,4 @@ class abstract_sampler {
     size_t get_n_samples();
 };
 
-}  // namespace machine
+}  // namespace sampler

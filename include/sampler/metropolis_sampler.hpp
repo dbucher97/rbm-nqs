@@ -23,11 +23,11 @@
 #include <vector>
 //
 #include <machine/abstract_machine.hpp>
-#include <machine/abstract_sampler.hpp>
 #include <operators/aggregator.hpp>
 #include <operators/base_op.hpp>
+#include <sampler/abstract_sampler.hpp>
 
-namespace machine {
+namespace sampler {
 
 /**
  * @brief A Metropolis sampler for the RBM. Capable of doing Metropolis
@@ -73,7 +73,7 @@ class metropolis_sampler : public abstract_sampler {
      * @param warmup_steps The warmup steps before sampling
      * @param bond_flips Use bond flips for update proposal
      */
-    metropolis_sampler(abstract_machine& rbm, size_t n_samples,
+    metropolis_sampler(machine::abstract_machine& rbm, size_t n_samples,
                        std::mt19937& rng, size_t n_chains = 1,
                        size_t step_size = 5, size_t warmup_steps = 100,
                        bool bond_flips = true);
@@ -90,4 +90,4 @@ class metropolis_sampler : public abstract_sampler {
     double get_acceptance_rate() { return acceptance_rate_; }
 };
 
-}  // namespace machine
+}  // namespace sampler

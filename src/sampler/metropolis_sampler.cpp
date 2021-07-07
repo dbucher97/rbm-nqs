@@ -23,16 +23,16 @@
 #include <memory>
 #include <random>
 //
-#include <machine/metropolis_sampler.hpp>
 #include <operators/base_op.hpp>
+#include <sampler/metropolis_sampler.hpp>
 #include <tools/logger.hpp>
 
-using namespace machine;
+using namespace sampler;
 
-metropolis_sampler::metropolis_sampler(abstract_machine& rbm, size_t n_samples,
-                                       std::mt19937& rng, size_t n_chains,
-                                       size_t step_size, size_t warmup_steps,
-                                       bool bond_flips)
+metropolis_sampler::metropolis_sampler(machine::abstract_machine& rbm,
+                                       size_t n_samples, std::mt19937& rng,
+                                       size_t n_chains, size_t step_size,
+                                       size_t warmup_steps, bool bond_flips)
     : Base{rbm, n_samples},
       rng_{rng},
       n_chains_{n_chains},
@@ -106,7 +106,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
             flips.push_back(f_dist_(rng_));
         }
 
-        rbm_context new_context = context;
+        machine::rbm_context new_context = context;
         // Calculate the probability of changing to new configuration
         double acc = std::pow(
             std::abs(rbm_.psi_over_psi(state, flips, context, new_context)), 2);

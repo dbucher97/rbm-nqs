@@ -22,13 +22,9 @@
 #include <complex>
 #include <vector>
 //
-#include <machine/abstract_sampler.hpp>
 #include <operators/aggregator.hpp>
-#include <operators/base_op.hpp>
-#include <operators/derivative_op.hpp>
 #include <optimizer/abstract_optimizer.hpp>
 #include <optimizer/plugin.hpp>
-#include <tools/ini.hpp>
 
 namespace optimizer {
 
@@ -60,7 +56,7 @@ class stochastic_reconfiguration : public abstract_optimizer {
      * @param max_iterations Number of max iterations for iterative scheme
      */
     stochastic_reconfiguration(machine::abstract_machine& rbm,
-                               machine::abstract_sampler& sampler,
+                               sampler::abstract_sampler& sampler,
                                operators::base_op& hamiltonian,
                                const ini::decay_t& learning_rate,
                                const ini::decay_t& regularization1,

@@ -46,8 +46,6 @@
 #include <machine/abstract_machine.hpp>
 #include <machine/correlator.hpp>
 #include <machine/file_psi.hpp>
-#include <machine/full_sampler.hpp>
-#include <machine/metropolis_sampler.hpp>
 #include <machine/pfaffian.hpp>
 #include <machine/rbm_base.hpp>
 #include <machine/rbm_symmetry.hpp>
@@ -68,6 +66,9 @@
 #include <optimizer/minres_adapter.hpp>
 #include <optimizer/plugin.hpp>
 #include <optimizer/stochastic_reconfiguration.hpp>
+#include <sampler/abstract_sampler.hpp>
+#include <sampler/full_sampler.hpp>
+#include <sampler/metropolis_sampler.hpp>
 #include <tools/ini.hpp>
 #include <tools/logger.hpp>
 #include <tools/state.hpp>
@@ -143,7 +144,7 @@ void print_bonds() {
 void test_S3() {
     model::isingS3 km{3, -1};
     machine::file_psi m{km.get_lattice(), "isingS3.state"};
-    machine::full_sampler sampler{m, 3};
+    sampler::full_sampler sampler{m, 3};
     auto& h = km.get_hamiltonian();
     operators::aggregator agg{h};
     sampler.register_op(&h);
@@ -167,8 +168,8 @@ void debug() {
 
     model::kitaev m{3, -1};
     machine::file_psi rbm{m.get_lattice(), "notebooks/n3.state"};
-    machine::full_sampler sampler{rbm, 3};
-    machine::metropolis_sampler msampler{
+    sampler::full_sampler sampler{rbm, 3};
+    sampler::metropolis_sampler msampler{
         rbm, n_samples, rng, n_chains, step_size, warmup_steps, bond_flips};
     operators::aggregator agg{m.get_hamiltonian()};
     agg.track_variance();
@@ -382,14 +383,14 @@ int main(int argc, char* argv[]) {
                                 ini::rbm_pfaffian_normalize);
     }
 
-    std::unique_ptr<machine::abstract_sampler> sampler;
+    std::unique_ptr<sampler::abstract_sampler> sampler;
     switch (ini::sa_type) {
         case ini::sampler_t::FULL:
-            sampler = std::make_unique<machine::full_sampler>(
+            sampler = std::make_unique<sampler::full_sampler>(
                 *rbm, ini::sa_full_n_parallel_bits);
             break;
         case ini::sampler_t::METROPOLIS:
-            sampler = std::make_unique<machine::metropolis_sampler>(
+            sampler = std::make_unique<sampler::metropolis_sampler>(
                 *rbm, ini::sa_n_samples, rng, ini::sa_metropolis_n_chains,
                 ini::sa_metropolis_n_steps_per_sample,
                 ini::sa_metropolis_n_warmup_steps,

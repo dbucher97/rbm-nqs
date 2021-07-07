@@ -18,12 +18,13 @@
 
 #include <vector>
 //
-#include <machine/abstract_sampler.hpp>
 #include <operators/base_op.hpp>
+#include <sampler/abstract_sampler.hpp>
 
-using namespace machine;
+using namespace sampler;
 
-abstract_sampler::abstract_sampler(abstract_machine& rbm, size_t n_samples)
+abstract_sampler::abstract_sampler(machine::abstract_machine& rbm,
+                                   size_t n_samples)
     : rbm_{rbm}, n_samples_{n_samples} {}
 
 void abstract_sampler::register_ops(
