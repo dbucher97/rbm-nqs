@@ -20,6 +20,7 @@
 #include <complex>
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 //
 #include <machine/file_psi.hpp>
 #include <tools/state.hpp>
@@ -27,7 +28,7 @@
 using namespace machine;
 
 file_psi::file_psi(lattice::bravais& lattice, const std::string& filename)
-    : Base{1, lattice}, state_vec_((size_t)(1 << lattice.n_total), 1) {
+    : Base{lattice, 1}, state_vec_((size_t)(1 << lattice.n_total), 1) {
     std::ifstream file{filename};
     std::complex<double> line;
     size_t c = 0;
@@ -35,22 +36,24 @@ file_psi::file_psi(lattice::bravais& lattice, const std::string& filename)
         state_vec_(c) = line;
         c++;
     }
+    if (c != (size_t)state_vec_.size())
+        throw std::runtime_error("File " + filename + " has wrong size!");
     std::cout << "Loaded state vec with norm: "
               << (state_vec_.transpose().conjugate() * state_vec_).real()
               << std::endl;
 }
 
-std::complex<double> file_psi::psi_default(const Eigen::MatrixXcd& state,
-                                           const rbm_context&) const {
+std::complex<double> file_psi::psi(const Eigen::MatrixXcd& state,
+                                   const rbm_context&) const {
     return state_vec_(tools::state_to_num(state));
 }
 
-std::complex<double> file_psi::psi_over_psi_alt(
-    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    const rbm_context& co, rbm_context&) const {
+std::complex<double> file_psi::psi_over_psi(const Eigen::MatrixXcd& state,
+                                            const std::vector<size_t>& flips,
+                                            const rbm_context& co,
+                                            rbm_context&) const {
     std::complex<double> ps1 = psi(state, co);
     Eigen::MatrixXcd state2 = state;
     for (auto& i : flips) state2(i) *= -1;
     return psi(state2, co) / ps1;
 }
-

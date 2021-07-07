@@ -20,12 +20,12 @@
 #include <string>
 #include <vector>
 //
-#include <machine/rbm_base.hpp>
+#include <machine/abstract_machine.hpp>
 
 namespace machine {
 
-class file_psi : public rbm_base {
-    using Base = rbm_base;
+class file_psi : public abstract_machine {
+    using Base = abstract_machine;
 
     Eigen::MatrixXcd state_vec_;
 
@@ -37,28 +37,21 @@ class file_psi : public rbm_base {
         return {Eigen::MatrixXcd::Zero(1, 1)};
     }
 
+    virtual Eigen::MatrixXcd derivative(const Eigen::MatrixXcd&,
+                                        const rbm_context&) const override {
+        return Eigen::MatrixXcd::Zero(1, 1);
+    }
+
     virtual void update_context(const Eigen::MatrixXcd& state,
-                               const std::vector<size_t>& flips,
-                               rbm_context& thetas) const override {}
+                                const std::vector<size_t>& flips,
+                                rbm_context& thetas) const override {}
 
-   protected:
-    virtual std::complex<double> psi_default(
-        const Eigen::MatrixXcd& state, const rbm_context&) const override;
-
-    virtual std::complex<double> psi_alt(
-        const Eigen::MatrixXcd& state,
-        const rbm_context& t) const override {
-        return psi(state, t);
-    }
-
-    virtual std::complex<double> log_psi_over_psi(
+    virtual std::complex<double> psi(const Eigen::MatrixXcd& state,
+                                     const rbm_context& context) const override;
+    virtual std::complex<double> psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const rbm_context& context, rbm_context& ut) const override {
-        return std::log(psi_over_psi_alt(state, flips, context, ut));
-    }
-
-    virtual std::complex<double> psi_over_psi_alt(
-        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const rbm_context& thetas, rbm_context&) const override;
+        const rbm_context& context,
+        rbm_context& updated_context) const override;
 };
+
 }  // namespace machine

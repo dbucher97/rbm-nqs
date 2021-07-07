@@ -59,6 +59,7 @@ bool rbm_pfaffian = false;
 size_t rbm_pfaffian_symmetry = 0;
 bool rbm_pfaffian_normalize = false;
 double rbm_pfaffian_weights = 0.1;
+std::string rbm_file_name = "";
 
 // Sampler
 sampler_t sa_type = METROPOLIS;
@@ -150,6 +151,7 @@ int ini::load(int argc, char* argv[]) {
     ("rbm.pfaffian.symmetry",                 po::value(&rbm_pfaffian_symmetry),            "number of unit cells for symmetry condition of pfaffian parameters")
     ("rbm.pfaffian.weights",                  po::value(&rbm_pfaffian_weights),             "stdev of pfaffian parameters")
     ("rbm.pfaffian.normalize",                po::value(&rbm_pfaffian_normalize),           "normalize pfaffian parameters to pfaffian prop to 1")
+    ("rbm.file.name",                         po::value(&rbm_file_name),                    "specify the filename of the quantum state")
     // Sampler
     ("sampler.type",                          po::value(&sa_type),                          "set sampler type")
     ("sampler.n_samples",                     po::value(&sa_n_samples),                     "set sampler n sampler (metropolis only)")
@@ -222,6 +224,8 @@ std::istream& ini::operator>>(std::istream& is, ini::rbm_t& rbm) {
         rbm = ini::rbm_t::SYMMETRY;
     } else if (token == "pfaffian") {
         rbm = ini::rbm_t::PFAFFIAN;
+    } else if (token == "file") {
+        rbm = ini::rbm_t::FILE;
     } else {
         throw std::runtime_error("RBM Type '" + token + "' not available!");
     }

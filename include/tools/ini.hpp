@@ -41,7 +41,7 @@ struct decay_t {
 /**
  * @brief RBM Type enum
  */
-enum rbm_t { BASIC, SYMMETRY, PFAFFIAN };
+enum rbm_t { BASIC, SYMMETRY, PFAFFIAN, FILE };
 /**
  * @brief Sampler Type enum
  */
@@ -140,7 +140,7 @@ extern double helper_strength;
 // RBM
 extern rbm_t rbm;
 extern size_t n_hidden;
-extern double alpha; // Overrides n_hidden
+extern double alpha;  // Overrides n_hidden
 extern bool rbm_force;
 extern double rbm_weights;
 extern double rbm_weights_imag;
@@ -152,6 +152,7 @@ extern bool rbm_pfaffian;
 extern size_t rbm_pfaffian_symmetry;
 extern bool rbm_pfaffian_normalize;
 extern double rbm_pfaffian_weights;
+extern std::string rbm_file_name;
 
 // Sampler
 extern sampler_t sa_type;

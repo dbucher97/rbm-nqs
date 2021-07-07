@@ -303,6 +303,8 @@ void test_minresqlp() {
 }
 
 int main(int argc, char* argv[]) {
+    // print_bonds();
+    // return 0;
     int rc = ini::load(argc, argv);
     if (rc != 0) {
         return rc;
@@ -357,6 +359,10 @@ int main(int argc, char* argv[]) {
             rbm = std::make_unique<machine::rbm_symmetry>(
                 n_hidden, model->get_lattice(), ini::rbm_pop_mode,
                 ini::rbm_cosh_mode);
+            break;
+        case ini::rbm_t::FILE:
+            rbm = std::make_unique<machine::file_psi>(model->get_lattice(),
+                                                      ini::rbm_file_name);
             break;
         // case ini::rbm_t::PFAFFIAN:
         //     rbm =

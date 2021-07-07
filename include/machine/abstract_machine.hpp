@@ -118,14 +118,14 @@ class abstract_machine {
      */
     virtual void initialize_weights(std::mt19937& rng, double std_dev,
                                     double std_dev_imag = -1.,
-                                    const std::string& type = "") = 0;
+                                    const std::string& type = ""){};
 
     /**
      * @brief Updates the weights with a vector received from the optimizer.
      *
      * @param dw A update vector of size `n_params`.
      */
-    virtual void update_weights(const Eigen::MatrixXcd& dw) = 0;
+    virtual void update_weights(const Eigen::MatrixXcd& dw){};
 
     /**
      * @brief Calculates the rbm_context
@@ -212,7 +212,7 @@ class abstract_machine {
      *
      * @return true if worked.
      */
-    virtual bool save(const std::string& name) = 0;
+    virtual bool save(const std::string& name) { return true; };
 
     /**
      * @brief Loads the state from the file '`name`.rbm'.
@@ -221,7 +221,7 @@ class abstract_machine {
      *
      * @return true if worked.
      */
-    virtual bool load(const std::string& name) = 0;
+    virtual bool load(const std::string& name) { return true; };
 
     virtual inline void add_correlator(
         const std::vector<std::vector<size_t>>& correlator) {}
