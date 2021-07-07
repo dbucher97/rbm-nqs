@@ -47,6 +47,7 @@
 #include <machine/correlator.hpp>
 #include <machine/file_psi.hpp>
 #include <machine/pfaffian.hpp>
+#include <machine/pfaffian_psi.hpp>
 #include <machine/rbm_base.hpp>
 #include <machine/rbm_symmetry.hpp>
 #include <math.hpp>
@@ -364,10 +365,9 @@ int main(int argc, char* argv[]) {
             rbm = std::make_unique<machine::file_psi>(model->get_lattice(),
                                                       ini::rbm_file_name);
             break;
-        // case ini::rbm_t::PFAFFIAN:
-        //     rbm =
-        //     std::make_unique<machine::pfaffian_psi>(model->get_lattice());
-        //     break;
+        case ini::rbm_t::PFAFFIAN:
+            rbm = std::make_unique<machine::pfaffian_psi>(model->get_lattice());
+            break;
         default:
             return 1;
     }
