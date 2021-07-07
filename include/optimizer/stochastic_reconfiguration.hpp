@@ -23,7 +23,6 @@
 #include <vector>
 //
 #include <machine/abstract_sampler.hpp>
-#include <machine/rbm_base.hpp>
 #include <operators/aggregator.hpp>
 #include <operators/base_op.hpp>
 #include <operators/derivative_op.hpp>
@@ -60,15 +59,14 @@ class stochastic_reconfiguration : public abstract_optimizer {
      * true).
      * @param max_iterations Number of max iterations for iterative scheme
      */
-    stochastic_reconfiguration(machine::rbm_base& rbm,
+    stochastic_reconfiguration(machine::abstract_machine& rbm,
                                machine::abstract_sampler& sampler,
                                operators::base_op& hamiltonian,
                                const ini::decay_t& learning_rate,
                                const ini::decay_t& regularization1,
                                const ini::decay_t& regularization2,
                                const ini::decay_t& regularization1delta,
-                               bool iterative = true,
-                               size_t max_iterations = 0,
+                               bool iterative = true, size_t max_iterations = 0,
                                double rtol = 0.0);
 
     virtual void register_observables() override;
@@ -85,8 +83,8 @@ class stochastic_reconfiguration : public abstract_optimizer {
     std::unique_ptr<operators::aggregator>
         a_dd_;  ///< Outer product derivative aggregator <D^* D^T>
 
-    decay_t kp1_;  ///< Regularization scale
-    decay_t kp2_;  ///< Regularization shift
+    decay_t kp1_;   ///< Regularization scale
+    decay_t kp2_;   ///< Regularization shift
     decay_t kp1d_;  ///< Regularization scale offset pfaffian parameters
 };
 }  // namespace optimizer

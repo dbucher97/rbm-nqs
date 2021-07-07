@@ -23,7 +23,6 @@
 #include <vector>
 //
 #include <machine/abstract_sampler.hpp>
-#include <machine/rbm_base.hpp>
 #include <operators/aggregator.hpp>
 #include <operators/base_op.hpp>
 #include <operators/derivative_op.hpp>
@@ -49,7 +48,8 @@ class gradient_descent : public abstract_optimizer {
      * @param learning_rate Learing rate `ini::decay_t`.
      * @param regularization Regularization `ini::decay_t`.
      */
-    gradient_descent(machine::rbm_base& rbm, machine::abstract_sampler& sampler,
+    gradient_descent(machine::abstract_machine& rbm,
+                     machine::abstract_sampler& sampler,
                      operators::base_op& hamiltonian,
                      const ini::decay_t& learning_rate,
                      double real_factor = 1.);

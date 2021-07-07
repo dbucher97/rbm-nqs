@@ -23,7 +23,7 @@
 #include <random>
 #include <vector>
 //
-#include <machine/rbm_base.hpp>
+#include <machine/abstract_machine.hpp>
 #include <operators/aggregator.hpp>
 #include <operators/base_op.hpp>
 
@@ -39,19 +39,19 @@ namespace machine {
  */
 class abstract_sampler {
    protected:
-    rbm_base& rbm_;  ///< The RBM reference
+    abstract_machine& rbm_;  ///< The RBM reference
 
     std::vector<operators::base_op*> ops_;      ///< The vector of operators
     std::vector<operators::aggregator*> aggs_;  ///< The vector of aggregators
 
-    size_t n_samples_; ///< Number of samples
+    size_t n_samples_;  ///< Number of samples
 
     /**
      * @brief Abstract sampler constructor.
      *
      * @param rbm The RBM object reference.
      */
-abstract_sampler(rbm_base& rbm, size_t n_samples);
+    abstract_sampler(abstract_machine& rbm, size_t n_samples);
 
    public:
     /**

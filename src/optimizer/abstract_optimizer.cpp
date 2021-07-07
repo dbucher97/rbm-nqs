@@ -48,7 +48,7 @@ void decay_t::reset() {
     min_reached = decay == 1.;
 }
 
-abstract_optimizer::abstract_optimizer(machine::rbm_base& rbm,
+abstract_optimizer::abstract_optimizer(machine::abstract_machine& rbm,
                                        machine::abstract_sampler& sampler,
                                        operators::base_op& hamiltonian,
                                        const ini::decay_t& learning_rate)

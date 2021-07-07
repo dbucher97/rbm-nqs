@@ -22,8 +22,8 @@
 
 #include <Eigen/Dense>
 //
+#include <machine/abstract_machine.hpp>
 #include <machine/abstract_sampler.hpp>
-#include <machine/rbm_base.hpp>
 
 namespace machine {
 
@@ -54,7 +54,7 @@ class full_sampler : public abstract_sampler {
      * @param rbm_base Reference to the RBM.
      * @param bits_parallel Number of parallel bits.
      */
-    full_sampler(rbm_base&, size_t bits_parallel);
+    full_sampler(abstract_machine&, size_t bits_parallel);
 
     virtual void sample() override { sample(false); };
 

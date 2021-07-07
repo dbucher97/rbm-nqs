@@ -24,7 +24,7 @@
 #include <iostream>
 #include <vector>
 //
-#include <machine/rbm_base.hpp>
+#include <machine/abstract_machine.hpp>
 
 namespace operators {
 
@@ -76,8 +76,9 @@ class base_op {
      * @param state Reference to the current state.
      * @param context Reference to the precalculated context.
      */
-    virtual void evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
-                          const machine::rbm_context& context) {};
+    virtual void evaluate(machine::abstract_machine& rbm,
+                          const Eigen::MatrixXcd& state,
+                          const machine::rbm_context& context){};
 
     /**
      * @brief Checks if operator is scalar

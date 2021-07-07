@@ -22,8 +22,8 @@
 #include <random>
 #include <vector>
 //
+#include <machine/abstract_machine.hpp>
 #include <machine/abstract_sampler.hpp>
-#include <machine/rbm_base.hpp>
 #include <operators/aggregator.hpp>
 #include <operators/base_op.hpp>
 
@@ -73,7 +73,8 @@ class metropolis_sampler : public abstract_sampler {
      * @param warmup_steps The warmup steps before sampling
      * @param bond_flips Use bond flips for update proposal
      */
-    metropolis_sampler(rbm_base& rbm, size_t n_samples, std::mt19937& rng, size_t n_chains = 1,
+    metropolis_sampler(abstract_machine& rbm, size_t n_samples,
+                       std::mt19937& rng, size_t n_chains = 1,
                        size_t step_size = 5, size_t warmup_steps = 100,
                        bool bond_flips = true);
 

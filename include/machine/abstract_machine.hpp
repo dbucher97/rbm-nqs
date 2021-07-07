@@ -35,16 +35,19 @@ namespace machine {
  * used.
  */
 class abstract_machine {
+   public:
+    size_t n_visible;
+
    protected:
     const size_t n_params_;  ///< Number of total parameters.
 
     lattice::bravais& lattice_;  ///< Reference to the Lattice.
 
-    size_t n_updates_;  ///< The number of updates received.
+    size_t n_updates_ = 0;  ///< The number of updates received.
 
     std::vector<std::unique_ptr<correlator>>
-        correlators_;                     ///< Correlator references
-    std::unique_ptr<pfaffian> pfaffian_;  ///< Pfaffian reference
+        correlators_;                         ///< Correlator references
+    std::unique_ptr<pfaffian> pfaffian_ = 0;  ///< Pfaffian reference
 
     /**
      * @breif abstract machine protected constructor
@@ -52,7 +55,8 @@ class abstract_machine {
      * @param lattice Bravais Lattice reference
      * @param n_params Number of params (default 0)
      */
-    abstract_machine(lattice::bravais& lattice, size_t n_params = 0);
+    abstract_machine(lattice::bravais& lattice, size_t n_params = 0)
+        : n_visible{lattice.n_total}, n_params_{n_params}, lattice_{lattice} {}
 
    public:
     /**
@@ -208,7 +212,7 @@ class abstract_machine {
      *
      * @return true if worked.
      */
-    virtual bool save(const std::string& name);
+    virtual bool save(const std::string& name) = 0;
 
     /**
      * @brief Loads the state from the file '`name`.rbm'.
@@ -217,7 +221,7 @@ class abstract_machine {
      *
      * @return true if worked.
      */
-    virtual bool load(const std::string& name);
+    virtual bool load(const std::string& name) = 0;
 
     virtual inline void add_correlator(
         const std::vector<std::vector<size_t>>& correlator) {}

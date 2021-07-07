@@ -25,7 +25,6 @@
 #include <vector>
 //
 #include <machine/abstract_sampler.hpp>
-#include <machine/rbm_base.hpp>
 #include <operators/base_op.hpp>
 #include <operators/derivative_op.hpp>
 #include <optimizer/minres_adapter.hpp>
@@ -37,7 +36,7 @@
 using namespace optimizer;
 
 stochastic_reconfiguration::stochastic_reconfiguration(
-    machine::rbm_base& rbm, machine::abstract_sampler& sampler,
+    machine::abstract_machine& rbm, machine::abstract_sampler& sampler,
     operators::base_op& hamiltonian, const ini::decay_t& lr,
     const ini::decay_t& kp1, const ini::decay_t& kp2, const ini::decay_t& kp1d,
     bool iterative, size_t max_iterations, double rtol)

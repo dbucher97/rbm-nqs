@@ -21,17 +21,16 @@
 #include <cmath>
 #include <iostream>
 //
-#include <machine/rbm_base.hpp>
 #include <operators/local_op.hpp>
 #include <tools/state.hpp>
 
 using namespace operators;
 
 local_op::local_op(const std::vector<size_t>& acts_on, const SparseXcd& op)
-    : Base{}, acts_on_{acts_on}, op_{op} {
-    }
+    : Base{}, acts_on_{acts_on}, op_{op} {}
 
-void local_op::evaluate(machine::rbm_base& rbm, const Eigen::MatrixXcd& state,
+void local_op::evaluate(machine::abstract_machine& rbm,
+                        const Eigen::MatrixXcd& state,
                         const machine::rbm_context& context) {
     typedef Eigen::SparseVector<std::complex<double>> SpVec;
     // Get the result of the current thread

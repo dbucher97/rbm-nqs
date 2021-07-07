@@ -24,13 +24,12 @@
 #include <fstream>
 //
 #include <machine/full_sampler.hpp>
-#include <machine/rbm_base.hpp>
 #include <tools/ini.hpp>
 #include <tools/state.hpp>
 
 using namespace machine;
 
-full_sampler::full_sampler(rbm_base& rbm_, size_t bp)
+full_sampler::full_sampler(abstract_machine& rbm_, size_t bp)
     : Base{rbm_, (size_t)(1 << rbm_.n_visible)}, bits_parallel_{bp} {}
 
 void full_sampler::sample(bool keep_state) {

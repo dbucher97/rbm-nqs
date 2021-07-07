@@ -23,7 +23,6 @@
 #include <string>
 #include <vector>
 //
-#include <machine/rbm_base.hpp>
 #include <operators/base_op.hpp>
 
 namespace operators {
@@ -64,9 +63,8 @@ class overlap_op : public base_op {
      */
     overlap_op(const std::string& file, size_t n_visible);
 
-    virtual void evaluate(machine::rbm_base&, const Eigen::MatrixXcd&,
+    virtual void evaluate(machine::abstract_machine&, const Eigen::MatrixXcd&,
                           const machine::rbm_context&) override;
 };
 
 }  // namespace operators
-

@@ -21,7 +21,6 @@
 #include <fstream>
 #include <string>
 //
-#include <machine/rbm_base.hpp>
 #include <operators/base_op.hpp>
 
 namespace operators {
@@ -42,7 +41,7 @@ class store_state : public base_op {
      */
     store_state(const std::string& filename);
 
-    void evaluate(machine::rbm_base&, const Eigen::MatrixXcd&,
+    void evaluate(machine::abstract_machine&, const Eigen::MatrixXcd&,
                   const machine::rbm_context&) final;
 
     /**

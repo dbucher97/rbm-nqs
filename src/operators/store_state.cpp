@@ -23,7 +23,6 @@
 #include <string>
 #include <vector>
 //
-#include <machine/rbm_base.hpp>
 #include <operators/store_state.hpp>
 
 using namespace operators;
@@ -32,7 +31,7 @@ store_state::store_state(const std::string& filename) : Base{}, file_{} {
     file_.open(filename);
 }
 
-void store_state::evaluate(machine::rbm_base& rbm,
+void store_state::evaluate(machine::abstract_machine& rbm,
                            const Eigen::MatrixXcd& state,
                            const machine::rbm_context& context) {
     // print state vecotr as 1 <=> +1, 0 <=> -1.

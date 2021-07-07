@@ -30,15 +30,12 @@ using namespace machine;
 
 rbm_base::rbm_base(size_t n_alpha, size_t n_v_bias, lattice::bravais& l,
                    size_t pop_mode, size_t cosh_mode)
-    : n_alpha{n_alpha},
-      n_visible{l.n_total},
-      n_params_{n_v_bias + n_alpha + n_alpha * n_visible},
-      lattice_{l},
+    : Base{l, n_v_bias + n_alpha + n_alpha * l.n_total},
+      n_alpha{n_alpha},
       weights_(n_visible, n_alpha),
       h_bias_(n_alpha, 1),
       v_bias_(n_v_bias, 1),
       n_vb_{n_v_bias},
-      n_updates_{0},
       psi_{pop_mode == 0 ? &rbm_base::psi_default : &rbm_base::psi_alt},
       psi_over_psi_{pop_mode == 0 ? &rbm_base::psi_over_psi_default
                                   : &rbm_base::psi_over_psi_alt},
@@ -48,20 +45,6 @@ rbm_base::rbm_base(size_t n_alpha, size_t n_v_bias, lattice::bravais& l,
 rbm_base::rbm_base(size_t n_alpha, lattice::bravais& l, size_t pop_mode,
                    size_t cosh_mode)
     : rbm_base{n_alpha, l.n_total, l, pop_mode, cosh_mode} {}
-
-size_t rbm_base::get_n_params() const {
-    size_t x = get_n_neural_params();
-    if (pfaffian_) x += pfaffian_->get_n_params();
-    return x;
-}
-
-size_t rbm_base::get_n_neural_params() const {
-    size_t x = n_params_;
-    for (auto& c : correlators_) {
-        x += c->get_n_params();
-    }
-    return x;
-}
 
 void rbm_base::initialize_weights(std::mt19937& rng, double std_dev,
                                   double std_dev_imag,
@@ -167,26 +150,6 @@ Eigen::MatrixXcd rbm_base::derivative(const Eigen::MatrixXcd& state,
     return result;
 }
 
-bool rbm_base::flips_accepted(double prob, const Eigen::MatrixXcd& state,
-                              const std::vector<size_t>& flips,
-                              rbm_context& context) const {
-    // First copy the old thetas
-    rbm_context new_context = context;
-
-    // Calculate the acceptance value
-    double a =
-        std::pow(std::abs(psi_over_psi(state, flips, context, new_context)), 2);
-
-    // accept with given probability
-    if (prob < a) {
-        // Update the thetas
-        context = new_context;
-        return true;
-    } else {
-        return false;
-    }
-}
-
 bool rbm_base::save(const std::string& name) {
     // Open the output stream
     std::ofstream output{name + ".rbm", std::ios::binary};
@@ -237,22 +200,6 @@ bool rbm_base::load(const std::string& name) {
 void rbm_base::add_correlator(const std::vector<std::vector<size_t>>& corr) {
     correlators_.push_back(std::make_unique<correlator>(corr, n_alpha));
 }
-
-void rbm_base::add_correlators(
-    const std::vector<std::vector<std::vector<size_t>>>& corr) {
-    for (const auto& c : corr) {
-        add_correlator(c);
-    }
-}
-
-std::unique_ptr<pfaffian>& rbm_base::add_pfaffian(size_t symm) {
-    pfaffian_ = std::make_unique<pfaffian>(lattice_, symm);
-    return pfaffian_;
-}
-
-//
-// Overrideable functions, specific to the basic RBM.
-//
 
 std::complex<double> rbm_base::psi_notheta(
     const Eigen::MatrixXcd& state) const {

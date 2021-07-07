@@ -23,7 +23,7 @@
 
 using namespace machine;
 
-abstract_sampler::abstract_sampler(rbm_base& rbm, size_t n_samples)
+abstract_sampler::abstract_sampler(abstract_machine& rbm, size_t n_samples)
     : rbm_{rbm}, n_samples_{n_samples} {}
 
 void abstract_sampler::register_ops(

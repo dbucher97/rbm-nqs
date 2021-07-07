@@ -20,7 +20,6 @@
 #include <Eigen/Dense>
 #include <vector>
 //
-#include <machine/rbm_base.hpp>
 #include <operators/base_op.hpp>
 #include <operators/local_op.hpp>
 
@@ -41,7 +40,7 @@ class local_op_chain : public base_op {
      */
     local_op_chain(const std::vector<local_op>& ops = std::vector<local_op>{});
 
-    virtual void evaluate(machine::rbm_base&, const Eigen::MatrixXcd&,
+    virtual void evaluate(machine::abstract_machine&, const Eigen::MatrixXcd&,
                           const machine::rbm_context&) override;
 
     /**
@@ -57,4 +56,3 @@ class local_op_chain : public base_op {
     void pop_back();
 };
 }  // namespace operators
-

@@ -21,7 +21,6 @@
 #include <Eigen/Sparse>
 #include <vector>
 //
-#include <machine/rbm_base.hpp>
 #include <operators/base_op.hpp>
 
 namespace operators {
@@ -45,9 +44,8 @@ class local_op : public base_op {
      */
     local_op(const std::vector<size_t>& acts_on, const SparseXcd& op);
 
-    void evaluate(machine::rbm_base&, const Eigen::MatrixXcd&,
+    void evaluate(machine::abstract_machine&, const Eigen::MatrixXcd&,
                   const machine::rbm_context&) final;
 };
 
 }  // namespace operators
-

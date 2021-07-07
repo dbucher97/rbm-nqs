@@ -43,9 +43,9 @@
 #include <lattice/honeycomb.hpp>
 #include <lattice/honeycombS3.hpp>
 #include <lattice/toric_lattice.hpp>
+#include <machine/abstract_machine.hpp>
 #include <machine/correlator.hpp>
 #include <machine/file_psi.hpp>
-#include <machine/pfaffian_psi.hpp>
 #include <machine/full_sampler.hpp>
 #include <machine/metropolis_sampler.hpp>
 #include <machine/pfaffian.hpp>
@@ -251,7 +251,6 @@ void debug_pfaffian() {
 }
 
 void test_minresqlp() {
-
     int na = 10000, nb = 500, nn = 300;
     Eigen::MatrixXcd mat(na, nb);
     double norm = 0.1;
@@ -303,11 +302,6 @@ void test_minresqlp() {
 }
 
 int main(int argc, char* argv[]) {
-    Eigen::MatrixXcd mat(0, 0);
-    Eigen::MatrixXcd d(0, 1);
-    std::cout << mat.block(0, 0, 0, 1) << std::endl;
-    return 0;
-
     int rc = ini::load(argc, argv);
     if (rc != 0) {
         return rc;
@@ -318,7 +312,7 @@ int main(int argc, char* argv[]) {
     omp_set_num_threads(ini::n_threads);
     Eigen::setNbThreads(1);
 
-    std::cout << "Seed: "  << ini::seed << std::endl;
+    std::cout << "Seed: " << ini::seed << std::endl;
     std::mt19937 rng{static_cast<std::mt19937::result_type>(ini::seed)};
 
     std::unique_ptr<model::abstract_model> model;
@@ -343,7 +337,7 @@ int main(int argc, char* argv[]) {
         model->add_helper_hamiltonian(ini::helper_strength);
     }
 
-    std::unique_ptr<machine::rbm_base> rbm;
+    std::unique_ptr<machine::abstract_machine> rbm;
 
     size_t n_hidden = ini::n_hidden;
     if (ini::alpha > 0.) {
@@ -363,9 +357,10 @@ int main(int argc, char* argv[]) {
                 n_hidden, model->get_lattice(), ini::rbm_pop_mode,
                 ini::rbm_cosh_mode);
             break;
-        case ini::rbm_t::PFAFFIAN:
-            rbm = std::make_unique<machine::pfaffian_psi>(model->get_lattice());
-            break;
+        // case ini::rbm_t::PFAFFIAN:
+        //     rbm =
+        //     std::make_unique<machine::pfaffian_psi>(model->get_lattice());
+        //     break;
         default:
             return 1;
     }
@@ -384,7 +379,7 @@ int main(int argc, char* argv[]) {
                                 ini::rbm_weights_init_type);
         if (pfaff)
             pfaff->init_weights(rng, ini::rbm_pfaffian_weights,
-                                   ini::rbm_pfaffian_normalize);
+                                ini::rbm_pfaffian_normalize);
     }
 
     std::unique_ptr<machine::abstract_sampler> sampler;
@@ -410,7 +405,8 @@ int main(int argc, char* argv[]) {
             optimizer = std::make_unique<optimizer::stochastic_reconfiguration>(
                 *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr,
                 ini::opt_sr_reg1, ini::opt_sr_reg2, ini::opt_sr_deltareg1,
-                ini::opt_sr_iterative, ini::opt_sr_max_iterations, ini::opt_sr_rtol);
+                ini::opt_sr_iterative, ini::opt_sr_max_iterations,
+                ini::opt_sr_rtol);
             break;
         case ini::optimizer_t::SGD:
             optimizer = std::make_unique<optimizer::gradient_descent>(
@@ -477,23 +473,24 @@ int main(int argc, char* argv[]) {
         std::cout << "nothing to do!" << std::endl;
     }
 
-    std::ofstream ws{"weights/weights_" + ini::name + ".txt"};
-    ws << "# Weights\n";
-    ws << rbm->get_weights();
-    ws << "\n\n# Hidden Bias\n";
-    ws << rbm->get_h_bias();
-    ws << "\n\n# Visible Bias\n";
-    ws << rbm->get_v_bias();
-    ws.close();
+    // std::ofstream ws{"weights/weights_" + ini::name + ".txt"};
+    // ws << "# Weights\n";
+    // ws << rbm->get_weights();
+    // ws << "\n\n# Hidden Bias\n";
+    // ws << rbm->get_h_bias();
+    // ws << "\n\n# Visible Bias\n";
+    // ws << rbm->get_v_bias();
+    // ws.close();
 
-    model->remove_helper_hamiltoian();
-    machine::full_sampler samp{*rbm, 3};
-    operators::aggregator agg{model->get_hamiltonian()};
-    samp.register_op(&(model->get_hamiltonian()));
-    samp.register_agg(&agg);
-    samp.sample(true);
-    std::cout.precision(17);
-    std::cout << std::real(agg.get_result()(0)) / rbm->n_visible << std::endl;
+    // model->remove_helper_hamiltoian();
+    // machine::full_sampler samp{*rbm, 3};
+    // operators::aggregator agg{model->get_hamiltonian()};
+    // samp.register_op(&(model->get_hamiltonian()));
+    // samp.register_agg(&agg);
+    // samp.sample(true);
+    // std::cout.precision(17);
+    // std::cout << std::real(agg.get_result()(0)) / rbm->n_visible <<
+    // std::endl;
 
     return 0;
 }
