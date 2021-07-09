@@ -110,7 +110,9 @@ class rbm_base : public abstract_machine {
     virtual inline std::complex<double> psi(
         const Eigen::MatrixXcd& state,
         const rbm_context& context) const override {
-        return (this->*psi_)(state, context);
+        std::complex<double> ret = 1.;
+        if (pfaffian_) ret = pfaffian_->psi(state, context.pfaff());
+        return ret * (this->*psi_)(state, context);
     }
 
     using Base::psi_over_psi;
@@ -119,10 +121,9 @@ class rbm_base : public abstract_machine {
         const rbm_context& context,
         rbm_context& updated_context) const override {
         std::complex<double> ret = 1.;
-        // if (pfaffian_)
-        //     ret =
-        //         pfaffian_->psi_over_psi(state, flips,
-        //         updated_context.pfaff());
+        if (pfaffian_)
+            ret =
+                pfaffian_->psi_over_psi(state, flips, updated_context.pfaff());
 
         return ret *
                (this->*psi_over_psi_)(state, flips, context, updated_context);

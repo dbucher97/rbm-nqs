@@ -80,7 +80,7 @@ def plot_routine(vals, othervals, args, run_event):
             shi = 0
             for vi in v[:, 1:].T:
                 ax2.plot(vi, color=shps[shi], linestyle=':')
-                # ax2.set_ylim((0, 1))
+                ax2.set_ylim((0, 1))
                 shi += 1
 
         for other in othervals:

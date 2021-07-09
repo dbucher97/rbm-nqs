@@ -45,7 +45,7 @@ rbm_context rbm_symmetry::get_context(const Eigen::MatrixXcd& state) const {
         ret.col(s) = weights_.transpose() * (symmetry_[s] * state) + h_bias_;
         for (auto& c : correlators_) c->add_thetas(state, ret, s);
     }
-    if(pfaffian_) {
+    if (pfaffian_) {
         return {ret, pfaffian_->get_context(state)};
     } else {
         return {ret};

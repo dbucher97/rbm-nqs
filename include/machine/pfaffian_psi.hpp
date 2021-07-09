@@ -46,6 +46,11 @@ class pfaffian_psi : public abstract_machine {
         return ret;
     }
 
+    virtual inline void update_weights(const Eigen::MatrixXcd& dw) override {
+        size_t offset = 0;
+        pfaffian_->update_weights(dw, offset);
+    }
+
     virtual inline void update_context(const Eigen::MatrixXcd& state,
                                        const std::vector<size_t>& flips,
                                        rbm_context& context) const override {

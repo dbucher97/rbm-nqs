@@ -212,7 +212,6 @@ std::complex<double> rbm_base::psi_default(const Eigen::MatrixXcd& state,
     std::complex<double> cosh_part =
         std::exp(math::lncosh(context.thetas).sum());
     for (auto& c : correlators_) c->psi(state, cosh_part);
-    if (pfaffian_) cosh_part *= pfaffian_->psi(state, context.pfaff());
     return psi_notheta(state) * cosh_part;
 }
 
@@ -221,7 +220,6 @@ std::complex<double> rbm_base::psi_alt(const Eigen::MatrixXcd& state,
     // Calculate the \psi with `thetas`
     std::complex<double> cosh_part = (*cosh_)(context.thetas).array().prod();
     for (auto& c : correlators_) c->psi(state, cosh_part);
-    if (pfaffian_) cosh_part *= pfaffian_->psi(state, context.pfaff());
     return psi_notheta(state) * cosh_part;
 }
 

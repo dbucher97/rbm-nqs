@@ -220,8 +220,8 @@ void debug1() {
 }
 
 void debug_pfaffian() {
-    lattice::honeycomb lat{8};
-    machine::pfaffian pfaff{lat, 4};
+    lattice::honeycomb lat{2};
+    machine::pfaffian pfaff{lat};
     Eigen::MatrixXcd state = Eigen::MatrixXd::Random(lat.n_total, 1);
     state.array() /= state.array().abs();
 
@@ -233,6 +233,8 @@ void debug_pfaffian() {
     std::vector<size_t> flips;
 
     std::uniform_int_distribution<size_t> f_dist(0, lat.n_total - 1);
+    Eigen::ArrayXd arr(pfaff.get_n_params(), 1);
+    arr.setZero();
     for (size_t x = 0; x < 1000; x++) {
         flips.clear();
         for (size_t i = 0; i < 2; i++) {
@@ -243,13 +245,56 @@ void debug_pfaffian() {
         }
         pfaff.update_context(state, flips, context);
         for (auto& f : flips) state(f) *= -1;
+        Eigen::MatrixXcd mat(pfaff.get_n_params(), 1);
+        size_t o = 0;
+        pfaff.derivative(state, context, mat, o);
+        std::cout << (mat.array().abs() < 1e-10).cast<int>().sum() << std::endl;
+        arr += (mat.array().abs() < 1e-10).cast<double>();
     }
+    arr /= 1000.0;
+    std::cout << arr.transpose() << std::endl;
+    double mean = arr.mean();
+    double stddev = std::sqrt(arr.square().mean() - std::pow(mean, 2));
+
+    std::cout << mean << ", " << stddev << std::endl;
     std::cout << context.pfaff << " x10^" << context.exp << std::endl;
 
     auto context2 = pfaff.get_context(state);
     std::cout << context2.pfaff << " x10^" << context2.exp << std::endl;
     // Eigen::MatrixXcd mat = pfaff.get_mat(state).inverse();
     // std::cout << (context.inv - mat).norm() / mat.size() << std::endl;
+}
+
+void debug_pfaffian2() {
+    lattice::honeycomb lat{2};
+    machine::pfaffian pfaff{lat};
+    Eigen::MatrixXcd state = Eigen::MatrixXd::Random(lat.n_total, 1);
+    state.array() /= state.array().abs();
+
+    std::mt19937 rng{static_cast<std::mt19937::result_type>(ini::seed)};
+    pfaff.init_weights(rng, 0.1, false);
+
+    auto context = pfaff.get_context(state);
+
+    Eigen::MatrixXcd derivative(pfaff.get_n_params(), 1);
+    size_t o = 0;
+    pfaff.derivative(state, context, derivative, o);
+
+    Eigen::MatrixXcd upd = Eigen::MatrixXcd::Random(pfaff.get_n_params(), 1);
+    upd *= 1e-6;
+
+    std::complex<double> pf1 = pfaff.psi(state, context);
+    pf1 += pf1 * (derivative.array() * upd.array()).sum();
+    std::cout.precision(17);
+    std::cout << pf1 << std::endl;
+
+    o = 0;
+    pfaff.update_weights(upd, o);
+    auto context2 = pfaff.get_context(state);
+    std::complex<double> pf2 = pfaff.psi(state, context2);
+    std::cout << pf2 << std::endl;
+
+    std::cout << std::abs(pf1 - pf2) << std::endl;
 }
 
 void test_minresqlp() {
@@ -304,7 +349,7 @@ void test_minresqlp() {
 }
 
 int main(int argc, char* argv[]) {
-    // print_bonds();
+    // debug_pfaffian2();
     // return 0;
     int rc = ini::load(argc, argv);
     if (rc != 0) {
