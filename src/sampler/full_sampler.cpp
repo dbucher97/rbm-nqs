@@ -48,6 +48,9 @@ void full_sampler::sample(bool keep_state) {
     // The state vector if state should be kept
     Eigen::MatrixXcd vec(static_cast<size_t>(1 << rbm_.n_visible), 1);
 
+    int pfaff_exp = 0;
+    bool set_pfaff_exp = false;
+
     // Start the parallel runs
 #pragma omp parallel for
     for (size_t b = 0; b < b_len; b++) {
@@ -62,7 +65,22 @@ void full_sampler::sample(bool keep_state) {
         // Precalculate context
         auto context = rbm_.get_context(state);
 
-        // Do the spin flips according to gray codes and evalueate observables
+        // Equalize pfaffian exponents, since total scaling is irrelevant, but
+        // relative scaling between thread contexts make a diffrerence.
+        if (rbm_.has_pfaffian()) {
+            auto pfaff_context = context.pfaff();
+#pragma omp critical
+            {
+                if (!set_pfaff_exp) {
+                    set_pfaff_exp = true;
+                    pfaff_exp = pfaff_context.exp;
+                }
+            }
+            pfaff_context.exp -= pfaff_exp;
+        }
+
+        // Do the spin flips according to gray codes and evalueate
+        // observables
         for (size_t i = 1; i <= max; i++) {
             // Get the \psi of the current state and calculate probability
 

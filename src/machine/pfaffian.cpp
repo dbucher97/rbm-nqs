@@ -83,9 +83,9 @@ Eigen::MatrixXcd pfaffian::get_mat(const Eigen::MatrixXcd& state) const {
             mat(i, j) = a(i, j, state);
         }
     }
-    mat.triangularView<Eigen::Upper>() =
-        mat.triangularView<Eigen::Lower>().transpose();
-    mat.triangularView<Eigen::Upper>() *= -1;
+    mat.triangularView<Eigen::StrictlyUpper>() =
+        mat.triangularView<Eigen::StrictlyLower>().transpose();
+    mat.triangularView<Eigen::StrictlyUpper>() *= -1;
     return mat;
 }
 
@@ -118,6 +118,7 @@ void pfaffian::update_context(const Eigen::MatrixXcd& state,
     Cinv.block(m, 0, m, m).setIdentity();
 
     std::vector<bool> flipi(ns_);
+    std::fill(flipi.begin(), flipi.end(), false);
     for (auto& f : flips) {
         flipi[f] = true;
     }
@@ -137,26 +138,28 @@ void pfaffian::update_context(const Eigen::MatrixXcd& state,
         }
     }
 
-    Cinv.triangularView<Eigen::Upper>() =
-        Cinv.triangularView<Eigen::Lower>().transpose();
-    Cinv.triangularView<Eigen::Upper>() *= -1;
+    Cinv.triangularView<Eigen::StrictlyUpper>() =
+        Cinv.triangularView<Eigen::StrictlyLower>().transpose();
+    Cinv.triangularView<Eigen::StrictlyUpper>() *= -1;
 
     Eigen::MatrixXcd invB = context.inv * B;
 
-    Eigen::MatrixXcd tmp = (B.transpose() * invB);
-    Cinv.noalias() += 0.5 * tmp;
-    Cinv.noalias() -= 0.5 * tmp.transpose();
+    Eigen::MatrixXcd tmp = (B.transpose() * invB) / 2;
+    Cinv.noalias() += tmp;
+    Cinv.noalias() -= tmp.transpose();
 
-    Eigen::MatrixXcd C = 0.25 * Cinv.inverse();
+    Eigen::MatrixXcd C = Cinv.inverse() / 2;
     C -= C.transpose().eval();
-    tmp = invB * C * invB.transpose();
-    context.inv.noalias() += tmp - tmp.transpose();
+    tmp = invB * C / 2;
+    tmp *= invB.transpose();
+    context.inv.noalias() += tmp;
+    context.inv.noalias() -= tmp.transpose();
 
-    std::complex<double> c2;
-    skpfa(2 * m, Cinv.data(), &c2, "L", "P");
+    std::complex<double> c2 = math::pfaffian(Cinv);
 
-    c2 *= sign;
+    c2 *= sign;  // * std::pow(10, p);
     context.pfaff *= c2;
+    // context.exp += exp;
     context.update_factor = c2;
 }
 
@@ -169,6 +172,7 @@ void pfaffian::derivative(const Eigen::MatrixXcd& state,
     for (size_t i = 0; i < ns_; i++) {
         for (size_t j = 0; j < i; j++) {
             x = context.inv(i, j);
+            // if (state(i) != state(j)) x /= 2;
             d(idx(i, j, state), ss_(i)) = -x;
             d(idx(j, i, state), ss_(j)) = x;
         }

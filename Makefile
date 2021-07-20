@@ -1,7 +1,9 @@
 TARGET_EXEC ?= rbm
+TARGET_UNITTEST ?= unittest
 
 BUILD_DIR ?= build
 SRC_DIRS ?= src
+TEST_DIR ?= test
 INC_DIRS ?= include
 
 MAT_BACKEND ?= EIGEN
@@ -20,6 +22,10 @@ DESTDIR ?= /usr/local/bin/
 SRCS := $(shell find $(SRC_DIRS) -name *.cpp -type f)
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 DEPS := $(OBJS:.o=.d)
+
+TEST_SRCS := $(shell find $(TEST_DIR) -name *.cpp -type f)
+TEST_OBJS := $(TEST_SRCS:%=$(BUILD_DIR)/%.o)
+TEST_OBJS += $(filter-out $(BUILD_DIR)/src/main.cpp.o,$(OBJS))
 
 # INDCLUDE DIRS
 INC_DIRS += /usr/local/include/eigen3/
@@ -66,6 +72,8 @@ LDFLAGS += -lboost_program_options
 
 LDFLAGS += $(PFAPACK) $(PFAPACKC) $(MINRESQLP) -lgfortran
 
+TEST_LDFLAGS = /usr/local/lib/libgtest.a /usr/local/lib/libgtest_main.a
+
 install: all
 	cp $(BUILD_DIR)/$(TARGET_EXEC) $(DESTDIR)/$(TARGET_EXEC)
 	cp plot-on-the-go/potg $(DESTDIR)/potg
@@ -75,6 +83,10 @@ all: $(BUILD_DIR)/$(TARGET_EXEC)
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS) $(PFAPACK) $(PFAPACKC) $(MINRESQLP)
 	@echo "[ LD ] $@"
 	@$(CXX) $(OMP) $(LDFLAGS) $^ -o $@ 
+
+$(BUILD_DIR)/$(TARGET_UNITTEST): $(TEST_OBJS) $(PFAPACK) $(PFAPACKC) $(MINRESQLP)
+	@echo "[ LD ] $@"
+	@$(CXX) $(OMP) $(LDFLAGS) $(TEST_LDFLAGS) $^ -o $@ 
 # c++ source
 $(BUILD_DIR)/%.cpp.o: %.cpp
 	@$(MKDIR_P) $(dir $@)
@@ -82,6 +94,9 @@ $(BUILD_DIR)/%.cpp.o: %.cpp
 	@$(CXX) $(OMP) $(CPPFLAGS) -c $< -o $@
 
 .PHONY: install all clean
+
+test: $(BUILD_DIR)/$(TARGET_UNITTEST)
+	@env DYLD_LIBRARY_PATH=$(HOME)/boost-gcc/lib $(BUILD_DIR)/$(TARGET_UNITTEST)
 
 clean:
 	$(RM) -r $(BUILD_DIR)

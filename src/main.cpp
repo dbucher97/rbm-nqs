@@ -42,6 +42,7 @@
 //
 #include <lattice/honeycomb.hpp>
 #include <lattice/honeycombS3.hpp>
+#include <lattice/square.hpp>
 #include <lattice/toric_lattice.hpp>
 #include <machine/abstract_machine.hpp>
 #include <machine/correlator.hpp>
@@ -134,7 +135,8 @@ void test_symmetry() {
 }
 
 void print_bonds() {
-    lattice::honeycomb lat{3};
+    lattice::square lat{2};
+    // lat.print_lattice({});
     auto bonds = lat.get_bonds();
     for (auto& bond : bonds) {
         std::cout << bond.a << "," << bond.b << "," << bond.type << std::endl;
@@ -348,9 +350,78 @@ void test_minresqlp() {
     std::cout << std::pow(std::abs(x.dot(y)), 2) << std::endl;
 }
 
+void debug_general_pfaffprocedure() {
+    size_t n = 1000, m = 10;
+    MatrixXcd A(n, n);
+    A.setRandom();
+    A -= A.transpose().eval();
+    A /= 2;
+
+    MatrixXcd inv = A.inverse();
+    inv -= inv.transpose().eval();
+    inv /= 2;
+
+    double diff = (MatrixXcd::Identity(n, n) - inv * A).array().abs().mean();
+    std::cout << diff << std::endl;
+
+    MatrixXcd Acopy = A;
+    int expA;
+    std::complex<double> pfaffA = math::pfaffian10(Acopy, expA);
+
+    MatrixXcd B(n, m), C(m, m);
+    B.setRandom();
+    C.setRandom();
+    C -= C.transpose().eval();
+    C /= 2;
+    MatrixXcd Cinv = C.inverse();
+    Cinv -= Cinv.transpose().eval();
+    Cinv /= 2;
+
+    MatrixXcd BCB = B * C * B.transpose();
+    MatrixXcd BinvB = B.transpose() * inv * B;
+
+    MatrixXcd ABCB = A + BCB;
+    MatrixXcd CinvBinvB = Cinv + BinvB;
+
+    MatrixXcd ABCBcopy = ABCB;
+    int expABCB;
+    std::complex<double> pfaffABCB = math::pfaffian10(ABCBcopy, expABCB);
+
+    MatrixXcd CinvBinvBcopy = CinvBinvB;
+    int expCinvBinvB;
+    std::complex<double> pfaffCinvBinvB =
+        math::pfaffian10(CinvBinvBcopy, expCinvBinvB);
+
+    MatrixXcd Cinvcopy = Cinv;
+    int expCinv;
+    std::complex<double> pfaffCinv = math::pfaffian10(Cinvcopy, expCinv);
+
+    std::complex<double> pfaffABCB2 = pfaffA * pfaffCinvBinvB / pfaffCinv;
+
+    int expABCB2 = expA + expCinvBinvB - expCinv;
+
+    std::cout << pfaffABCB << " x10^" << expABCB << std::endl;
+    std::cout << pfaffABCB2 << " x10^" << expABCB2 << std::endl;
+    std::cout << pfaffA << " x10^" << expA << std::endl;
+    std::cout << pfaffCinvBinvB << std::endl;
+    std::cout << pfaffCinv << std::endl;
+    std::cout << std::abs(pfaffABCB2 -
+                          pfaffABCB * std::pow(10, expABCB - expABCB2))
+              << std::endl;
+
+    MatrixXcd ABCBinv = ABCB.inverse();
+    ABCBinv -= ABCBinv.transpose().eval();
+    ABCBinv /= 2;
+    MatrixXcd ABCBinv2 = inv * B * CinvBinvB.inverse() * B.transpose() * inv;
+    ABCBinv2 -= ABCBinv2.transpose().eval();
+    ABCBinv2 /= 2;
+    ABCBinv2 -= inv;
+
+    std::cout << (ABCBinv + ABCBinv2).array().abs().mean() << std::endl;
+}
+
 int main(int argc, char* argv[]) {
-    // debug_pfaffian2();
-    // return 0;
+    //
     int rc = ini::load(argc, argv);
     if (rc != 0) {
         return rc;

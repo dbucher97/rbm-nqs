@@ -180,8 +180,7 @@ class bravais {
      *
      * @return vector of permutation matrices corresponding to the symmetries.
      */
-    virtual std::vector<
-        Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
+    virtual std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>>
     construct_symmetry() const = 0;
 
     /**

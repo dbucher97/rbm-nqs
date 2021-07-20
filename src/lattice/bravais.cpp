@@ -45,7 +45,11 @@ size_t bravais::uc_idx(std::vector<size_t>&& idxs) const {
         // Move index by `idxs[i]` in the current dimension.
         idx += fac * idxs[i];
         // Multiply by `n_uc` for next dimension
-        fac *= n_uc;
+        if (i == 1) {
+            fac *= n_uc_b;
+        } else {
+            fac *= n_uc;
+        }
     }
     return idx;
 }

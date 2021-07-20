@@ -237,5 +237,7 @@ class abstract_machine {
         pfaffian_ = std::make_unique<pfaffian>(lattice_, symm);
         return pfaffian_;
     }
+
+    inline bool has_pfaffian() const { return pfaffian_ != 0; }
 };
 }  // namespace machine

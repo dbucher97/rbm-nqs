@@ -18,9 +18,9 @@
 #pragma once
 
 #include <complex>
+#include <fstream>
 #include <random>
 #include <vector>
-#include <fstream>
 //
 #include <lattice/bravais.hpp>
 #include <machine/context.hpp>
@@ -47,13 +47,12 @@ class pfaffian {
                         const std::vector<size_t>& flips,
                         pfaff_context& context) const;
 
-    void derivative(const Eigen::MatrixXcd& state,
-                                const pfaff_context& context,
-                                Eigen::MatrixXcd& result, size_t& offset) const;
+    void derivative(const Eigen::MatrixXcd& state, const pfaff_context& context,
+                    Eigen::MatrixXcd& result, size_t& offset) const;
 
     inline std::complex<double> psi(const Eigen::MatrixXcd& state,
                                     const pfaff_context& context) const {
-        return context.pfaff;
+        return context.pfaff * std::pow(10, context.exp);
     }
 
     inline std::complex<double> psi_over_psi(
