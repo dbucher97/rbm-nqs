@@ -89,7 +89,7 @@ def plot_routine(vals, othervals, args, run_event):
 
         if vavg is not None:
             ax1.axhline(y=vavg, color='b')
-            ax1.text(10, vavg - 0.03, f'{vavg:.5f}')
+            ax1.text(80, vavg + 0.03, f'{vavg:.5f}')
         if args.reference is not None:
             ax1.axhline(y=args.reference, color='r', linestyle='--')
 

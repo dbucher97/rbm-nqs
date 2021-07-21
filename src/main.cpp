@@ -592,6 +592,30 @@ int main(int argc, char* argv[]) {
         std::cout << std::endl;
         rbm->save(ini::name);
 
+    } else if (ini::evaluate) {
+        model::SparseXcd plaq_op =
+            model::kron({model::sx(), model::sy(), model::sz(), model::sx(),
+                         model::sy(), model::sz()});
+        auto hex = dynamic_cast<lattice::honeycomb*>(&model->get_lattice())
+                       ->get_hexagons();
+        operators::local_op_chain op;
+        operators::aggregator agg(op);
+        for (auto& h : hex) {
+            for (auto& x : h) std::cout << x << ", ";
+            std::cout << std::endl;
+            op.push_back({h, plaq_op});
+        }
+
+        sampler->clear_ops();
+        sampler->clear_aggs();
+        sampler->register_op(&op);
+        sampler->register_agg(&agg);
+
+        sampler->sample();
+
+        auto& res = agg.get_result();
+        std::cout << res / hex.size() << std::endl;
+
     } else {
         std::cout << "nothing to do!" << std::endl;
     }

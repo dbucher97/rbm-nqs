@@ -45,5 +45,13 @@ class isingS3 : public abstract_model {
      * @param J the coupling in all three directions
      */
     isingS3(size_t size, double J);
+
+    /**
+     * @brief Ising model consturctor.
+     *
+     * @param size Number of unitcells in one direction.
+     * @param J the coupling in vector form
+     */
+    isingS3(size_t size, const std::vector<double>& J) : isingS3{size, J[0]} {}
 };
 }  // namespace model

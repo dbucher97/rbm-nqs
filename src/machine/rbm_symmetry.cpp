@@ -72,6 +72,10 @@ void rbm_symmetry::update_context(const Eigen::MatrixXcd& state,
             correlators_[i]->update_thetas(state, cidxs[i], thetas, s);
         }
     }
+
+    if (pfaffian_) {
+        pfaffian_->update_context(state, flips, context.pfaff());
+    }
 }
 
 Eigen::MatrixXcd rbm_symmetry::derivative(const Eigen::MatrixXcd& state,

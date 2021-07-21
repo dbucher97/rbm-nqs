@@ -16,6 +16,7 @@
  *
  */
 
+#include <algorithm>
 #include <boost/program_options.hpp>
 #include <fstream>
 #include <iostream>
@@ -36,12 +37,13 @@ size_t n_threads = 8;
 std::string name = "";
 std::string ini_file = "";
 bool train = false;
+bool evaluate = false;
 
 // Model
 model_t model = KITAEV;
 size_t n_cells = 2;
 int n_cells_b = -1;
-double J = -1.;
+std::vector<double> J = {-1.};
 double helper_strength = 0.;
 
 // RBM
@@ -126,6 +128,7 @@ int ini::load(int argc, char* argv[]) {
     // Program
     ("help,h",                                "produce help message")
     ("train",                                 po::bool_switch(&train),                      "train the RBM")
+    ("evaluate",                              po::bool_switch(&evaluate),                   "evaluate results of the RBM")
     ("seed",                                  po::value(&seed),                             "seed of the rng")
     ("infile,i",                              po::value<std::string>(),                     "ini file for params")
     ("name,n",                                po::value(&name),                             "set name of current rbm")
@@ -305,4 +308,27 @@ void ini::validate(boost::any& v, const std::vector<std::string>& values,
         t.decay = 1.;
     }
     v = t;
+}
+
+void ini::validate(boost::any& v, const std::vector<std::string>& values,
+                   std::vector<double>*, int) {
+    std::vector<std::string> vals;
+
+    // Split all strings by comma, for better support of ini loading.
+    for (std::string s : values) {
+        size_t pos = 0;
+        std::string token;
+        while ((pos = s.find(',')) != std::string::npos) {
+            token = s.substr(0, pos);
+            vals.push_back(token);
+            s.erase(0, pos + 1);
+        }
+        vals.push_back(s);
+    }
+
+    std::vector<double> dvals;
+    std::transform(vals.begin(), vals.end(), dvals.begin(),
+                   [](const std::string& x) { return std::stod(x); });
+
+    v = dvals;
 }

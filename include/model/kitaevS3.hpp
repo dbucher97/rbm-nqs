@@ -44,7 +44,18 @@ class kitaevS3 : public abstract_model {
      * @param size Number of unitcells in one direction.
      * @param J the coupling in all three directions
      */
-    kitaevS3(size_t size, double J) : kitaevS3(size, {J, J, J}) {}
+    kitaevS3(size_t size, double J)
+        : kitaevS3(size, std::array<double, 3>{J, J, J}) {}
+    /**
+     * @brief Kitaev model consturctor.
+     *
+     * @param size Number of unitcells in one direction.
+     * @param J the coupling in form of a vector
+     * @param size Number of unitcells in another direction.
+     */
+    kitaevS3(size_t size, const std::vector<double>& J, int size_b = -1)
+        : kitaevS3(size, std::array<double, 3>{J[0 % J.size()], J[1 % J.size()],
+                                               J[2 % J.size()]}) {}
     /**
      * @brief Kitaev model constructor.
      *

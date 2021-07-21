@@ -45,7 +45,22 @@ class kitaev : public abstract_model {
      * @param J the coupling in all three directions
      * @param size Number of unitcells in another direction.
      */
-    kitaev(size_t size, double J, int size_b = -1) : kitaev(size, {J, J, J}, size_b) {}
+    kitaev(size_t size, double J, int size_b = -1)
+        : kitaev(size, std::array<double, 3>{J, J, J}, size_b) {}
+
+    /**
+     * @brief Kitaev model consturctor.
+     *
+     * @param size Number of unitcells in one direction.
+     * @param J the coupling in form of a vector
+     * @param size Number of unitcells in another direction.
+     */
+    kitaev(size_t size, const std::vector<double>& J, int size_b = -1)
+        : kitaev(size,
+                 std::array<double, 3>{J[0 % J.size()], J[1 % J.size()],
+                                       J[2 % J.size()]},
+                 size_b) {}
+
     /**
      * @brief Kitaev model constructor.
      *
@@ -54,7 +69,6 @@ class kitaev : public abstract_model {
      * @param size Number of unitcells in another direction.
      */
     kitaev(size_t size, const std::array<double, 3>& J, int size_b = -1);
-
 
     virtual bool supports_helper_hamiltonian() const override { return true; }
 

@@ -63,8 +63,14 @@ pfaffian::pfaffian(const lattice::bravais& lattice, size_t n_sy)
 
 void pfaffian::init_weights(std::mt19937& rng, double std, bool normalize) {
     std::normal_distribution<double> dist{0, std};
-    for (size_t i = 0; i < (size_t)fs_.size(); i++) {
-        fs_(i) = std::complex<double>(dist(rng), dist(rng));
+    std::complex<double> val;
+    for (size_t j = 0; j < (size_t)fs_.cols(); j++) {
+        for (size_t i = 0; i < (size_t)fs_.rows() / 4; i++) {
+            val = std::complex<double>(dist(rng), dist(rng));
+            for (size_t m = 0; m < 4; m++) {
+                fs_(i + m * (ns_ - 1), j) = val;
+            }
+        }
     }
 
     if (normalize) {

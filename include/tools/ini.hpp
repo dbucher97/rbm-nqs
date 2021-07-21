@@ -103,6 +103,18 @@ extern void validate(boost::any& f, const std::vector<std::string>& strs,
                      decay_t*, int);
 
 /**
+ * @brief Loads an `std::vector<double>` with a string vector from
+ * `boost_program_options`.
+ *
+ * @param f will be the decay_t object
+ * @param strs vector of strings to load from
+ * @param std::vector<double>* Don't know, copied from StackOverflow 🙃...
+ * @param int
+ */
+extern void validate(boost::any& v, const std::vector<std::string>& values,
+                     std::vector<double>*, int);
+
+/**
  * @brief Checks if a ini file is specified in the command line options, if
  * this is the case `load` also reads the `ini` file.
  *
@@ -129,12 +141,13 @@ extern size_t n_threads;
 extern std::string name;
 extern std::string ini_file;
 extern bool train;
+extern bool evaluate;
 
 // Model
 extern model_t model;
 extern size_t n_cells;
 extern int n_cells_b;
-extern double J;
+extern std::vector<double> J;
 extern double helper_strength;
 
 // RBM

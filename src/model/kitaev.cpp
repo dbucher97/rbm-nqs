@@ -38,8 +38,11 @@ kitaev::kitaev(size_t size, const std::array<double, 3>& J, int size_b) {
 void kitaev::add_helper_hamiltonian(double strength) {
     auto hex =
         dynamic_cast<lattice::honeycomb*>(lattice_.get())->get_hexagons();
-    SparseXcd plaq_op =
-        kron({strength * sx(), sy(), sz(), sx(), sy(), sz()});
+    SparseXcd plaq_op = kron({sx(), sy(), sz(), sx(), sy(), sz()});
+    SparseXcd idn(plaq_op.rows(), plaq_op.cols());
+    idn.setIdentity();
+    plaq_op -= idn;
+    plaq_op *= strength;
     helpers_ = hex.size();
     for (auto& h : hex) {
         hamiltonian_->push_back(operators::local_op(h, plaq_op));

@@ -17,10 +17,13 @@
 
 #include <Eigen/Dense>
 #include <complex>
+#include <fstream>
 #include <string>
 #include <vector>
+
 //
 #include <machine/abstract_machine.hpp>
+#include <tools/eigen_fstream.hpp>
 
 namespace machine {
 
@@ -68,6 +71,43 @@ class pfaffian_psi : public abstract_machine {
         const rbm_context& context,
         rbm_context& updated_context) const override {
         return pfaffian_->psi_over_psi(state, flips, updated_context.pfaff());
+    }
+
+    virtual bool save(const std::string& name) override {
+        std::ofstream output{name + ".rbm", std::ios::binary};
+        if (output.is_open()) {
+            // Write the matrices into the outputstream. (<eigen_fstream.h>)
+            output.write((char*)&n_updates_, sizeof(size_t));
+
+            pfaffian_->save(output);
+
+            output.close();
+            // Give a status update.
+            std::cout << "Saved Pfaffian to '" << name << ".rbm'!" << std::endl;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    virtual bool load(const std::string& name) override {
+        // Open the input stream
+        std::ifstream input{name + ".rbm", std::ios::binary};
+        if (input.good()) {
+            // Read the n_updates_ from the inputstream.
+            input.read((char*)&n_updates_, sizeof(size_t));
+
+            pfaffian_->load(input);
+
+            input.close();
+
+            // Give a status update.
+            std::cout << "Loaded Pfaffian from '" << name << ".rbm'!"
+                      << std::endl;
+            return true;
+        } else {
+            return false;
+        }
     }
 };
 

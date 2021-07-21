@@ -125,6 +125,10 @@ void rbm_base::update_context(const Eigen::MatrixXcd& state,
         c->get_cidxs_from_flips(flips, cidxs);
         c->update_thetas(state, *(cidxs.end() - 1), thetas);
     }
+
+    if (pfaffian_) {
+        pfaffian_->update_context(state, flips, context.pfaff());
+    }
 }
 
 Eigen::MatrixXcd rbm_base::derivative(const Eigen::MatrixXcd& state,
