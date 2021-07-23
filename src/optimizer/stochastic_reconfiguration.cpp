@@ -59,18 +59,20 @@ void stochastic_reconfiguration::register_observables() {
     sampler_.register_aggs({&a_dh_, a_dd_.get()});
 }
 
-void stochastic_reconfiguration::optimize() {
+Eigen::MatrixXcd stochastic_reconfiguration::gradient(bool log) {
     // Get the result
     auto& h = a_h_.get_result();
     auto& d = a_d_.get_result();
     auto& dh = a_dh_.get_result();
 
-    // Log energy, energy variance and sampler properties.
-    logger::log(std::real(h(0)) / rbm_.n_visible, "Energy");
-    logger::log(std::real(a_h_.get_variance()(0)) / rbm_.n_visible,
-                "Energy Variance");
-    // logger::log(std::abs(std::imag(h(0))), "EnergyImag");
-    sampler_.log();
+    if (log) {
+        // Log energy, energy variance and sampler properties.
+        logger::log(std::real(h(0)) / rbm_.n_visible, "Energy");
+        logger::log(std::real(a_h_.get_variance()(0)) / rbm_.n_visible,
+                    "Energy Variance");
+        // logger::log(std::abs(std::imag(h(0))), "EnergyImag");
+        sampler_.log();
+    }
 
     Eigen::MatrixXcd dw(rbm_.get_n_params(), 1);
 
@@ -108,6 +110,9 @@ void stochastic_reconfiguration::optimize() {
         std::cout << "Rtol: " << min.rtol << std::endl;
         std::cout << "Itn: " << min.getItn() << std::endl;
         std::cout << "Istop: " << min.getIstop() << std::endl; */
+        if (plug_) {
+            plug_->add_metric(&(oa->get_result()), &a_d_.get_result());
+        }
     } else {
         auto& dd = a_dd_->get_result();
         // Calculate Covariance matrix.
@@ -136,13 +141,5 @@ void stochastic_reconfiguration::optimize() {
     }
 
     // logger::log(dw.norm() / dw.size(), "DW Norm");
-
-    // Apply plugin if set
-    if (plug_) {
-        dw = plug_->apply(dw);
-    }
-    dw *= lr_.get();
-
-    // Update the weights.
-    rbm_.update_weights(dw);
+    return dw;
 }

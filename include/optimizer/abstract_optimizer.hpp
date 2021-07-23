@@ -89,6 +89,10 @@ class abstract_optimizer {
     decay_t lr_;                   ///< Learing rate
     base_plugin* plug_ = nullptr;  ///< Pointer to the Plugin
 
+    std::complex<double> last_energy_ = 0;
+    double last_energy_std_ = -1;
+    Eigen::MatrixXcd last_update_;
+
     /**
      * @brief Protected Abstract optimizer constructor.
      *
@@ -116,7 +120,12 @@ class abstract_optimizer {
     /**
      * @brief Do the optimization step described in the class description.
      */
-    virtual void optimize() = 0;
+    virtual Eigen::MatrixXcd gradient(bool log = false) = 0;
+
+    /**
+     * @brief Do the optimization step described in the class description.
+     */
+    virtual void optimize();
 
     /**
      * @brief Add a plugin to the optimization.

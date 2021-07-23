@@ -72,7 +72,7 @@ def get_bond_ops():
     return [(s_x, s_x), (s_y, s_y), (s_z, s_z)]
 
 
-def build_op(bonds, bond_ops, N=18, J=-1):
+def build_op(bonds, bond_ops, N=18, J=[-1]):
     op = sparse.csr_matrix((2**N, 2**N), dtype=complex)
     for a, b, t in bonds:
         opa, opb = bond_ops[t]
@@ -83,9 +83,25 @@ def build_op(bonds, bond_ops, N=18, J=-1):
         x = sparse.kron(x, sparse.identity(2**(b-a-1)))
         x = sparse.kron(x, opa)
         x = sparse.kron(x, sparse.identity(2**a))
-        op += J * x
+        op += J[t % len(J)] * x
     return op
 
+def build_op2(bonds, bond_ops, N=18, J=[-1]):
+    ret = sparse.csr_matrix((2**N, 2**N), dtype=complex)
+    print(N)
+    for sites, t in bonds:
+        ops = bond_ops[t]
+        sso = list(sorted(zip(sites, ops), key=lambda x: x[0], reverse=True))
+        upper = N
+        x = sparse.identity(1)
+        for site, op in sso:
+            lower = site
+            x = sparse.kron(x, sparse.identity(2**(upper-lower-1)))
+            upper = lower
+            x = sparse.kron(x, op)
+        x = sparse.kron(x, sparse.identity(2**upper))
+        ret += J[t % len(J)] * x
+    return ret
 
 def plot_state(*states):
     plt.plot(range(len(states[0])), *[np.abs(state) for state in states])
@@ -180,5 +196,8 @@ def load_state(path):
     return sim_state / norm, norm
 
 
-def energy(op, state, N=18):
-    return state.conj().dot(op.dot(state)) / N
+def energy(op, state):
+    return state.conj().dot(op.dot(state)) / np.log2(len(state))
+
+def calc(op, state):
+    return state.conj().dot(op.dot(state))

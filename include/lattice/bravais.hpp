@@ -17,7 +17,7 @@
  */
 #pragma once
 
-// #define FULL_SYMMETRY
+#define FULL_SYMMETRY
 
 #include <Eigen/Dense>
 #include <memory>

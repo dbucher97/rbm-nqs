@@ -171,8 +171,9 @@ class outer_aggregator_lazy : public aggregator {
 
     virtual void finalize(double val) override;
     virtual void set_zero() override;
-    
-    optimizer::OuterMatrix construct_outer_matrix(aggregator& derv, double reg1, double reg2);
+
+    optimizer::OuterMatrix construct_outer_matrix(aggregator& derv, double reg1,
+                                                  double reg2);
 
     double get_norm() { return norm_; }
 };

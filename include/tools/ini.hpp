@@ -37,6 +37,9 @@ struct decay_t {
     double min;
     double decay;
 };
+struct coupling_t {
+    std::vector<double> strengths;
+};
 
 /**
  * @brief RBM Type enum
@@ -91,6 +94,7 @@ extern std::istream& operator>>(std::istream& input, optimizer_t& optimizer);
  * @return `istream` reference.
  */
 extern std::istream& operator>>(std::istream& input, model_t& optimizer);
+
 /**
  * @brief Loads an `decay_t` with a string vector from `boost_program_options`.
  *
@@ -112,7 +116,7 @@ extern void validate(boost::any& f, const std::vector<std::string>& strs,
  * @param int
  */
 extern void validate(boost::any& v, const std::vector<std::string>& values,
-                     std::vector<double>*, int);
+                     coupling_t*, int);
 
 /**
  * @brief Checks if a ini file is specified in the command line options, if
@@ -147,7 +151,7 @@ extern bool evaluate;
 extern model_t model;
 extern size_t n_cells;
 extern int n_cells_b;
-extern std::vector<double> J;
+extern coupling_t J;
 extern double helper_strength;
 
 // RBM
@@ -192,6 +196,7 @@ extern double opt_adam_beta1;
 extern double opt_adam_beta2;
 extern double opt_adam_eps;
 extern double opt_mom_alpha;
+extern double opt_heun_eps;
 
 // Train
 extern size_t n_epochs;

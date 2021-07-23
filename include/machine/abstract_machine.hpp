@@ -128,6 +128,16 @@ class abstract_machine {
     virtual void update_weights(const Eigen::MatrixXcd& dw){};
 
     /**
+     * @brief Updates the weights with a vector received from the optimizer.
+     *
+     * @param dw A update vector of size `n_params`.
+     */
+    inline void update_weights_nc(const Eigen::MatrixXcd& dw) {
+        update_weights(dw);
+        n_updates_--;
+    };
+
+    /**
      * @brief Calculates the rbm_context
      *
      * @param state Tht \sigma, the z-basis state in MatrixXcd vector form.

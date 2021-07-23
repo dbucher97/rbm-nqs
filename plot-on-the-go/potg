@@ -58,6 +58,8 @@ def plot_routine(vals, othervals, args, run_event):
     ax2 = ax1.twinx()
     plt.show()
 
+    shps = ['green', 'orange', 'gray']
+
     while run_event.wait():
         run_event.clear()
         v = np.array(vals)
@@ -65,6 +67,8 @@ def plot_routine(vals, othervals, args, run_event):
             v0 = v[:, 0]
         else:
             v0 = v
+        if args.log and args.reference:
+            v0 -= args.reference
         vavg = None
         if(len(vals) > 200):
             vavg = np.mean(v0[-100:])
@@ -72,8 +76,11 @@ def plot_routine(vals, othervals, args, run_event):
         ax1.cla()
         ax1.set_xlabel('Iteration')
         ax1.set_ylabel('Energy per site')
-        ax2.set_ylabel('Acceptance Rate (green)')
-        shps = ['green', 'orange', 'gray']
+        ax2.set_ylabel('Energy Variance / Acceptance Rate')
+
+        if(args.log):
+            ax1.set_yscale('log')
+
 
         if len(v.shape) > 1:
             ax2.cla()
@@ -85,19 +92,22 @@ def plot_routine(vals, othervals, args, run_event):
 
         for other in othervals:
             x = min(len(vals), len(other))
-            ax1.plot(other[:x])
+            if args.log and args.reference:
+                ax1.plot(other[:x] - args.reference)
+            else:
+                ax1.plot(other[:x])
 
         if vavg is not None:
             ax1.axhline(y=vavg, color='b')
             ax1.text(80, vavg + 0.03, f'{vavg:.5f}')
-        if args.reference is not None:
+        if args.reference is not None and not args.log:
             ax1.axhline(y=args.reference, color='r', linestyle='--')
 
         ax1.plot(v0, 'k', linewidth=2)
         ax1.set_zorder(ax2.get_zorder()+1)
         ax1.patch.set_visible(False)
 
-        if args.reference is not None:
+        if args.reference is not None and not args.log:
             ax1.set_ylim((args.reference - 0.05, v0[0] + 0.05))
         plt.draw()
         plt.pause(0.01)
@@ -107,6 +117,7 @@ def main():
     parser = argparse.ArgumentParser(description='Plot stdin values live.')
     parser.add_argument('-r', '--reference', type=float)
     parser.add_argument('-i', '--input', type=str, default='-')
+    parser.add_argument('-l', action='store_true', dest='log')
     parser.add_argument('other', nargs='*')
     args = parser.parse_args()
 

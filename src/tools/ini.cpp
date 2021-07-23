@@ -21,6 +21,7 @@
 #include <fstream>
 #include <iostream>
 #include <istream>
+#include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <vector>
@@ -43,7 +44,7 @@ bool evaluate = false;
 model_t model = KITAEV;
 size_t n_cells = 2;
 int n_cells_b = -1;
-std::vector<double> J = {-1.};
+coupling_t J = {{-1.}};
 double helper_strength = 0.;
 
 // RBM
@@ -88,6 +89,7 @@ double opt_mom_alpha = 0.3;
 bool opt_sr_iterative = false;
 size_t opt_sr_max_iterations = 0;
 double opt_sr_rtol = 0.;
+double opt_heun_eps = 1e-3;
 
 // Train
 size_t n_epochs = 600;
@@ -137,7 +139,7 @@ int ini::load(int argc, char* argv[]) {
     ("model.type",                            po::value(&model),                            "Model type.")
     ("model.n_cells,c",                       po::value(&n_cells),                          "set number of unit cells in one dimension")
     ("model.n_cells_b",                       po::value(&n_cells_b),                        "set number of unit cells in another dimension (if set to -1, use n_cells)")
-    ("model.J",                               po::value(&J),                                "Interaction strength")
+    ("model.J",                               po::value(&J)->multitoken(),                                "Interaction strength")
     ("model.helper_strength",                 po::value(&helper_strength),                  "Helper Hamiltonian strength")
     // RBM
     ("rbm.type",                              po::value(&rbm),                              "set rbm type")
@@ -179,6 +181,7 @@ int ini::load(int argc, char* argv[]) {
     ("optimizer.adam.beta2",                  po::value(&opt_adam_beta2),                   "set ADAM plug beta2")
     ("optimizer.adam.eps",                    po::value(&opt_adam_eps),                     "set ADAM plug eps")
     ("optimizer.mom.alpha",                   po::value(&opt_mom_alpha),                    "set momentum plug alpha")
+    ("optimizer.heun.eps",                    po::value(&opt_heun_eps),                     "set heun plug epsilon")
     // Train
     ("n_epochs,e",                            po::value(&n_epochs),                         "set number of epochs for training");
         // clang-format on
@@ -311,7 +314,7 @@ void ini::validate(boost::any& v, const std::vector<std::string>& values,
 }
 
 void ini::validate(boost::any& v, const std::vector<std::string>& values,
-                   std::vector<double>*, int) {
+                   ini::coupling_t*, int) {
     std::vector<std::string> vals;
 
     // Split all strings by comma, for better support of ini loading.
@@ -325,10 +328,10 @@ void ini::validate(boost::any& v, const std::vector<std::string>& values,
         }
         vals.push_back(s);
     }
+    ini::coupling_t x;
 
-    std::vector<double> dvals;
-    std::transform(vals.begin(), vals.end(), dvals.begin(),
+    std::transform(vals.begin(), vals.end(), std::back_inserter(x.strengths),
                    [](const std::string& x) { return std::stod(x); });
 
-    v = dvals;
+    v = x;
 }

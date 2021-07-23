@@ -135,13 +135,12 @@ void test_symmetry() {
 }
 
 void print_bonds() {
-    lattice::square lat{2};
+    lattice::honeycomb lat{2, 3};
     // lat.print_lattice({});
     auto bonds = lat.get_bonds();
     for (auto& bond : bonds) {
         std::cout << bond.a << "," << bond.b << "," << bond.type << std::endl;
     }
-    // lat.print_lattice({0, lat.up(0, 1)});
 }
 
 void test_S3() {
@@ -421,6 +420,8 @@ void debug_general_pfaffprocedure() {
 }
 
 int main(int argc, char* argv[]) {
+    // print_bonds();
+    // return 0;
     //
     int rc = ini::load(argc, argv);
     if (rc != 0) {
@@ -438,17 +439,20 @@ int main(int argc, char* argv[]) {
     std::unique_ptr<model::abstract_model> model;
     switch (ini::model) {
         case ini::model_t::KITAEV:
-            model = std::make_unique<model::kitaev>(ini::n_cells, ini::J,
-                                                    ini::n_cells_b);
+            model = std::make_unique<model::kitaev>(
+                ini::n_cells, ini::J.strengths, ini::n_cells_b);
             break;
         case ini::model_t::KITAEV_S3:
-            model = std::make_unique<model::kitaevS3>(ini::n_cells, ini::J);
+            model = std::make_unique<model::kitaevS3>(ini::n_cells,
+                                                      ini::J.strengths);
             break;
         case ini::model_t::ISING_S3:
-            model = std::make_unique<model::isingS3>(ini::n_cells, ini::J);
+            model = std::make_unique<model::isingS3>(ini::n_cells,
+                                                     ini::J.strengths);
             break;
         case ini::model_t::TORIC:
-            model = std::make_unique<model::toric>(ini::n_cells, ini::J);
+            model =
+                std::make_unique<model::toric>(ini::n_cells, ini::J.strengths);
             break;
         default:
             return 1;
@@ -539,6 +543,7 @@ int main(int argc, char* argv[]) {
         default:
             return 1;
     }
+
     optimizer->register_observables();
     std::unique_ptr<optimizer::base_plugin> p;
     if (ini ::opt_plugin.length() > 0) {
@@ -549,6 +554,10 @@ int main(int argc, char* argv[]) {
         } else if (ini::opt_plugin == "momentum") {
             p = std::make_unique<optimizer::momentum_plugin>(
                 rbm->get_n_params());
+        } else if (ini::opt_plugin == "heun") {
+            p = std::make_unique<optimizer::heun_plugin>(
+                [&optimizer] { return optimizer->gradient(false); }, *rbm,
+                *sampler, ini::opt_heun_eps);
         } else {
             return 1;
         }
@@ -591,33 +600,44 @@ int main(int argc, char* argv[]) {
 
         std::cout << std::endl;
         rbm->save(ini::name);
-
-    } else if (ini::evaluate) {
+    }
+    if (ini::evaluate) {
+        sampler->clear_ops();
+        sampler->clear_aggs();
         model::SparseXcd plaq_op =
             model::kron({model::sx(), model::sy(), model::sz(), model::sx(),
                          model::sy(), model::sz()});
         auto hex = dynamic_cast<lattice::honeycomb*>(&model->get_lattice())
                        ->get_hexagons();
-        operators::local_op_chain op;
-        operators::aggregator agg(op);
+        std::vector<operators::aggregator*> aggs;
+        std::vector<operators::base_op*> ops;
         for (auto& h : hex) {
             for (auto& x : h) std::cout << x << ", ";
             std::cout << std::endl;
-            op.push_back({h, plaq_op});
+
+            operators::local_op* op = new operators::local_op(h, plaq_op);
+            operators::aggregator* agg = new operators::aggregator(*op);
+            ops.push_back(op);
+            aggs.push_back(agg);
         }
 
-        sampler->clear_ops();
-        sampler->clear_aggs();
-        sampler->register_op(&op);
-        sampler->register_agg(&agg);
+        sampler->register_ops(ops);
+        sampler->register_aggs(aggs);
+
+        auto& h = model->get_hamiltonian();
+        operators::aggregator ah(h);
+        ah.track_variance();
+        sampler->register_op(&h);
+        sampler->register_agg(&ah);
 
         sampler->sample();
 
-        auto& res = agg.get_result();
-        std::cout << res / hex.size() << std::endl;
+        for (size_t i = 0; i < hex.size(); i++) {
+            std::cout << aggs[i]->get_result() << std::endl;
+        }
 
-    } else {
-        std::cout << "nothing to do!" << std::endl;
+        std::cout << ah.get_result() / rbm->n_visible << std::endl;
+        std::cout << ah.get_variance() / rbm->n_visible << std::endl;
     }
 
     // std::ofstream ws{"weights/weights_" + ini::name + ".txt"};

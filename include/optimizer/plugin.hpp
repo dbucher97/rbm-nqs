@@ -19,6 +19,9 @@
 #pragma once
 
 #include <Eigen/Dense>
+//
+#include <machine/abstract_machine.hpp>
+#include <sampler/abstract_sampler.hpp>
 
 /**
  * @brief Namespace for all optimizer related classes.
@@ -29,6 +32,10 @@ namespace optimizer {
  * @brief Abstract base_plugin for adaptive learning rates.
  */
 class base_plugin {
+   protected:
+    Eigen::MatrixXcd* met1_ = NULL;
+    Eigen::MatrixXcd* met2_ = NULL;
+
    public:
     /**
      * @brief Default virtual constructor
@@ -42,7 +49,12 @@ class base_plugin {
      *
      * @return The adaptive update of weights (without learning rate.)
      */
-    virtual Eigen::MatrixXcd apply(Eigen::MatrixXcd& dw) = 0;
+    virtual void apply(Eigen::MatrixXcd& dw, double lr) = 0;
+
+    virtual void add_metric(Eigen::MatrixXcd* met1, Eigen::MatrixXcd* met2) {
+        met1_ = met1;
+        met2_ = met2;
+    }
 };
 
 /**
@@ -72,7 +84,7 @@ class adam_plugin : public base_plugin {
     adam_plugin(size_t l, double beta1 = 0.9, double beta2 = 0.999,
                 double eps = 1e-8);
 
-    virtual Eigen::MatrixXcd apply(Eigen::MatrixXcd&) override;
+    virtual void apply(Eigen::MatrixXcd&, double lr) override;
 };
 
 /**
@@ -95,7 +107,29 @@ class momentum_plugin : public base_plugin {
      */
     momentum_plugin(size_t l, double alpha = 0.1);
 
-    virtual Eigen::MatrixXcd apply(Eigen::MatrixXcd&) override;
+    virtual void apply(Eigen::MatrixXcd&, double lr) override;
+};
+
+/**
+ * @brief The Heun Plugin uses the two step Runge Kutta method based on Heuns
+ * method. It needs to evaluate the gradient with a half step to compare it to
+ * the full step gradient. This helps to estimate the curvature in the parameter
+ * space.
+ */
+class heun_plugin : public base_plugin {
+    using Base = base_plugin;
+
+    std::function<Eigen::MatrixXcd(void)> gradient_;
+    machine::abstract_machine& rbm_;
+    sampler::abstract_sampler& sampler_;
+    double eps_;
+
+   public:
+    heun_plugin(const std::function<Eigen::MatrixXcd(void)>& gradient,
+                machine::abstract_machine& rbm,
+                sampler::abstract_sampler& sampler, double eps_);
+
+    virtual void apply(Eigen::MatrixXcd&, double lr) override;
 };
 
 }  // namespace optimizer

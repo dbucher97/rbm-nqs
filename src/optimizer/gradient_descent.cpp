@@ -37,29 +37,24 @@ void gradient_descent::register_observables() {
     sampler_.register_agg(&a_dh_);
 }
 
-void gradient_descent::optimize() {
+Eigen::MatrixXcd gradient_descent::gradient(bool log) {
     // Get the result
     auto& h = a_h_.get_result();
     auto& d = a_d_.get_result();
     auto& dh = a_dh_.get_result();
 
-    // Log energy, energy variance and sampler properties.
-    logger::log(std::real(h(0)) / rbm_.n_visible, "Energy");
-    logger::log(std::real(a_h_.get_variance()(0)) / rbm_.n_visible,
-                "EnergyVariance");
-    sampler_.log();
+    if (log) {
+        // Log energy, energy variance and sampler properties.
+        logger::log(std::real(h(0)) / rbm_.n_visible, "Energy");
+        logger::log(std::real(a_h_.get_variance()(0)) / rbm_.n_visible,
+                    "EnergyVariance");
+        sampler_.log();
+    }
 
     // Calculate the gradient descent
     Eigen::MatrixXcd dw = dh - d.conjugate() * h(0);
 
-    // Apply plugin if set
-    if (!plug_) {
-        dw *= lr_.get();
-    } else {
-        dw = lr_.get() * plug_->apply(dw);
-    }
     dw.real() /= real_factor_;
 
-    // Update the weights.
-    rbm_.update_weights(dw);
+    return dw;
 }

@@ -39,7 +39,7 @@ adam_plugin::adam_plugin(size_t l, double beta1, double beta2, double eps)
     wi_.setZero();
 }
 
-Eigen::MatrixXcd adam_plugin::apply(Eigen::MatrixXcd& dw) {
+void adam_plugin::apply(Eigen::MatrixXcd& dw, double lr) {
     // Calcualte the Adam optimization,
     // see https://en.wikipedia.org/wiki/Stochastic_gradient_descent#Adam
     m_ = beta1_ * m_ + (1 - beta1_) * dw;
@@ -52,9 +52,10 @@ Eigen::MatrixXcd adam_plugin::apply(Eigen::MatrixXcd& dw) {
     Eigen::MatrixXcd wr = wr_ / (1 - std::pow(beta2_, t_));
     Eigen::MatrixXcd wi = wi_ / (1 - std::pow(beta2_, t_));
     t_++;
-    return m.real().array() / (wr.array().sqrt() + eps_) +
-           std::complex<double>(0, 1) * m.imag().array() /
-               (wi.array().sqrt() + eps_);
+    dw = m.real().array() / (wr.array().sqrt() + eps_) +
+         std::complex<double>(0, 1) * m.imag().array() /
+             (wi.array().sqrt() + eps_);
+    dw *= lr;
 }
 
 momentum_plugin::momentum_plugin(size_t l, double alpha)
@@ -62,8 +63,39 @@ momentum_plugin::momentum_plugin(size_t l, double alpha)
     m_.setZero();
 }
 
-Eigen::MatrixXcd momentum_plugin::apply(Eigen::MatrixXcd& dw) {
+void momentum_plugin::apply(Eigen::MatrixXcd& dw, double lr) {
     // Do the momentum update step.
-    m_ = alpha_ * m_ + dw;
-    return m_;
+    m_ = alpha_ * m_ + lr * dw;
+    dw = m_;
+}
+
+heun_plugin::heun_plugin(const std::function<Eigen::MatrixXcd(void)>& gradient,
+                         machine::abstract_machine& rbm,
+                         sampler::abstract_sampler& sampler, double eps)
+    : Base{}, gradient_{gradient}, rbm_{rbm}, sampler_{sampler}, eps_{eps} {}
+
+void heun_plugin::apply(Eigen::MatrixXcd& dw, double lr) {
+    Eigen::MatrixXcd delta = 0.5 * lr * dw;
+    rbm_.update_weights_nc(delta);
+    sampler_.sample();
+    delta -= 0.5 * lr * gradient_();
+    delta /= 6;
+    double x;
+
+    if (met1_ && met2_) {
+        std::complex<double> x2 = ((*met2_).transpose() * delta)(0);
+        x = ((delta.transpose() * *met1_).transpose().array() - x2)
+                .abs2()
+                .sum();
+        x = std::sqrt(x) / delta.size();
+    } else {
+        x = delta.norm();
+    }
+    std::cout << std::endl;
+    std::cout << x << ", " << delta.norm() << ", " << delta.norm() / x
+              << std::endl;
+
+    x = std::pow(eps_ / x, 1. / 3);
+    std::cout << x << std::endl;
+    dw *= (x - 0.5) * lr;
 }

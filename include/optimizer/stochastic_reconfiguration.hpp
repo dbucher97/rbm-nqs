@@ -67,7 +67,7 @@ class stochastic_reconfiguration : public abstract_optimizer {
 
     virtual void register_observables() override;
 
-    virtual void optimize() override;
+    virtual Eigen::MatrixXcd gradient(bool log = false) override;
 
    private:
     bool iterative_;         ///< Use ConjugateGradient flag

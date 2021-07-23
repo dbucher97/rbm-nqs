@@ -42,7 +42,7 @@ void kitaev::add_helper_hamiltonian(double strength) {
     SparseXcd idn(plaq_op.rows(), plaq_op.cols());
     idn.setIdentity();
     plaq_op -= idn;
-    plaq_op *= strength;
+    plaq_op *= -strength;
     helpers_ = hex.size();
     for (auto& h : hex) {
         hamiltonian_->push_back(operators::local_op(h, plaq_op));
