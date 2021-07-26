@@ -15,7 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef ITERATIVE_USE_MKL
+#include <mkl.h>
+#else
 #include <cblas.h>
+#endif
 #include <omp.h>
 //
 #include <iostream>
