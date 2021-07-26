@@ -41,7 +41,10 @@ void Aprod(int* n, std::complex<double>* x, std::complex<double>* y) {
     // Missing * factor
     cblas_zgemv(CblasColMajor, CblasTrans, *n, g_mat_dim2, &g_norm, g_mat, *n,
                 x, 1, &g_zero, g_tmp, 1);
-    cblas_zgemv(CblasColMajor, CblasConjNoTrans, *n, g_mat_dim2, &g_one, g_mat,
+    // cblas_zgemv(CblasColMajor, CblasConjNoTrans, *n, g_mat_dim2, &g_one,
+    // g_mat,
+    //             *n, g_tmp, 1, &g_zero, y, 1);
+    cblas_zgemv(CblasRowMajor, CblasConjTrans, g_mat_dim2, *n, &g_one, g_mat,
                 *n, g_tmp, 1, &g_zero, y, 1);
 
     cblas_zdotc_sub(*n, g_vec, 1, x, 1, g_dot);

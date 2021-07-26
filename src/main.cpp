@@ -419,9 +419,46 @@ void debug_general_pfaffprocedure() {
     std::cout << (ABCBinv + ABCBinv2).array().abs().mean() << std::endl;
 }
 
+void debugAprod() {
+    int n = 100, m = 20;
+    Eigen::MatrixXcd mat(n, m);
+    mat.setRandom();
+    Eigen::MatrixXcd S = mat.conjugate() * mat.transpose();
+    Eigen::MatrixXcd x(n, 1);
+    x.setRandom();
+    Eigen::MatrixXcd y1(n, 1);
+    Eigen::MatrixXcd y2(m, 1);
+    Eigen::MatrixXcd tmp(m, 1);
+    Eigen::MatrixXcd tmp2(m, 1);
+    Eigen::MatrixXcd vec = Eigen::MatrixXcd::Zero(n, 1);
+    std::complex<double> dot;
+    Eigen::MatrixXcd diag = S.diagonal();
+
+    double norm = 1.;
+    double reg[] = {0., 0.};
+
+    optimizer::g_mat = mat.data();
+    optimizer::g_vec = vec.data();
+    optimizer::g_tmp = tmp.data();
+    optimizer::g_dot = &dot;
+    optimizer::g_diag = diag.data();
+
+    optimizer::g_norm = norm;
+    optimizer::g_reg = &reg[0];
+
+    optimizer::g_mat_dim2 = m;
+
+    optimizer::Aprod(&n, x.data(), y1.data());
+    tmp2 = mat.transpose() * x;
+    y2 = S * x;
+
+    std::cout << (y1 - y2).norm() << std::endl;
+    std::cout << (tmp2 - tmp).norm() << std::endl;
+}
+
 int main(int argc, char* argv[]) {
-    // print_bonds();
-    // return 0;
+    // debugAprod();
+    // return .norm()0;
     //
     int rc = ini::load(argc, argv);
     if (rc != 0) {
