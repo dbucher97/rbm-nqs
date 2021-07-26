@@ -14,7 +14,7 @@ OBJECTS= slasktrd.o slasktrf.o sskbpf10.o sskbpfa.o sskbtrd.o \
 	 skpfa.o skpf10.o skbpfa.o skbpf10.o sktrd.o sktd2.o \
 	 sktrf.o sktf2.o skbtrd.o
 
-FORT ?= gfortran
+FC ?= gfortran
 FFLAGS = -O3 -fimplicit-none
 
 all: $(OBJECTS)
@@ -28,7 +28,7 @@ clean:
 .SUFFIXES: .o .f .f90
 
 .f90.o:
-	$(FORT) $(FFLAGS) -c $< -o $@
+	$(FC) $(FFLAGS) -c $< -o $@
 
 .f.o:
-	$(FORT) $(FFLAGS) -c $< -o $@
+	$(FC) $(FFLAGS) -c $< -o $@

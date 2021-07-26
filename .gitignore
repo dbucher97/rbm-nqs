@@ -6,6 +6,7 @@ tsf-out/
 *.log
 *.rbm
 *.state
+*.mod
 .cache/
 !trained/*.rbm
 .ipynb_checkpoints/

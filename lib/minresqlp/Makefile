@@ -1,4 +1,4 @@
-FC      =  gfortran
+FC    ?=  gfortran
 # FFLAGS = -g -O0 -pedantic -Wall -W -fbounds-check
 FFLAGS = -g -O3
 
