@@ -15,7 +15,6 @@ PFAPACKC = $(BUILD_DIR)/pfapack/libcpfapack.a
 
 # MINRES QLP
 INC_DIRS += lib/minresqlp
-INC_DIRS += $(HOME)/googletest/googletest/include/
 MINRESQLP = $(BUILD_DIR)/minresqlp/libminresqlp.a
 
 DESTDIR ?= $(HOME)/.local/bin/
@@ -25,7 +24,7 @@ OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 DEPS := $(OBJS:.o=.d)
 
 TEST_SRCS := $(shell find $(TEST_DIR) -name *.cpp -type f)
-TEST_OBJS := $(TEST_SRCS:%=$(BUILD_DIR)/%.o)
+TEST_OBJS := $(TEST_SRCS:%=$(BUILD_DIR)/$(BUILD_DIR)%.o)
 TEST_OBJS += $(filter-out $(BUILD_DIR)/src/main.cpp.o,$(OBJS))
 
 # INDCLUDE DIRS
@@ -53,7 +52,7 @@ LDFLAGS += -lboost_program_options
 
 LDFLAGS += -lgfortran
 
-LDFLAGS += $(MKL_LIB)
+LDFLAGS += $(MKL_SHLIB)
 
 TEST_LDFLAGS = libgtest.a libgtest_main.a
 TEST_LDFLAGS := $(addprefix $(HOME)/googletest/build/lib/,$(TEST_LDFLAGS))
@@ -64,7 +63,7 @@ install: all
 all: $(BUILD_DIR)/$(TARGET_EXEC)
 
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS) $(PFAPACK) $(PFAPACKC) $(MINRESQLP)
-	@echo "[ LD ] $@ $(LDFLAGS)"
+	@echo "[ LD ] $@"
 	$(CXX) $(OMP) $(LDFLAGS) $^ -o $@
 
 $(BUILD_DIR)/$(TARGET_UNITTEST): $(TEST_OBJS) $(PFAPACK) $(PFAPACKC) $(MINRESQLP)

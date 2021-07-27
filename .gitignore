@@ -7,7 +7,6 @@ tsf-out/
 *.log
 *.rbm
 *.state
-*.mod
 .cache/
 !trained/*.rbm
 .ipynb_checkpoints/
@@ -16,4 +15,5 @@ __pycache__/
 notebooks/Plots/
 
 *.o
+*.mod
 *.a
