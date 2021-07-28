@@ -91,11 +91,11 @@ void heun_plugin::apply(Eigen::MatrixXcd& dw, double lr) {
     } else {
         x = delta.norm();
     }
-    std::cout << std::endl;
-    std::cout << x << ", " << delta.norm() << ", " << delta.norm() / x
-              << std::endl;
+//    std::cout << std::endl;
+//    std::cout << x << ", " << delta.norm() << ", " << delta.norm() / x
+//              << std::endl;
 
     x = std::pow(eps_ / x, 1. / 3);
-    std::cout << x << std::endl;
+//    std::cout << x << std::endl;
     dw *= (x - 0.5) * lr;
 }

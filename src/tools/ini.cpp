@@ -39,6 +39,7 @@ std::string name = "";
 std::string ini_file = "";
 bool train = false;
 bool evaluate = false;
+bool noprogress = false;
 
 // Model
 model_t model = KITAEV;
@@ -135,6 +136,7 @@ int ini::load(int argc, char* argv[]) {
     ("infile,i",                              po::value<std::string>(),                     "ini file for params")
     ("name,n",                                po::value(&name),                             "set name of current rbm")
     ("n_threads,t",                           po::value(&n_threads),                        "set number of omp threads")
+    ("noprogress,P",                          po::bool_switch(&noprogress),                 "switch to turn off progress bar")
     // Model
     ("model.type",                            po::value(&model),                            "Model type.")
     ("model.n_cells,c",                       po::value(&n_cells),                          "set number of unit cells in one dimension")

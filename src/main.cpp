@@ -24,7 +24,6 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
-
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <chrono>
@@ -93,16 +92,16 @@ void progress_bar(size_t i, size_t n_epochs, double energy, char state) {
     int digs = (int)std::log10(n_epochs) - (int)std::log10(i);
     if (i == 0) digs = (int)std::log10(n_epochs);
     std::cout << "\rEpochs: (" << std::string(digs, ' ') << i << "/" << n_epochs
-              << ") " << state << " ";
+             << ") " << state << " ";
     struct winsize size;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &size);
     int plen = size.ws_col - (2 * (int)std::log10(n_epochs) + 37);
     int p = (int)(plen * progress + 0.5);
     int m = plen - p;
-    std::cout << "[" << std::string(p, '#') << std::string(m, ' ') << "]";
-    std::cout << std::showpoint;
-    std::cout << " Energy: " << energy;
-    std::cout << std::flush;
+   std::cout << "[" << std::string(p, '#') << std::string(m, ' ') << "]";
+   std::cout << std::showpoint;
+   std::cout << " Energy: " << energy;
+   std::cout << std::flush;
 }
 
 std::vector<size_t> to_indices(const MatrixXcd& vec) {
@@ -604,38 +603,46 @@ int main(int argc, char* argv[]) {
     std::cout << "Number of parameters: " << rbm->get_n_params() << std::endl;
 
     if (ini::train) {
-        // Start getchar non-block
         struct termios oldt, newt;
         int oldf;
-        tcgetattr(STDIN_FILENO, &oldt);
-        newt = oldt;
-        newt.c_lflag &= ~(ICANON | ECHO);
-        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-        oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
-        fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
-        // End getchar non-block
+        if (!ini::noprogress) {
+            // Start getchar non-block
+            tcgetattr(STDIN_FILENO, &oldt);
+            newt = oldt;
+            newt.c_lflag &= ~(ICANON | ECHO);
+            tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+            oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+            fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+            // End getchar non-block
+            progress_bar(0, ini::n_epochs, -1, 'S');
+        }
 
-        progress_bar(0, ini::n_epochs, -1, 'S');
         int ch = 0;
         for (size_t i = 0; i < ini::n_epochs && ch != ''; i++) {
             Eigen::setNbThreads(1);
             sampler->sample();
-            progress_bar(i + 1, ini::n_epochs,
-                         optimizer->get_current_energy() / rbm->n_visible, 'O');
+            if (!ini::noprogress)
+                progress_bar(i + 1, ini::n_epochs,
+                             optimizer->get_current_energy() / rbm->n_visible, 'O');
             Eigen::setNbThreads(-1);
             optimizer->optimize();
             logger::newline();
-            progress_bar(i + 1, ini::n_epochs,
-                         optimizer->get_current_energy() / rbm->n_visible, 'S');
-            ch = getchar();
+            if (!ini::noprogress) {
+                progress_bar(i + 1, ini::n_epochs,
+                             optimizer->get_current_energy() / rbm->n_visible, 'S');
+                ch = getchar();
+            }
         }
 
-        // Start getchar non-block
-        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-        fcntl(STDIN_FILENO, F_SETFL, oldf);
-        // End getchar non-block
+        if (!ini::noprogress) {
+            // Start getchar non-block
+            tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+ #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+            fcntl(STDIN_FILENO, F_SETFL, oldf);
+            // End getchar non-block
+            std::cout << std::endl;
+        }
 
-        std::cout << std::endl;
         rbm->save(ini::name);
     }
     if (ini::evaluate) {

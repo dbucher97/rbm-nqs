@@ -146,6 +146,7 @@ extern std::string name;
 extern std::string ini_file;
 extern bool train;
 extern bool evaluate;
+extern bool noprogress;
 
 // Model
 extern model_t model;

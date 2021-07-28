@@ -63,13 +63,13 @@ install: all
 
 all: $(BUILD_DIR)/$(TARGET_EXEC)
 
-$(BUILD_DIR)/$(TARGET_EXEC): $(OBJS) $(PFAPACK) $(PFAPACKC) $(MINRESQLP)
-	@echo "[ LD ] $@ $(LDFLAGS)"
-	$(CXX) $(OMP) $(LDFLAGS) $^ -o $@
-
-$(BUILD_DIR)/$(TARGET_UNITTEST): $(TEST_OBJS) $(PFAPACK) $(PFAPACKC) $(MINRESQLP)
+$(BUILD_DIR)/$(TARGET_EXEC): $(OBJS) $(PFAPACKC) $(PFAPACK) $(MINRESQLP)
 	@echo "[ LD ] $@"
-	@$(CXX) $(OMP) $(LDFLAGS) $(TEST_LDFLAGS) $^ -o $@ 
+	@$(CXX) $(OMP) $^ $(LDFLAGS) -o $@
+
+$(BUILD_DIR)/$(TARGET_UNITTEST): $(TEST_OBJS) $(PFAPACKC) $(PFAPACK) $(MINRESQLP)
+	@echo "[ LD ] $@"
+	@$(CXX) $(OMP) $^ $(LDFLAGS) $(TEST_LDFLAGS) -o $@
 # c++ source
 $(BUILD_DIR)/%.cpp.o: %.cpp
 	@$(MKDIR_P) $(dir $@)
