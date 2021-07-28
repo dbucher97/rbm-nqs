@@ -12,6 +12,9 @@ while [ ! -z $1 ]; do
     shift
 done
 
+module unload boost
+module unload intel-mkl
+
 if [ $COMPILER == "gcc" ]; then
     module $LOAD gcc/10.2.0
     module $LOAD boost/1.75.0-gcc8

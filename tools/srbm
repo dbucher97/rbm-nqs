@@ -1,0 +1,61 @@
+#!/usr/bin/env sh
+
+if [ ! -f $1 ]; then
+  echo First argument must be a valid file
+  exit 1
+else
+  ini=$1
+  shift
+fi
+
+nodes=`awk -F= -v key="#NODES" '$1==key {print $2}' "$ini"`
+cluster=`awk -F= -v key="#CLUSTER" '$1==key {print $2}' "$ini"`
+partition=`awk -F= -v key="#PARTITION" '$1==key {print $2}' "$ini"`
+threads=`awk -F= -v key="n_threads" '{gsub(/ /,"")} $1==key {print $2}' "$ini"`
+name=`awk -F= -v key="name" '{gsub(/ /,"")} $1==key {print $2}' "$ini"`
+
+if [ -z $nodes ]; then
+  nodes=1
+fi
+if [ -z $cluster ]; then
+  cluster="cm2_tiny"
+fi
+if [ -z $partition ]; then
+  partition="cm2_tiny"
+fi
+if [ -z $threads ]; then
+  threads=28
+fi
+if [ -z $name ]; then
+  name=nonamae
+fi
+
+addstr=""
+for arg in $@; do
+  addstr="${addstr}_`echo $arg | sed -r 's/^--(\w+\.)*(\w)\w*=(\w+)$/\2\3/g'`"
+done
+name="$name$addstr"
+
+
+sub="#/usr/bin/env sh
+#SBATCH -o log.%j.%N.out
+#SBATCH -e error.%j.%N.out
+#SBATCH -J $name
+#SBATCH -D ./%j/
+#SBATCH --get-user-env
+#SBATCH --clusters=$cluster
+#SBATCH --partition=$partition
+#SBATCH --nodes=$nodes
+#SBATCH --ntasks=$threads
+#SBATCH --mail-type=end
+#SBATCH --mail-user=David.Bucher@.physik.lmu.de
+#SBATCH --export=NONE
+#SBATCH --time=72:00:00
+
+module load slurm_setup
+source load_modules.sh
+echo \"\$SLURM_JOB_ID $name\" >> ./tasks.log
+
+rbm -i $ini -f -P --train --evaluate $@--name=$name --threads=$threads"
+
+echo "$sub"
