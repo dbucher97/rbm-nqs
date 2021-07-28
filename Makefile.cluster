@@ -60,6 +60,7 @@ TEST_LDFLAGS := $(addprefix $(HOME)/googletest/build/lib/,$(TEST_LDFLAGS))
 
 install: all
 	cp $(BUILD_DIR)/$(TARGET_EXEC) $(DESTDIR)/$(TARGET_EXEC)
+	cp tools/* $(DESTDIR)/
 
 all: $(BUILD_DIR)/$(TARGET_EXEC)
 
