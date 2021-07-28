@@ -76,7 +76,7 @@ TEST_LDFLAGS = /usr/local/lib/libgtest.a /usr/local/lib/libgtest_main.a
 
 install: all
 	cp $(BUILD_DIR)/$(TARGET_EXEC) $(DESTDIR)/$(TARGET_EXEC)
-	cp plot-on-the-go/potg $(DESTDIR)/potg
+	cp tools/* $(DESTDIR)/
 
 all: $(BUILD_DIR)/$(TARGET_EXEC)
 
