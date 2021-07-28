@@ -17,3 +17,6 @@ notebooks/Plots/
 *.o
 *.mod
 *.a
+
+# Symlink Makefile to cluster/mac
+Makefile
