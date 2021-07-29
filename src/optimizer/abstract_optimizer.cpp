@@ -66,46 +66,46 @@ void abstract_optimizer::set_plugin(base_plugin* plug) { plug_ = plug; }
 void abstract_optimizer::remove_plugin() { plug_ = nullptr; }
 
 void abstract_optimizer::optimize() {
-    double alpha1 = 2, alpha2 = 5, alpha3 = 6;
-    // Check resample criteria
-    bool resample = true;
-    std::complex<double> e = a_h_.get_result()(0);
-    double d = std::sqrt(a_h_.get_variance()(0));
-    while (resample && last_energy_std_ != -1 &&
-           std::real(e) / rbm_.n_visible < -0.65) {
-        resample = false;
-        resample |= std::abs(std::real(last_energy_ - e)) >= alpha1;
-        resample |= std::abs(std::imag(e)) >= alpha2 * d;
-        resample |= d >= alpha3 * last_energy_std_;
-
-        if (resample) {
-            std::cout << "resample" << std::endl;
-
-            // Undo last update
-            rbm_.update_weights(-last_update_);
-
-            // Repeat last step update
-            sampler_.sample();
-            Eigen::MatrixXcd dw = gradient(false);
-            // Apply plugin if set
-            if (plug_) {
-                plug_->apply(dw, lr_.get());
-            } else {
-                dw *= lr_.get();
-            }
-            // Update weights
-            rbm_.update_weights(dw);
-            last_update_ = dw;
-
-            // Resample
-            sampler_.sample();
-            e = a_h_.get_result()(0);
-            d = std::sqrt(a_h_.get_variance()(0));
-        }
-    }
-    last_energy_ = e;
-    last_energy_std_ = d;
-
+//    double alpha1 = 2, alpha2 = 5, alpha3 = 6;
+//    // Check resample criteria
+//    bool resample = true;
+//    std::complex<double> e = a_h_.get_result()(0);
+//    double d = std::sqrt(a_h_.get_variance()(0));
+//    while (resample && last_energy_std_ != -1 &&
+//           std::real(e) / rbm_.n_visible < -0.65) {
+//        resample = false;
+//        resample |= std::abs(std::real(last_energy_ - e)) >= alpha1;
+//        resample |= std::abs(std::imag(e)) >= alpha2 * d;
+//        resample |= d >= alpha3 * last_energy_std_;
+//
+//        if (resample) {
+//            std::cout << "resample" << std::endl;
+//
+//            // Undo last update
+//            rbm_.update_weights(-last_update_);
+//
+//            // Repeat last step update
+//            sampler_.sample();
+//            Eigen::MatrixXcd dw = gradient(false);
+//            // Apply plugin if set
+//            if (plug_) {
+//                plug_->apply(dw, lr_.get());
+//            } else {
+//                dw *= lr_.get();
+//            }
+//            // Update weights
+//            rbm_.update_weights(dw);
+//            last_update_ = dw;
+//
+//            // Resample
+//            sampler_.sample();
+//            e = a_h_.get_result()(0);
+//            d = std::sqrt(a_h_.get_variance()(0));
+//        }
+//    }
+//    last_energy_ = e;
+//    last_energy_std_ = d;
+//
     Eigen::MatrixXcd dw = gradient(true);
 
     // Apply plugin if set

@@ -8,7 +8,11 @@ SRC_DIR = Src
 OBJS = minresqlpDataModule.o zminresqlpDataModule.o zminresqlpBlasModule.o minresqlpBlasModule.o zminresqlpModule.o minresqlpModule.o
 OBJS := $(addprefix $(BUILD_DIR)/,$(OBJS))
 
+ifeq ($(FC),ifort)
+FFLAGS += -module $(BUILD_DIR) -I$(BUILD_DIR)
+else
 FFLAGS += -J$(BUILD_DIR) -I$(BUILD_DIR)
+endif
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.f90
 	@mkdir -p $(BUILD_DIR)
