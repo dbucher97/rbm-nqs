@@ -48,7 +48,7 @@ sub="#/usr/bin/env sh
 #SBATCH --nodes=$nodes
 #SBATCH --ntasks=$threads
 #SBATCH --mail-type=end
-#SBATCH --mail-user=David.Bucher@.physik.lmu.de
+#SBATCH --mail-user=David.Bucher@physik.lmu.de
 #SBATCH --export=NONE
 #SBATCH --time=72:00:00
 
