@@ -38,7 +38,7 @@ contains
 
   subroutine MINRESQLP( n, Aprod, b, shift, Msolve, disable, nout,        &
                         itnlim, rtol, maxxnorm, trancond, Acondlim,       &
-                        x, istop, itn, rnorm, Arnorm, xnorm, Anorm, Acond )
+                        x, istop, itn, rnorm, Arnorm, xnorm, Anorm, Acond ) bind(C)
     ! Inputs
     integer(ip), intent(in)             :: n
     real(dp),    intent(in)             :: b(n)
@@ -55,14 +55,14 @@ contains
     optional :: Msolve
 
     interface
-       subroutine Aprod(n,x,y)                    ! y := A*x
+       subroutine Aprod(n,x,y) bind(C)                   ! y := A*x
          use minresqlpDataModule
          integer(ip), intent(in)    :: n
          real(dp),    intent(in)    :: x(n)
          real(dp),    intent(out)   :: y(n)
        end subroutine Aprod
 
-       subroutine Msolve(n,x,y)                   ! Solve M*y = x
+       subroutine Msolve(n,x,y) bind(C)                  ! Solve M*y = x
          use minresqlpDataModule
          integer(ip), intent(in)    :: n
          real(dp),    intent(in)    :: x(n)

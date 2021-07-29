@@ -6,7 +6,7 @@ SRC_DIRS ?= src
 TEST_DIR ?= test
 INC_DIRS ?= include
 
-MAT_BACKEND ?= EIGEN
+MAT_BACKEND ?= MKL
 
 # PFAPACK
 INC_DIRS += lib/pfapack/c_interface
@@ -42,7 +42,7 @@ OMP = -fopenmp
 ifeq ($(MAT_BACKEND),BLAS)
 CPPFLAGS += -DEIGEN_USE_BLAS
 $(info using BLAS)
-else ifeq ($(MAT_BACKEN),MKL)
+else ifeq ($(MAT_BACKEND),MKL)
 CPPFLAGS += -DEIGEN_USE_MKL_ALL
 $(info using MKL)
 else
@@ -51,7 +51,12 @@ endif
 
 LDFLAGS += -lboost_program_options
 
+ifeq ($(CC),gcc)
 LDFLAGS += -lgfortran
+else ifeq ($(CC),icc)
+CPPFLAGS += -diag-disable 858
+LDFLAGS += -lifcore -lifcoremt
+endif
 
 LDFLAGS += $(MKL_LIB)
 

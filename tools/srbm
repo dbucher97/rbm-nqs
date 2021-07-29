@@ -37,25 +37,29 @@ done
 name="$name$addstr"
 
 
-sub="#/usr/bin/env sh
-#SBATCH -o log.%j.%N.out
-#SBATCH -e error.%j.%N.out
+sub="#!/usr/bin/env sh
+#SBATCH -o logs/log.%j.%N.out
+#SBATCH -e logs/error.%j.%N.out
 #SBATCH -J $name
-#SBATCH -D ./%j/
+#SBATCH -D ./
 #SBATCH --get-user-env
 #SBATCH --clusters=$cluster
 #SBATCH --partition=$partition
 #SBATCH --nodes=$nodes
 #SBATCH --ntasks=$threads
 #SBATCH --mail-type=end
-#SBATCH --mail-user=David.Bucher@.physik.lmu.de
+#SBATCH --mail-user=David.Bucher@physik.lmu.de
 #SBATCH --export=NONE
 #SBATCH --time=72:00:00
 
+module list
 module load slurm_setup
+
+source set_compiler.sh $CC
 source load_modules.sh
+
 echo \"\$SLURM_JOB_ID $name\" >> ./tasks.log
 
-rbm -i $ini -f -P --train --evaluate $@--name=$name --threads=$threads"
+rbm -i $ini -f -P --train --evaluate --name=$name --n_threads=$threads $@"
 
 echo "$sub"
