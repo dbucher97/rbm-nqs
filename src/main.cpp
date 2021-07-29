@@ -24,6 +24,7 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
+
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <chrono>
@@ -92,16 +93,16 @@ void progress_bar(size_t i, size_t n_epochs, double energy, char state) {
     int digs = (int)std::log10(n_epochs) - (int)std::log10(i);
     if (i == 0) digs = (int)std::log10(n_epochs);
     std::cout << "\rEpochs: (" << std::string(digs, ' ') << i << "/" << n_epochs
-             << ") " << state << " ";
+              << ") " << state << " ";
     struct winsize size;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &size);
     int plen = size.ws_col - (2 * (int)std::log10(n_epochs) + 37);
     int p = (int)(plen * progress + 0.5);
     int m = plen - p;
-   std::cout << "[" << std::string(p, '#') << std::string(m, ' ') << "]";
-   std::cout << std::showpoint;
-   std::cout << " Energy: " << energy;
-   std::cout << std::flush;
+    std::cout << "[" << std::string(p, '#') << std::string(m, ' ') << "]";
+    std::cout << std::showpoint;
+    std::cout << " Energy: " << energy;
+    std::cout << std::flush;
 }
 
 std::vector<size_t> to_indices(const MatrixXcd& vec) {
@@ -476,7 +477,7 @@ int main(int argc, char* argv[]) {
     switch (ini::model) {
         case ini::model_t::KITAEV:
             model = std::make_unique<model::kitaev>(
-                ini::n_cells, ini::J.strengths, ini::n_cells_b);
+                ini::n_cells, ini::J.strengths, ini::n_cells_b, ini::full_symm);
             break;
         case ini::model_t::KITAEV_S3:
             model = std::make_unique<model::kitaevS3>(ini::n_cells,
@@ -499,22 +500,15 @@ int main(int argc, char* argv[]) {
 
     std::unique_ptr<machine::abstract_machine> rbm;
 
-    size_t n_hidden = ini::n_hidden;
-    if (ini::alpha > 0.) {
-        n_hidden =
-            (size_t)std::round(ini::alpha * model->get_lattice().n_total);
-    }
-    std::cout << "Number of hidden units: " << n_hidden << std::endl;
-
     switch (ini::rbm) {
         case ini::rbm_t::BASIC:
             rbm = std::make_unique<machine::rbm_base>(
-                n_hidden, model->get_lattice(), ini::rbm_pop_mode,
+                ini::alpha, model->get_lattice(), ini::rbm_pop_mode,
                 ini::rbm_cosh_mode);
             break;
         case ini::rbm_t::SYMMETRY:
             rbm = std::make_unique<machine::rbm_symmetry>(
-                n_hidden, model->get_lattice(), ini::rbm_pop_mode,
+                ini::alpha, model->get_lattice(), ini::rbm_pop_mode,
                 ini::rbm_cosh_mode);
             break;
         case ini::rbm_t::FILE:
@@ -623,13 +617,15 @@ int main(int argc, char* argv[]) {
             sampler->sample();
             if (!ini::noprogress)
                 progress_bar(i + 1, ini::n_epochs,
-                             optimizer->get_current_energy() / rbm->n_visible, 'O');
+                             optimizer->get_current_energy() / rbm->n_visible,
+                             'O');
             Eigen::setNbThreads(-1);
             optimizer->optimize();
             logger::newline();
             if (!ini::noprogress) {
                 progress_bar(i + 1, ini::n_epochs,
-                             optimizer->get_current_energy() / rbm->n_visible, 'S');
+                             optimizer->get_current_energy() / rbm->n_visible,
+                             'S');
                 ch = getchar();
             }
         }
@@ -637,7 +633,7 @@ int main(int argc, char* argv[]) {
         if (!ini::noprogress) {
             // Start getchar non-block
             tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
- #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
             fcntl(STDIN_FILENO, F_SETFL, oldf);
             // End getchar non-block
             std::cout << std::endl;

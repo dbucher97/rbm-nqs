@@ -45,6 +45,8 @@ class honeycomb : public bravais {
     size_t count_occurances_(size_t site_idx,
                              const std::vector<size_t>& highlights) const;
 
+    bool full_symm_;
+
    public:
     using Base = bravais;
 
@@ -54,7 +56,7 @@ class honeycomb : public bravais {
      * @param n_uc Number of unitcells in one direction.
      * @param n_uc_b Number of unitcells in another direction.
      */
-    honeycomb(size_t n_uc, int n_uc_b = -1);
+    honeycomb(size_t n_uc, int n_uc_b = -1, bool full_symmetry = true);
 
     virtual std::vector<size_t> nns(size_t) const override;
 
@@ -63,6 +65,14 @@ class honeycomb : public bravais {
     virtual std::vector<
         Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
     construct_symmetry() const override;
+
+    virtual size_t symmetry_size() const override {
+        if (full_symm_) {
+            return n_total;
+        } else {
+            return Base::symmetry_size();
+        }
+    }
 
     using Base::print_lattice;
     virtual void print_lattice(const std::vector<size_t>&) const override;
@@ -73,14 +83,11 @@ class honeycomb : public bravais {
     virtual void initialize_vb(const std::string& type,
                                Eigen::MatrixXcd& v_bias) const override;
 
-#ifndef FULL_SYMMETRY
-    virtual bool has_correlators() const override { return true; }
+    virtual bool has_correlators() const override { return !full_symm_; }
 
     virtual std::vector<correlator_group> get_correlators() const override;
-#endif
 
     std::vector<std::vector<size_t>> get_hexagons() const;
-    
 };
 
 }  // namespace lattice

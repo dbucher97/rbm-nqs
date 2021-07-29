@@ -27,8 +27,9 @@ using namespace lattice;
 
 // The Honeycomb lattice is a 2 dimensional bravais lattice with 2 basis sites
 // and a coordination of three.
-honeycomb::honeycomb(size_t n_uc, int n_uc_b)
-    : Base{n_uc, 2, 2, 3, n_uc_b == -1 ? n_uc : n_uc_b} {
+honeycomb::honeycomb(size_t n_uc, int n_uc_b, bool full_symmetry)
+    : Base{n_uc, 2, 2, 3, n_uc_b == -1 ? n_uc : n_uc_b},
+      full_symm_{full_symmetry} {
     construct_bonds();
 }
 
@@ -55,59 +56,54 @@ void honeycomb::construct_bonds() {
 
 std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
 honeycomb::construct_symmetry() const {
-    // Define `p_mat`
-    typedef Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> p_mat;
-#ifdef FULL_SYMMETRY
-    std::vector<p_mat> ret(n_total);
-#else
-    std::vector<p_mat> ret(n_total_uc);
-#endif
+    if (full_symm_) {
+        // Define `p_mat`
+        typedef Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> p_mat;
+        std::vector<p_mat> ret(n_total);
 
-    // Permutation function, permutes the indices of a
-    // `Eigen::PermutationMatrix` by a respective amount.
-    //
-    // The Honeycomb lattice is translationally symmetry by translations about
-    // the unitcells and also is symmetric by 180° rotations and shift to the
-    // other basis index.
-    auto permute = [this](const std::vector<size_t>& ucs, bool s, p_mat& p) {
-        auto& indices = p.indices();
+        // Permutation function, permutes the indices of a
+        // `Eigen::PermutationMatrix` by a respective amount.
+        //
+        // The Honeycomb lattice is translationally symmetry by translations
+        // about the unitcells and also is symmetric by 180° rotations and shift 
+        // o the other basis index.
+        auto permute = [this](const std::vector<size_t>& ucs, bool s,
+                              p_mat& p) {
+            auto& indices = p.indices();
 
-        // Iterate over all indices
-        for (size_t i = 0; i < n_total; i++) {
-            size_t uc = ucs[uc_idx(i)];
+            // Iterate over all indices
+            for (size_t i = 0; i < n_total; i++) {
+                size_t uc = ucs[uc_idx(i)];
 
-            // If s == true do the 180° rotation. otherwise just return the new
-            // site_index
-            if (s) {
-                indices(i) = n_total - 1 - idx(uc, b_idx(i));
-            } else {
-                indices(i) = idx(uc, b_idx(i));
+                // If s == true do the 180° rotation. otherwise just return the 
+                // ew site_index
+                if (s) {
+                    indices(i) = n_total - 1 - idx(uc, b_idx(i));
+                } else {
+                    indices(i) = idx(uc, b_idx(i));
+                }
             }
+        };
+
+        // Iterate over all unitcell positions, i.e. all the symmetry points
+        auto uc_symm = construct_uc_symmetry();
+        for (size_t i = 0; i < n_total_uc; i++) {
+            size_t id = 2 * i;
+
+            // Initialize the permutation matrix and get the permutation for
+            // the 0th basis.
+            ret[id] = p_mat(n_total);
+            permute(uc_symm[i], false, ret[id]);
+
+            // Initialize the permutation matrix and get the permutation for
+            // the 1st basis with the 180 degree rotation.
+            ret[id + 1] = p_mat(n_total);
+            permute(uc_symm[i], true, ret[id + 1]);
         }
-    };
-
-    // Iterate over all unitcell positions, i.e. all the symmetry points
-    auto uc_symm = construct_uc_symmetry();
-    for (size_t i = 0; i < n_total_uc; i++) {
-        size_t id = i;
-
-#ifdef FULL_SYMMETRY
-        id *= 2;
-#endif
-
-        // Initialize the permutation matrix and get the permutation for
-        // the 0th basis.
-        ret[id] = p_mat(n_total);
-        permute(uc_symm[i], false, ret[id]);
-
-        // Initialize the permutation matrix and get the permutation for
-        // the 1st basis with the 180 degree rotation.
-#ifdef FULL_SYMMETRY
-        ret[id + 1] = p_mat(n_total);
-        permute(uc_symm[i], true, ret[id + 1]);
-#endif
+        return ret;
+    } else {
+        return Base::construct_symmetry();
     }
-    return ret;
 }
 
 void honeycomb::print_lattice(const std::vector<size_t>& el) const {
@@ -156,7 +152,6 @@ void honeycomb::initialize_vb(const std::string& type,
     }
 }
 
-#ifndef FULL_SYMMETRY
 std::vector<honeycomb::correlator_group> honeycomb::get_correlators() const {
     correlator_group zbonds;
     for (size_t i = 0; i < n_total_uc; i++) {
@@ -164,7 +159,6 @@ std::vector<honeycomb::correlator_group> honeycomb::get_correlators() const {
     }
     return {zbonds};
 }
-#endif
 
 std::vector<std::vector<size_t>> honeycomb::get_hexagons() const {
     std::vector<std::vector<size_t>> ret;

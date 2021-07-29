@@ -111,3 +111,44 @@ std::vector<std::vector<size_t>> bravais::construct_uc_symmetry() const {
     }
     return ret;
 }
+
+std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>>
+bravais::construct_symmetry() const {
+    using p_mat = Eigen::PermutationMatrix<Eigen::Dynamic>;
+    std::vector<p_mat> ret(n_total_uc);
+
+    // Permutation function, permutes the indices of a
+    // `Eigen::PermutationMatrix` by a respective amount.
+    //
+    auto permute = [this](const std::vector<size_t>& ucs, bool s, p_mat& p) {
+        auto& indices = p.indices();
+
+        // Iterate over all indices
+        for (size_t i = 0; i < n_total; i++) {
+            size_t uc = ucs[uc_idx(i)];
+
+            // If s == true do the 180° rotation. otherwise just return the new
+            // site_index
+            if (s) {
+                indices(i) = n_total - 1 - idx(uc, b_idx(i));
+            } else {
+                indices(i) = idx(uc, b_idx(i));
+            }
+        }
+    };
+
+    // Iterate over all unitcell positions, i.e. all the symmetry points
+    auto uc_symm = construct_uc_symmetry();
+    for (size_t i = 0; i < n_total_uc; i++) {
+        size_t id = i;
+
+        // Initialize the permutation matrix and get the permutation for
+        // the 0th basis.
+        ret[id] = p_mat(n_total);
+        permute(uc_symm[i], false, ret[id]);
+
+        // Initialize the permutation matrix and get the permutation for
+        // the 1st basis with the 180 degree rotation.
+    }
+    return ret;
+}

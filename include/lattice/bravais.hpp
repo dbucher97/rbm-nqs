@@ -181,7 +181,7 @@ class bravais {
      * @return vector of permutation matrices corresponding to the symmetries.
      */
     virtual std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>>
-    construct_symmetry() const = 0;
+    construct_symmetry() const;
 
     /**
      * @brief Constructs the uc indices for all symmetry indices.
@@ -189,6 +189,13 @@ class bravais {
      * @return Vector of uc indices vectors.
      */
     virtual std::vector<std::vector<size_t>> construct_uc_symmetry() const;
+
+    /**
+     * @brief Returns the size of the symmetry.
+     *
+     * @return size_t number of symmetry permutations
+     */
+    virtual size_t symmetry_size() const { return n_total_uc; }
 
     /**
      * @brief Check if lattice has correlators.

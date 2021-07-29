@@ -30,10 +30,10 @@ using namespace machine;
 
 rbm_base::rbm_base(size_t n_alpha, size_t n_v_bias, lattice::bravais& l,
                    size_t pop_mode, size_t cosh_mode)
-    : Base{l, n_v_bias + n_alpha + n_alpha * l.n_total},
-      n_alpha{n_alpha},
-      weights_(n_visible, n_alpha),
-      h_bias_(n_alpha, 1),
+    : Base{l, n_v_bias + (n_alpha + n_alpha * l.n_total) * n_v_bias},
+      n_alpha_{n_alpha * n_v_bias},
+      weights_(n_visible, n_alpha_),
+      h_bias_(n_alpha_, 1),
       v_bias_(n_v_bias, 1),
       n_vb_{n_v_bias},
       psi_{pop_mode == 0 ? &rbm_base::psi_default : &rbm_base::psi_alt},
@@ -67,7 +67,7 @@ void rbm_base::initialize_weights(std::mt19937& rng, double std_dev,
             v_bias_(i) = std::complex<double>(real_dist(rng), imag_dist(rng));
         }
     }
-    for (size_t i = 0; i < n_alpha; i++) {
+    for (size_t i = 0; i < n_alpha_; i++) {
         h_bias_(i) = std::complex<double>(real_dist(rng), imag_dist(rng));
         for (size_t j = 0; j < n_visible; j++) {
             weights_(j, i) =
@@ -83,11 +83,12 @@ void rbm_base::initialize_weights(std::mt19937& rng, double std_dev,
 void rbm_base::update_weights(const Eigen::MatrixXcd& dw) {
     // Update the weights with the `dw` of size `n_params`
     v_bias_ -= dw.block(0, 0, n_vb_, 1);
-    h_bias_ -= dw.block(n_vb_, 0, n_alpha, 1);
+    h_bias_ -= dw.block(n_vb_, 0, n_alpha_, 1);
     // Turn vector of size `n_alpha` * `n_visible` into matrix `n_alpha` x
     // `n_visible`
-    Eigen::MatrixXcd dww = dw.block(n_vb_ + n_alpha, 0, n_alpha * n_visible, 1);
-    weights_ -= Eigen::Map<Eigen::MatrixXcd>(dww.data(), n_visible, n_alpha);
+    Eigen::MatrixXcd dww =
+        dw.block(n_vb_ + n_alpha_, 0, n_alpha_ * n_visible, 1);
+    weights_ -= Eigen::Map<Eigen::MatrixXcd>(dww.data(), n_visible, n_alpha_);
 
     size_t offset = n_params_;
     for (auto& c : correlators_) {
@@ -140,11 +141,11 @@ Eigen::MatrixXcd rbm_base::derivative(const Eigen::MatrixXcd& state,
     // Eigen::MatrixXcd tanh = thetas.array().tanh();
     Eigen::MatrixXcd tanh = (*tanh_)(context.thetas);
 
-    result.block(n_vb_, 0, n_alpha, 1) = tanh;
+    result.block(n_vb_, 0, n_alpha_, 1) = tanh;
     Eigen::MatrixXcd x = state * tanh.transpose();
     // Transform weights matrix into a vector.
-    result.block(n_vb_ + n_alpha, 0, n_alpha * n_visible, 1) =
-        Eigen::Map<Eigen::MatrixXcd>(x.data(), n_alpha * n_visible, 1);
+    result.block(n_vb_ + n_alpha_, 0, n_alpha_ * n_visible, 1) =
+        Eigen::Map<Eigen::MatrixXcd>(x.data(), n_alpha_ * n_visible, 1);
 
     size_t offset = n_params_;
     for (auto& c : correlators_) c->derivative(state, tanh, result, offset);
@@ -202,7 +203,7 @@ bool rbm_base::load(const std::string& name) {
 }
 
 void rbm_base::add_correlator(const std::vector<std::vector<size_t>>& corr) {
-    correlators_.push_back(std::make_unique<correlator>(corr, n_alpha));
+    correlators_.push_back(std::make_unique<correlator>(corr, n_alpha_));
 }
 
 std::complex<double> rbm_base::psi_notheta(

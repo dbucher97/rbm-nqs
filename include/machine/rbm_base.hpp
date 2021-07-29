@@ -31,7 +31,7 @@ class rbm_base : public abstract_machine {
     using Base = abstract_machine;
 
    public:
-    const size_t n_alpha;  ///< Number of hidden units.
+    const size_t n_alpha_;  ///< Number of hidden units.
 
    protected:
     Eigen::MatrixXcd weights_;  ///< The weights matrix.

@@ -28,19 +28,12 @@ using namespace machine;
 
 rbm_symmetry::rbm_symmetry(size_t n_alpha, lattice::bravais& l, size_t pop_mode,
                            size_t cosh_mode)
-    : Base{n_alpha,
-#ifndef FULL_SYMMETRY
-           l.n_basis,
-#else
-           1,
-#endif
-           l, pop_mode, cosh_mode},
-      symmetry_{lattice_.construct_symmetry()} {
-}
+    : Base{n_alpha, l.n_total / l.symmetry_size(), l, pop_mode, cosh_mode},
+      symmetry_{lattice_.construct_symmetry()} {}
 
 rbm_context rbm_symmetry::get_context(const Eigen::MatrixXcd& state) const {
     // Get thetas with symmetries involved
-    Eigen::MatrixXcd ret(n_alpha, symmetry_.size());
+    Eigen::MatrixXcd ret(n_alpha_, symmetry_.size());
     for (size_t s = 0; s < symmetry_.size(); s++) {
         ret.col(s) = weights_.transpose() * (symmetry_[s] * state) + h_bias_;
         for (auto& c : correlators_) c->add_thetas(state, ret, s);
@@ -62,7 +55,16 @@ void rbm_symmetry::update_context(const Eigen::MatrixXcd& state,
         c->get_cidxs_from_flips(flips, cidxs);
     }
 
+    // for (const auto& f : flips) {
+    // Eigen::PermutationMatrix<Eigen::Dynamic> p_mat(symmetry_.size());
+    // for (size_t s = 0; s < symmetry_.size(); s++) {
+    //     p_mat.indices()(s) = symmetry_[s].indices()(f);
+    // }
+    // thetas.noalias() -= 2. * state(f) * (weights_.transpose() * p_mat);
+    // }
     for (size_t s = 0; s < symmetry_.size(); s++) {
+        // Possibility for speedup thetas - perm matrix weights.transpose()
+        // state
         for (auto& f : flips) {
             thetas.col(s) -=
                 2 * weights_.row(symmetry_[s].indices()(f)).transpose() *
@@ -81,23 +83,19 @@ void rbm_symmetry::update_context(const Eigen::MatrixXcd& state,
 Eigen::MatrixXcd rbm_symmetry::derivative(const Eigen::MatrixXcd& state,
                                           const rbm_context& context) const {
     Eigen::MatrixXcd result = Eigen::MatrixXcd::Zero(get_n_params(), 1);
-#ifndef FULL_SYMMETRY
     result.block(0, 0, n_vb_, 1) = Eigen::Map<const Eigen::MatrixXcd>(
                                        state.data(), n_vb_, lattice_.n_total_uc)
                                        .rowwise()
                                        .sum();
-#else
-    result(0) = state.sum();
-#endif
     // Same as baseclass
     // Eigen::MatrixXcd tanh = thetas.array().tanh();
     Eigen::MatrixXcd tanh = (*tanh_)(context.thetas);
-    result.block(n_vb_, 0, n_alpha, 1) = tanh.rowwise().sum();
-    size_t n_tot = n_visible * n_alpha;
+    result.block(n_vb_, 0, n_alpha_, 1) = tanh.rowwise().sum();
+    size_t n_tot = n_visible * n_alpha_;
     // Symmetries involved
     for (size_t s = 0; s < symmetry_.size(); s++) {
         Eigen::MatrixXcd x = (symmetry_[s] * state) * tanh.col(s).transpose();
-        result.block(n_vb_ + n_alpha, 0, n_tot, 1) +=
+        result.block(n_vb_ + n_alpha_, 0, n_tot, 1) +=
             Eigen::Map<Eigen::MatrixXcd>(x.data(), n_tot, 1);
     }
 
@@ -109,21 +107,17 @@ Eigen::MatrixXcd rbm_symmetry::derivative(const Eigen::MatrixXcd& state,
 void rbm_symmetry::add_correlator(
     const std::vector<std::vector<size_t>>& corr) {
     auto symm = lattice_.construct_uc_symmetry();
-    correlators_.push_back(std::make_unique<correlator>(corr, n_alpha, symm));
+    correlators_.push_back(std::make_unique<correlator>(corr, n_alpha_, symm));
 }
 
 std::complex<double> rbm_symmetry::psi_notheta(
     const Eigen::MatrixXcd& state) const {
-#ifndef FULL_SYMMETRY
     auto vbias_part =
         v_bias_.array() * Eigen::Map<const Eigen::MatrixXcd>(
                               state.data(), n_vb_, lattice_.n_total_uc)
                               .rowwise()
                               .sum()
                               .array();
-#else
-    auto vbias_part = v_bias_(0) * state;
-#endif
     return vbias_part.array().exp().prod();
 }
 

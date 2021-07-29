@@ -47,11 +47,11 @@ size_t n_cells = 2;
 int n_cells_b = -1;
 coupling_t J = {{-1.}};
 double helper_strength = 0.;
+bool full_symm = true;
 
 // RBM
 rbm_t rbm = BASIC;
-size_t n_hidden = 3;
-double alpha = 0.;
+size_t alpha = 1;
 bool rbm_force = false;
 size_t rbm_pop_mode = 0;
 size_t rbm_cosh_mode = 0;
@@ -143,9 +143,9 @@ int ini::load(int argc, char* argv[]) {
     ("model.n_cells_b",                       po::value(&n_cells_b),                        "set number of unit cells in another dimension (if set to -1, use n_cells)")
     ("model.J",                               po::value(&J)->multitoken(),                                "Interaction strength")
     ("model.helper_strength",                 po::value(&helper_strength),                  "Helper Hamiltonian strength")
+    ("model.full_symmetry",                   po::value(&full_symm),                        "Use Honeycomb full symmetry")
     // RBM
     ("rbm.type",                              po::value(&rbm),                              "set rbm type")
-    ("rbm.n_hidden",                          po::value(&n_hidden),                         "set number of hidden units")
     ("rbm.alpha",                             po::value(&alpha),                            "set number of hidden units = alpha * n_visbile")
     ("rbm.force,f",                           po::bool_switch(&rbm_force),                  "force retraining of RBM")
     ("rbm.weights",                           po::value(&rbm_weights),                      "set stddev for weights initialization")
@@ -206,7 +206,7 @@ int ini::load(int argc, char* argv[]) {
         // Generate a name `n[n_cells]_h[rbm.n_hidden]` if not set.
         if (!vm.count("name")) {
             std::ostringstream oss;
-            oss << "n" << n_cells << "_h" << n_hidden;
+            oss << "n" << n_cells << "_a" << alpha;
             name = oss.str();
         }
 

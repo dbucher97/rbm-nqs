@@ -154,11 +154,11 @@ extern size_t n_cells;
 extern int n_cells_b;
 extern coupling_t J;
 extern double helper_strength;
+extern bool full_symm;
 
 // RBM
 extern rbm_t rbm;
-extern size_t n_hidden;
-extern double alpha;  // Overrides n_hidden
+extern size_t alpha;  // Overrides n_hidden
 extern bool rbm_force;
 extern double rbm_weights;
 extern double rbm_weights_imag;
