@@ -107,8 +107,10 @@ def plot_state(*states):
     plt.plot(range(len(states[0])), *[np.abs(state) for state in states])
 
 
-def solve_op(op, k=6):
+def solve_op(op, k=6, all_vals=False):
     w, v = linalg.eigs(op, k=k)
+    if all_vals:
+        return w, v
     print(w)
     e0 = min(w)
     v = v[:, np.abs(w - e0) < 1e-10].T
