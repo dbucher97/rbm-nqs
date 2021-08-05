@@ -58,7 +58,6 @@ class pfaffian {
     inline std::complex<double> psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
         pfaff_context& updated_context) const {
-        update_context(state, flips, updated_context);
         return updated_context.update_factor;
     }
 
@@ -70,6 +69,8 @@ class pfaffian {
 
     void save(std::ofstream& output);
     void load(std::ifstream& input);
+
+    bool load_from_pfaffian_psi(const std::string& filename);
     /* Eigen::MatrixXi& get_bs() { return bs_; }
     Eigen::MatrixXi& get_ss() { return ss_; } */
 

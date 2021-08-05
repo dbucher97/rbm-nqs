@@ -25,8 +25,10 @@ using namespace optimizer;
 gradient_descent::gradient_descent(machine::abstract_machine& rbm,
                                    sampler::abstract_sampler& sampler,
                                    operators::base_op& hamiltonian,
-                                   const ini::decay_t& lr, double real_factor)
-    : Base{rbm, sampler, hamiltonian, lr},
+                                   const ini::decay_t& lr, double real_factor,
+                                   bool resample, double alpha1, double alpha2,
+                                   double alpha3)
+    : Base{rbm, sampler, hamiltonian, lr, resample, alpha1, alpha2, alpha3},
       // Initialize SR aggregators
       a_dh_{derivative_, hamiltonian_},
       real_factor_{real_factor} {}

@@ -55,15 +55,14 @@ class stochastic_reconfiguration : public abstract_optimizer {
      * true).
      * @param max_iterations Number of max iterations for iterative scheme
      */
-    stochastic_reconfiguration(machine::abstract_machine& rbm,
-                               sampler::abstract_sampler& sampler,
-                               operators::base_op& hamiltonian,
-                               const ini::decay_t& learning_rate,
-                               const ini::decay_t& regularization1,
-                               const ini::decay_t& regularization2,
-                               const ini::decay_t& regularization1delta,
-                               bool iterative = true, size_t max_iterations = 0,
-                               double rtol = 0.0);
+    stochastic_reconfiguration(
+        machine::abstract_machine& rbm, sampler::abstract_sampler& sampler,
+        operators::base_op& hamiltonian, const ini::decay_t& learning_rate,
+        const ini::decay_t& regularization1,
+        const ini::decay_t& regularization2,
+        const ini::decay_t& regularization1delta, bool iterative = true,
+        size_t max_iterations = 0, double rtol = 0.0, bool resample = false,
+        double alpha1 = 2, double alpha2 = 5, double alpha3 = 6);
 
     virtual void register_observables() override;
 

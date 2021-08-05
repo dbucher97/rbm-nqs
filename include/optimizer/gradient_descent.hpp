@@ -47,8 +47,9 @@ class gradient_descent : public abstract_optimizer {
     gradient_descent(machine::abstract_machine& rbm,
                      sampler::abstract_sampler& sampler,
                      operators::base_op& hamiltonian,
-                     const ini::decay_t& learning_rate,
-                     double real_factor = 1.);
+                     const ini::decay_t& learning_rate, double real_factor = 1.,
+                     bool resample = false, double alpha1 = 2,
+                     double alpha2 = 5, double alpha3 = 6);
 
     virtual void register_observables() override;
 

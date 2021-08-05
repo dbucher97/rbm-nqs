@@ -17,9 +17,9 @@
 
 #pragma once
 
-#include <memory>
 #include <Eigen/Sparse>
 #include <complex>
+#include <memory>
 //
 #include <lattice/bravais.hpp>
 #include <operators/bond_op.hpp>

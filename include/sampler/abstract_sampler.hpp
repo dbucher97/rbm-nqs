@@ -114,6 +114,13 @@ class abstract_sampler {
      * @return Number of samples
      */
     size_t get_n_samples();
+
+    /**
+     * @brief Set number of samples
+     *
+     * @param Number of samples
+     */
+    void set_n_samples(size_t samples);
 };
 
 }  // namespace sampler

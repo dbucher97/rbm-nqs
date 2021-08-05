@@ -534,9 +534,13 @@ int main(int argc, char* argv[]) {
     if (ini::rbm_force || !rbm->load(ini::name)) {
         rbm->initialize_weights(rng, ini::rbm_weights, ini::rbm_weights_imag,
                                 ini::rbm_weights_init_type);
-        if (pfaff)
-            pfaff->init_weights(rng, ini::rbm_pfaffian_weights,
-                                ini::rbm_pfaffian_normalize);
+        if (pfaff) {
+            if (ini::rbm_pfaffian_load.empty() ||
+                !pfaff->load_from_pfaffian_psi(ini::rbm_pfaffian_load)) {
+                pfaff->init_weights(rng, ini::rbm_pfaffian_weights,
+                                    ini::rbm_pfaffian_normalize);
+            }
+        }
     }
 
     std::unique_ptr<sampler::abstract_sampler> sampler;
@@ -563,12 +567,15 @@ int main(int argc, char* argv[]) {
                 *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr,
                 ini::opt_sr_reg1, ini::opt_sr_reg2, ini::opt_sr_deltareg1,
                 ini::opt_sr_iterative, ini::opt_sr_max_iterations,
-                ini::opt_sr_rtol);
+                ini::opt_sr_rtol, ini::opt_resample, ini::opt_resample_alpha1,
+                ini::opt_resample_alpha2, ini::opt_resample_alpha3);
             break;
         case ini::optimizer_t::SGD:
             optimizer = std::make_unique<optimizer::gradient_descent>(
                 *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr,
-                ini::opt_sgd_real_factor);
+                ini::opt_sgd_real_factor, ini::opt_resample,
+                ini::opt_resample_alpha1, ini::opt_resample_alpha2,
+                ini::opt_resample_alpha3);
             break;
         default:
             return 1;
@@ -639,11 +646,15 @@ int main(int argc, char* argv[]) {
             std::cout << std::endl;
         }
 
+        std::cout << optimizer->get_total_resamples() << std::endl;
+
         rbm->save(ini::name);
     }
     if (ini::evaluate) {
         sampler->clear_ops();
         sampler->clear_aggs();
+        if (ini::sa_eval_samples != 0)
+            sampler->set_n_samples(ini::sa_eval_samples);
         model::SparseXcd plaq_op =
             model::kron({model::sx(), model::sy(), model::sz(), model::sx(),
                          model::sy(), model::sz()});
@@ -652,8 +663,8 @@ int main(int argc, char* argv[]) {
         std::vector<operators::aggregator*> aggs;
         std::vector<operators::base_op*> ops;
         for (auto& h : hex) {
-            for (auto& x : h) std::cout << x << ", ";
-            std::cout << std::endl;
+            // for (auto& x : h) std::cout << x << ", ";
+            // std::cout << std::endl;
 
             operators::local_op* op = new operators::local_op(h, plaq_op);
             operators::aggregator* agg = new operators::aggregator(*op);
@@ -664,6 +675,7 @@ int main(int argc, char* argv[]) {
         sampler->register_ops(ops);
         sampler->register_aggs(aggs);
 
+        model->remove_helper_hamiltoian();
         auto& h = model->get_hamiltonian();
         operators::aggregator ah(h);
         ah.track_variance();
@@ -672,12 +684,22 @@ int main(int argc, char* argv[]) {
 
         sampler->sample();
 
+        std::cout << "BEGIN OUTPUT" << std::endl;
+        std::cout.precision(16);
         for (size_t i = 0; i < hex.size(); i++) {
             std::cout << aggs[i]->get_result() << std::endl;
         }
 
         std::cout << ah.get_result() / rbm->n_visible << std::endl;
-        std::cout << ah.get_variance() / rbm->n_visible << std::endl;
+        std::cout << std::sqrt(ah.get_variance()(0)) / rbm->n_visible
+                  << std::endl;
+        if (ini::sa_type == ini::sampler_t::METROPOLIS) {
+            std::cout << dynamic_cast<sampler::metropolis_sampler*>(
+                             sampler.get())
+                             ->get_acceptance_rate()
+                      << std::endl;
+        }
+        std::cout << "END OUTPUT" << std::endl;
     }
 
     // std::ofstream ws{"weights/weights_" + ini::name + ".txt"};

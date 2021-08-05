@@ -35,8 +35,9 @@ stochastic_reconfiguration::stochastic_reconfiguration(
     machine::abstract_machine& rbm, sampler::abstract_sampler& sampler,
     operators::base_op& hamiltonian, const ini::decay_t& lr,
     const ini::decay_t& kp1, const ini::decay_t& kp2, const ini::decay_t& kp1d,
-    bool iterative, size_t max_iterations, double rtol)
-    : Base{rbm, sampler, hamiltonian, lr},
+    bool iterative, size_t max_iterations, double rtol, bool resample,
+    double alpha1, double alpha2, double alpha3)
+    : Base{rbm, sampler, hamiltonian, lr, resample, alpha1, alpha2, alpha3},
       // Initialize SR aggregators
       iterative_{iterative},
       max_iterations_{max_iterations},

@@ -89,9 +89,13 @@ class abstract_optimizer {
     decay_t lr_;                   ///< Learing rate
     base_plugin* plug_ = nullptr;  ///< Pointer to the Plugin
 
+    bool resample_;
+    double alpha1_, alpha2_, alpha3_;
+
     std::complex<double> last_energy_ = 0;
     double last_energy_std_ = -1;
     Eigen::MatrixXcd last_update_;
+    size_t total_resamples_ = 0;
 
     /**
      * @brief Protected Abstract optimizer constructor.
@@ -104,7 +108,8 @@ class abstract_optimizer {
     abstract_optimizer(machine::abstract_machine& rbm,
                        sampler::abstract_sampler& sampler,
                        operators::base_op& hamiltonian,
-                       const ini::decay_t& learning_rate);
+                       const ini::decay_t& learning_rate, bool resample = false,
+                       double alpha1 = 2, double alpha2 = 5, double alpha3 = 6);
 
    public:
     /**
@@ -145,5 +150,7 @@ class abstract_optimizer {
      * @return current energy of `a_h_`.
      */
     double get_current_energy();
+
+    size_t get_total_resamples() { return total_resamples_; }
 };
 }  // namespace optimizer

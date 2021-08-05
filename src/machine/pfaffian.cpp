@@ -194,5 +194,31 @@ void pfaffian::update_weights(const Eigen::MatrixXcd& dw, size_t& offset) {
     offset += get_n_params();
 }
 
-void pfaffian::load(std::ifstream& input) { input >> fs_; }
-void pfaffian::save(std::ofstream& output) { output << fs_; }
+void pfaffian::load(std::ifstream& input) {
+    input >> fs_;
+    // std::cout << fs_ << std::endl;
+}
+void pfaffian::save(std::ofstream& output) {
+    output << fs_;
+    // std::cout << fs_ << std::endl;
+}
+
+bool pfaffian::load_from_pfaffian_psi(const std::string& filename) {
+    std::ifstream input{filename + ".rbm", std::ios::binary};
+    if (input.good()) {
+        // Read the n_updates_ from the inputstream.
+        int n_updates;
+        input.read((char*)&n_updates, sizeof(size_t));
+
+        load(input);
+
+        input.close();
+
+        // Give a status update.
+        std::cout << "Loaded Pfaffian from '" << filename << ".rbm'!"
+                  << std::endl;
+        return true;
+    } else {
+        return false;
+    }
+}

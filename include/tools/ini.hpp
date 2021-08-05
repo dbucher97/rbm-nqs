@@ -171,6 +171,7 @@ extern size_t rbm_pfaffian_symmetry;
 extern bool rbm_pfaffian_normalize;
 extern double rbm_pfaffian_weights;
 extern std::string rbm_file_name;
+extern std::string rbm_pfaffian_load;
 
 // Sampler
 extern sampler_t sa_type;
@@ -178,6 +179,7 @@ extern size_t sa_metropolis_n_chains;
 extern size_t sa_metropolis_n_steps_per_sample;
 extern size_t sa_metropolis_n_warmup_steps;
 extern size_t sa_n_samples;
+extern size_t sa_eval_samples;
 extern size_t sa_full_n_parallel_bits;
 extern std::string sa_exact_gs_file;
 extern bool sa_metropolis_bond_flips;
@@ -198,6 +200,10 @@ extern double opt_adam_beta2;
 extern double opt_adam_eps;
 extern double opt_mom_alpha;
 extern double opt_heun_eps;
+extern bool opt_resample;
+extern double opt_resample_alpha1;
+extern double opt_resample_alpha2;
+extern double opt_resample_alpha3;
 
 // Train
 extern size_t n_epochs;

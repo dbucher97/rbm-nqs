@@ -111,7 +111,9 @@ class rbm_base : public abstract_machine {
         const Eigen::MatrixXcd& state,
         const rbm_context& context) const override {
         std::complex<double> ret = 1.;
-        if (pfaffian_) ret = pfaffian_->psi(state, context.pfaff());
+        if (pfaffian_) {
+            ret = pfaffian_->psi(state, context.pfaff());
+        }
         return ret * (this->*psi_)(state, context);
     }
 
@@ -120,13 +122,13 @@ class rbm_base : public abstract_machine {
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
         const rbm_context& context,
         rbm_context& updated_context) const override {
-        std::complex<double> ret = 1.;
-        if (pfaffian_)
-            ret =
+        std::complex<double> ret =
+            (this->*psi_over_psi_)(state, flips, context, updated_context);
+        if (pfaffian_) {
+            ret *=
                 pfaffian_->psi_over_psi(state, flips, updated_context.pfaff());
-
-        return ret *
-               (this->*psi_over_psi_)(state, flips, context, updated_context);
+        }
+        return ret;
     }
 
     virtual bool save(const std::string& name) final;

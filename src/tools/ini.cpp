@@ -64,10 +64,12 @@ size_t rbm_pfaffian_symmetry = 0;
 bool rbm_pfaffian_normalize = false;
 double rbm_pfaffian_weights = 0.1;
 std::string rbm_file_name = "";
+std::string rbm_pfaffian_load = "";
 
 // Sampler
 sampler_t sa_type = METROPOLIS;
 size_t sa_n_samples = 1000;
+size_t sa_eval_samples = 0;
 size_t sa_metropolis_n_chains = 16;
 size_t sa_metropolis_n_warmup_steps = 100;
 size_t sa_metropolis_n_steps_per_sample = 10;
@@ -91,6 +93,10 @@ bool opt_sr_iterative = false;
 size_t opt_sr_max_iterations = 0;
 double opt_sr_rtol = 0.;
 double opt_heun_eps = 1e-3;
+bool opt_resample = false;
+double opt_resample_alpha1 = 2;
+double opt_resample_alpha2 = 5;
+double opt_resample_alpha3 = 6;
 
 // Train
 size_t n_epochs = 600;
@@ -159,9 +165,11 @@ int ini::load(int argc, char* argv[]) {
     ("rbm.pfaffian.weights",                  po::value(&rbm_pfaffian_weights),             "stdev of pfaffian parameters")
     ("rbm.pfaffian.normalize",                po::value(&rbm_pfaffian_normalize),           "normalize pfaffian parameters to pfaffian prop to 1")
     ("rbm.file.name",                         po::value(&rbm_file_name),                    "specify the filename of the quantum state")
+    ("rbm.pfaffian.load",                     po::value(&rbm_pfaffian_load),                "specify name of a already trained rbm file of type pfaffian to load into this")
     // Sampler
     ("sampler.type",                          po::value(&sa_type),                          "set sampler type")
     ("sampler.n_samples",                     po::value(&sa_n_samples),                     "set sampler n sampler (metropolis only)")
+    ("sampler.eval_samples",                  po::value(&sa_eval_samples),                  "set sampler n sampler (metropolis only) for evaluation")
     ("sampler.full.n_parallel_bits",          po::value(&sa_full_n_parallel_bits),          "set number of bits executed in parallel in full sampling")
     ("sampler.metropolis.n_chains",           po::value(&sa_metropolis_n_chains),           "set number of MCMC chains in Metropolis sampling")
     ("sampler.metropolis.n_warmup_steps",     po::value(&sa_metropolis_n_warmup_steps),     "set number of MCMC warmup steps")
@@ -184,6 +192,10 @@ int ini::load(int argc, char* argv[]) {
     ("optimizer.adam.eps",                    po::value(&opt_adam_eps),                     "set ADAM plug eps")
     ("optimizer.mom.alpha",                   po::value(&opt_mom_alpha),                    "set momentum plug alpha")
     ("optimizer.heun.eps",                    po::value(&opt_heun_eps),                     "set heun plug epsilon")
+    ("optimizer.resample",                    po::value(&opt_resample),                     "resample if certain conditions on energy / variance are not fullfilled")
+    ("optimizer.resample.alpha1",             po::value(&opt_resample_alpha1),              "resample condition: energy difference smapller than alpha1")
+    ("optimizer.resample.alpha2",             po::value(&opt_resample_alpha2),              "resample condition: imaginary energy samller than alpha2 * variance")
+    ("optimizer.resample.alpha3",             po::value(&opt_resample_alpha3),              "resample condition: variance ratio samller than alpha3")
     // Train
     ("n_epochs,e",                            po::value(&n_epochs),                         "set number of epochs for training");
         // clang-format on

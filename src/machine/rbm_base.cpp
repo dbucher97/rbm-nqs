@@ -248,7 +248,10 @@ std::complex<double> rbm_base::log_psi_over_psi(
 
     // Caclulate the diffrenece of the lncoshs, which is the same as the log
     // of the ratio of coshes.
-    ret += math::lncoshdiff(updated_context.thetas, context.thetas);
+    // ret += math::lncoshdiff(updated_context.thetas, context.thetas);
+    ret += (updated_context.thetas.array().cosh().log() -
+            context.thetas.array().cosh().log())
+               .sum();
 
     return ret;
 }
