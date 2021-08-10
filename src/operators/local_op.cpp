@@ -31,7 +31,7 @@ local_op::local_op(const std::vector<size_t>& acts_on, const SparseXcd& op)
 
 void local_op::evaluate(machine::abstract_machine& rbm,
                         const Eigen::MatrixXcd& state,
-                        const machine::rbm_context& context) {
+                        machine::rbm_context& context) {
     typedef Eigen::SparseVector<std::complex<double>> SpVec;
     // Get the result of the current thread
     auto& result = get_result_();

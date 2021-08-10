@@ -117,6 +117,7 @@ void full_sampler::sample(bool keep_state) {
 
                 // Update \thetas and state
                 rbm_.update_context(state, {flip}, context);
+                context.reset_cosh();
                 state(flip) *= -1;
             }
         }

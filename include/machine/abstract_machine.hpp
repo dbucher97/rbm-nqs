@@ -180,7 +180,7 @@ class abstract_machine {
      * @return \psi(\sigma)
      */
     virtual std::complex<double> psi(const Eigen::MatrixXcd& state,
-                                     const rbm_context& context) const = 0;
+                                     rbm_context& context) const = 0;
 
     /**
      * @brief Computes the ratio of \psi with some spins. Function pointer
@@ -196,7 +196,7 @@ class abstract_machine {
      */
     virtual std::complex<double> psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const rbm_context& context, rbm_context& updated_context) const = 0;
+        rbm_context& context, rbm_context& updated_context) const = 0;
 
     /**
      * @brief Computes ratio of \psi with some spins flipped to the
@@ -210,7 +210,7 @@ class abstract_machine {
      */
     inline std::complex<double> psi_over_psi(const Eigen::MatrixXcd& state,
                                              const std::vector<size_t>& flips,
-                                             const rbm_context& context) const {
+                                             rbm_context& context) const {
         rbm_context updated_context = context;
         return psi_over_psi(state, flips, context, updated_context);
     }

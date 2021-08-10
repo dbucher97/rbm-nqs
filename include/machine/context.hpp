@@ -19,8 +19,8 @@
 #pragma once
 
 #include <Eigen/Dense>
-#include <memory>
 #include <iostream>
+#include <memory>
 
 namespace machine {
 
@@ -39,12 +39,18 @@ struct pfaff_context {
     pfaff_context& operator=(const pfaff_context& other);
 
     pfaff_context& operator=(pfaff_context&& other);
-
 };
 
 struct rbm_context {
     Eigen::MatrixXcd thetas;
 
+   private:
+    bool did_coshthetas_ = false;
+    Eigen::ArrayXXcd coshthetas_;
+    bool did_lncoshthetas_ = false;
+    Eigen::ArrayXXcd lncoshthetas_;
+
+   public:
     rbm_context() {}
 
     rbm_context(const Eigen::MatrixXcd& thetas);
@@ -58,6 +64,11 @@ struct rbm_context {
     pfaff_context& pfaff();
 
     const pfaff_context& pfaff() const;
+
+    Eigen::ArrayXXcd& coshthetas();
+    Eigen::ArrayXXcd& lncoshthetas();
+
+    void reset_cosh();
 
    private:
     std::unique_ptr<pfaff_context> pfaff_;

@@ -78,7 +78,7 @@ class base_op {
      */
     virtual void evaluate(machine::abstract_machine& rbm,
                           const Eigen::MatrixXcd& state,
-                          const machine::rbm_context& context){};
+                          machine::rbm_context& context){};
 
     /**
      * @brief Checks if operator is scalar

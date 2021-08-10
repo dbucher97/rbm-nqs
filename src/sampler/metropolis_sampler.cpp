@@ -26,6 +26,7 @@
 #include <operators/base_op.hpp>
 #include <sampler/metropolis_sampler.hpp>
 #include <tools/logger.hpp>
+#include <tools/time_keeper.hpp>
 
 using namespace sampler;
 
@@ -97,6 +98,8 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
     // Do the Metropolis sampling
     for (size_t step = 0; step < total_steps; step++) {
         // Get the flips vector by randomly selecting one site.
+        time_keeper::start("Metropolis step");
+
         flips.clear();
         // With probability 1/2 flip a second site.
         if (bond_flips_ && u_dist_(rng_) < 0.5) {
@@ -110,6 +113,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
         // Calculate the probability of changing to new configuration
         double acc = std::pow(
             std::abs(rbm_.psi_over_psi(state, flips, context, new_context)), 2);
+
         // Accept new configuration with given probability
         if (u_dist_(rng_) < acc) {
             context = new_context;
@@ -117,17 +121,23 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
             for (auto& flip : flips) state(flip) *= -1;
         }
 
+        time_keeper::end("Metropolis step");
+
         // If a sample is required
         if ((step >= warmup_steps_) &&
             ((step - warmup_steps_) % step_size_ == 0)) {
             // Evaluate oprators
+            time_keeper::start("Evaluate");
             for (auto op : ops_) {
                 op->evaluate(rbm_, state, context);
             }
+            time_keeper::end("Evaluate");
             // Evaluate aggregators
+            time_keeper::start("Aggregate");
             for (auto agg : aggs_) {
                 agg->aggregate();
             }
+            time_keeper::end("Aggregate");
             // thetas = rbm_.get_thetas(state);
         }
     }

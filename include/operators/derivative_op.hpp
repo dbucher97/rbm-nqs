@@ -41,7 +41,7 @@ class derivative_op : public base_op {
     derivative_op(size_t n_params);
 
     virtual void evaluate(machine::abstract_machine&, const Eigen::MatrixXcd&,
-                          const machine::rbm_context&) override;
+                          machine::rbm_context&) override;
 };
 
 }  // namespace operators
