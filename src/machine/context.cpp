@@ -24,15 +24,13 @@ pfaff_context::pfaff_context(const pfaff_context& other)
     : inv{other.inv},
       pfaff{other.pfaff},
       update_factor{other.update_factor},
-      exp{other.exp} {
-}
+      exp{other.exp} {}
 
 pfaff_context::pfaff_context(pfaff_context&& other) noexcept
     : inv{std::move(other.inv)},
       pfaff{std::move(other.pfaff)},
       update_factor{std::move(other.update_factor)},
-      exp{std::move(other.exp)} {
-}
+      exp{std::move(other.exp)} {}
 
 pfaff_context& pfaff_context::operator=(const pfaff_context& other) {
     inv = other.inv;
@@ -70,6 +68,10 @@ rbm_context::rbm_context(const rbm_context& other) {
 rbm_context& rbm_context::operator=(rbm_context& other) {
     std::swap(thetas, other.thetas);
     std::swap(pfaff_, other.pfaff_);
+    std::swap(lncoshthetas_, other.lncoshthetas_);
+    std::swap(coshthetas_, other.coshthetas_);
+    std::swap(did_lncoshthetas_, other.did_lncoshthetas_);
+    std::swap(did_coshthetas_, other.did_coshthetas_);
     return *this;
 }
 
@@ -79,3 +81,24 @@ pfaff_context& rbm_context::pfaff() {
 }
 
 const pfaff_context& rbm_context::pfaff() const { return *pfaff_; }
+
+Eigen::ArrayXXcd& rbm_context::coshthetas() {
+    if (!did_coshthetas_) {
+        did_coshthetas_ = true;
+        coshthetas_ = thetas.array().cosh();
+    }
+    return coshthetas_;
+}
+
+Eigen::ArrayXXcd& rbm_context::lncoshthetas() {
+    if (!did_lncoshthetas_) {
+        did_lncoshthetas_ = true;
+        lncoshthetas_ = coshthetas().log();
+    }
+    return lncoshthetas_;
+}
+
+void rbm_context::reset_cosh() {
+    did_lncoshthetas_ = false;
+    did_coshthetas_ = false;
+}

@@ -29,7 +29,7 @@ local_op_chain::local_op_chain(const std::vector<local_op>& ops)
 
 void local_op_chain::evaluate(machine::abstract_machine& rbm,
                               const Eigen::MatrixXcd& state,
-                              const machine::rbm_context& context) {
+                              machine::rbm_context& context) {
     auto& result = get_result_();
     result.setZero();
     for (auto& op : ops_) {

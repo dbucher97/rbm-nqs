@@ -38,8 +38,9 @@ class rbm_symmetry : public rbm_base {
      * @brief The vector of Permutations Matrices which are eqivalent to the
      * translational symmetry of the lattice.
      */
-    std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
-        symmetry_;
+    std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>> symmetry_;
+
+    std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>> reverse_symm_;
 
    public:
     rbm_symmetry(size_t, lattice::bravais&, size_t pop_mode = 0,
@@ -51,8 +52,8 @@ class rbm_symmetry : public rbm_base {
         const Eigen::MatrixXcd& state) const override;
 
     virtual void update_context(const Eigen::MatrixXcd& state,
-                               const std::vector<size_t>& flips,
-                               rbm_context& context) const override;
+                                const std::vector<size_t>& flips,
+                                rbm_context& context) const override;
 
     virtual Eigen::MatrixXcd derivative(
         const Eigen::MatrixXcd& state,
@@ -67,13 +68,11 @@ class rbm_symmetry : public rbm_base {
 
     virtual std::complex<double> log_psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const rbm_context& context,
-        rbm_context& updated_context) const override;
+        rbm_context& context, rbm_context& updated_context) const override;
 
     virtual std::complex<double> psi_over_psi_alt(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const rbm_context& context,
-        rbm_context& updated_context) const override;
+        rbm_context& context, rbm_context& updated_context) const override;
 };
 
 }  // namespace machine

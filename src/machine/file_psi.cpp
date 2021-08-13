@@ -44,13 +44,13 @@ file_psi::file_psi(lattice::bravais& lattice, const std::string& filename)
 }
 
 std::complex<double> file_psi::psi(const Eigen::MatrixXcd& state,
-                                   const rbm_context&) const {
+                                   rbm_context&) const {
     return state_vec_(tools::state_to_num(state));
 }
 
 std::complex<double> file_psi::psi_over_psi(const Eigen::MatrixXcd& state,
                                             const std::vector<size_t>& flips,
-                                            const rbm_context& co,
+                                            rbm_context& co,
                                             rbm_context&) const {
     std::complex<double> ps1 = psi(state, co);
     Eigen::MatrixXcd state2 = state;

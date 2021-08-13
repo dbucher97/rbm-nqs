@@ -20,6 +20,7 @@
 
 //
 #include <machine/abstract_machine.hpp>
+#include <map>
 
 namespace machine {
 
@@ -40,11 +41,9 @@ class rbm_base : public abstract_machine {
 
     const size_t n_vb_;  ///< Size of the visible bias vector.
 
-    std::complex<double> (rbm_base::*psi_)(const Eigen::MatrixXcd&,
-                                           const rbm_context&) const;
     std::complex<double> (rbm_base::*psi_over_psi_)(const Eigen::MatrixXcd&,
                                                     const std::vector<size_t>&,
-                                                    const rbm_context&,
+                                                    rbm_context&,
                                                     rbm_context&) const;
 
     Eigen::MatrixXcd (*cosh_)(const Eigen::MatrixXcd&);
@@ -108,28 +107,18 @@ class rbm_base : public abstract_machine {
         const rbm_context& context) const override;
 
     virtual inline std::complex<double> psi(
-        const Eigen::MatrixXcd& state,
-        const rbm_context& context) const override {
+        const Eigen::MatrixXcd& state, rbm_context& context) const override {
         std::complex<double> ret = 1.;
         if (pfaffian_) {
             ret = pfaffian_->psi(state, context.pfaff());
         }
-        return ret * (this->*psi_)(state, context);
+        return ret * psi_default(state, context);
     }
 
     using Base::psi_over_psi;
-    virtual inline std::complex<double> psi_over_psi(
+    virtual std::complex<double> psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const rbm_context& context,
-        rbm_context& updated_context) const override {
-        std::complex<double> ret =
-            (this->*psi_over_psi_)(state, flips, context, updated_context);
-        if (pfaffian_) {
-            ret *=
-                pfaffian_->psi_over_psi(state, flips, updated_context.pfaff());
-        }
-        return ret;
-    }
+        rbm_context& context, rbm_context& updated_context) const override;
 
     virtual bool save(const std::string& name) final;
 
@@ -158,18 +147,7 @@ class rbm_base : public abstract_machine {
      * @return \psi(\sigma)
      */
     virtual std::complex<double> psi_default(const Eigen::MatrixXcd& state,
-                                             const rbm_context& context) const;
-
-    /**
-     * @brief Get the \psi(\sigma) form the RBM. Alternative version
-     *
-     * @param state The \sigma or the z-basis state.
-     * @param context The precalculated context.
-     *
-     * @return \psi(\sigma)
-     */
-    virtual std::complex<double> psi_alt(const Eigen::MatrixXcd& state,
-                                         const rbm_context& context) const;
+                                             rbm_context& context) const;
 
     /**
      * @brief Computes the log of a ratio of \psi with some spins flipped to the
@@ -185,7 +163,7 @@ class rbm_base : public abstract_machine {
      */
     virtual std::complex<double> log_psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const rbm_context& context, rbm_context& updated_context) const;
+        rbm_context& context, rbm_context& updated_context) const;
 
     /**
      * @brief Computes the ratio of \psi with some spins
@@ -202,7 +180,7 @@ class rbm_base : public abstract_machine {
      */
     inline std::complex<double> psi_over_psi_default(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const rbm_context& context, rbm_context& updated_context) const {
+        rbm_context& context, rbm_context& updated_context) const {
         return std::exp(
             log_psi_over_psi(state, flips, context, updated_context));
     }
@@ -222,6 +200,6 @@ class rbm_base : public abstract_machine {
      */
     virtual std::complex<double> psi_over_psi_alt(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        const rbm_context& context, rbm_context& updated_context) const;
+        rbm_context& context, rbm_context& updated_context) const;
 };
 }  // namespace machine

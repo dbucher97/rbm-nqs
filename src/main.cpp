@@ -74,6 +74,7 @@
 #include <tools/ini.hpp>
 #include <tools/logger.hpp>
 #include <tools/state.hpp>
+#include <tools/time_keeper.hpp>
 
 using namespace Eigen;
 
@@ -457,20 +458,21 @@ void debugAprod() {
 }
 
 int main(int argc, char* argv[]) {
-    // debugAprod();
-    // return .norm()0;
     //
     int rc = ini::load(argc, argv);
     if (rc != 0) {
         return rc;
     }
 
-    logger::init();
+    if (!ini::print_bonds) {
+        logger::init();
+        std::cout << "Starting '" << ini::name << "'!" << std::endl;
+    }
 
     omp_set_num_threads(ini::n_threads);
     Eigen::setNbThreads(1);
 
-    std::cout << "Seed: " << ini::seed << std::endl;
+    if (!ini::print_bonds) std::cout << "Seed: " << ini::seed << std::endl;
     std::mt19937 rng{static_cast<std::mt19937::result_type>(ini::seed)};
 
     std::unique_ptr<model::abstract_model> model;
@@ -494,6 +496,14 @@ int main(int argc, char* argv[]) {
         default:
             return 1;
     }
+    if (ini::print_bonds) {
+        auto bonds = model->get_lattice().get_bonds();
+        for (const auto& b : bonds) {
+            std::cout << b.a << "," << b.b << "," << b.type << std::endl;
+        }
+        return 0;
+    }
+
     if (model->supports_helper_hamiltonian() && ini::helper_strength != 0.) {
         model->add_helper_hamiltonian(ini::helper_strength);
     }
@@ -620,14 +630,16 @@ int main(int argc, char* argv[]) {
 
         int ch = 0;
         for (size_t i = 0; i < ini::n_epochs && ch != ''; i++) {
-            Eigen::setNbThreads(1);
+            time_keeper::start("Sampling");
             sampler->sample();
+            time_keeper::end("Sampling");
             if (!ini::noprogress)
                 progress_bar(i + 1, ini::n_epochs,
                              optimizer->get_current_energy() / rbm->n_visible,
                              'O');
-            Eigen::setNbThreads(-1);
+            time_keeper::start("Optimization");
             optimizer->optimize();
+            time_keeper::end("Optimization");
             logger::newline();
             if (!ini::noprogress) {
                 progress_bar(i + 1, ini::n_epochs,
@@ -635,7 +647,9 @@ int main(int argc, char* argv[]) {
                              'S');
                 ch = getchar();
             }
+            time_keeper::itn();
         }
+        time_keeper::resumee();
 
         if (!ini::noprogress) {
             // Start getchar non-block

@@ -25,6 +25,7 @@
 #include <machine/rbm_base.hpp>
 #include <math.hpp>
 #include <tools/eigen_fstream.hpp>
+#include <tools/time_keeper.hpp>
 
 using namespace machine;
 
@@ -36,7 +37,6 @@ rbm_base::rbm_base(size_t n_alpha, size_t n_v_bias, lattice::bravais& l,
       h_bias_(n_alpha_, 1),
       v_bias_(n_v_bias, 1),
       n_vb_{n_v_bias},
-      psi_{pop_mode == 0 ? &rbm_base::psi_default : &rbm_base::psi_alt},
       psi_over_psi_{pop_mode == 0 ? &rbm_base::psi_over_psi_default
                                   : &rbm_base::psi_over_psi_alt},
       cosh_{(pop_mode == 0 || cosh_mode == 0) ? &math::cosh1 : &math::cosh2},
@@ -98,6 +98,19 @@ void rbm_base::update_weights(const Eigen::MatrixXcd& dw) {
 
     // Increment updates tracker.
     n_updates_++;
+}
+
+std::complex<double> rbm_base::psi_over_psi(
+    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+    rbm_context& context, rbm_context& updated_context) const {
+    time_keeper::start("PoP");
+    std::complex<double> ret =
+        (this->*psi_over_psi_)(state, flips, context, updated_context);
+    if (pfaffian_) {
+        ret *= pfaffian_->psi_over_psi(state, flips, updated_context.pfaff());
+    }
+    time_keeper::end("PoP");
+    return ret;
 }
 
 rbm_context rbm_base::get_context(const Eigen::MatrixXcd& state) const {
@@ -212,25 +225,16 @@ std::complex<double> rbm_base::psi_notheta(
 }
 
 std::complex<double> rbm_base::psi_default(const Eigen::MatrixXcd& state,
-                                           const rbm_context& context) const {
+                                           rbm_context& context) const {
     // Calculate the \psi with `thetas`
-    std::complex<double> cosh_part =
-        std::exp(math::lncosh(context.thetas).sum());
-    for (auto& c : correlators_) c->psi(state, cosh_part);
-    return psi_notheta(state) * cosh_part;
-}
-
-std::complex<double> rbm_base::psi_alt(const Eigen::MatrixXcd& state,
-                                       const rbm_context& context) const {
-    // Calculate the \psi with `thetas`
-    std::complex<double> cosh_part = (*cosh_)(context.thetas).array().prod();
+    std::complex<double> cosh_part = context.coshthetas().prod();
     for (auto& c : correlators_) c->psi(state, cosh_part);
     return psi_notheta(state) * cosh_part;
 }
 
 std::complex<double> rbm_base::log_psi_over_psi(
     const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    const rbm_context& context, rbm_context& updated_context) const {
+    rbm_context& context, rbm_context& updated_context) const {
     if (flips.empty()) return 0.;
 
     std::complex<double> ret = 0;
@@ -258,7 +262,7 @@ std::complex<double> rbm_base::log_psi_over_psi(
 
 std::complex<double> rbm_base::psi_over_psi_alt(
     const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    const rbm_context& context, rbm_context& updated_context) const {
+    rbm_context& context, rbm_context& updated_context) const {
     if (flips.empty()) return 1.;
 
     std::complex<double> ret = 1;

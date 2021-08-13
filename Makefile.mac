@@ -50,7 +50,7 @@ endif
 ifeq ($(MAT_BACKEND),BLAS)
 CPPFLAGS += -DEIGEN_USE_BLAS
 $(info using BLAS)
-else ifeq ($(MAT_BACKEN),MKL)
+else ifeq ($(MAT_BACKEND),MKL)
 ifeq ($(MKLROOT),)
 $(error MKL ENV not sourced! Run source /opt/intel/oneapi/mkl/latest/env/vars.sh)
 endif
