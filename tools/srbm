@@ -8,6 +8,12 @@ else
   shift
 fi
 
+force="-f"
+if [ "$1" == "-n" ]; then
+  force=""
+  shift
+fi
+
 nodes=`awk -F= -v key="#NODES" '$1==key {print $2}' "$ini"`
 cluster=`awk -F= -v key="#CLUSTER" '$1==key {print $2}' "$ini"`
 partition=`awk -F= -v key="#PARTITION" '$1==key {print $2}' "$ini"`
@@ -32,7 +38,7 @@ fi
 
 addstr=""
 for arg in $@; do
-  addstr="${addstr}_`echo $arg | sed -r 's/^--(\w+\.)*(\w)\w*=(\w+)$/\2\3/g'`"
+  addstr="${addstr}_`echo $arg | sed -r 's/^--(\w+\.)*(\w)\w*=([\w\.]+)$/\2\3/g'`"
 done
 name="$name$addstr"
 
@@ -60,6 +66,6 @@ source load_modules.sh
 
 echo \"\$SLURM_JOB_ID $name\" >> ./tasks.log
 
-rbm -i $ini -f -P --train --evaluate --name=$name --n_threads=$threads $@"
+rbm -i $ini $force -P --train --evaluate --name=$name --n_threads=$threads $@"
 
 echo "$sub"
