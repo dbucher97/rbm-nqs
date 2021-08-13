@@ -103,13 +103,13 @@ void rbm_base::update_weights(const Eigen::MatrixXcd& dw) {
 std::complex<double> rbm_base::psi_over_psi(
     const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
     rbm_context& context, rbm_context& updated_context) const {
-    time_keeper::start("Psi Over Psi");
+    time_keeper::start("PoP");
     std::complex<double> ret =
         (this->*psi_over_psi_)(state, flips, context, updated_context);
     if (pfaffian_) {
         ret *= pfaffian_->psi_over_psi(state, flips, updated_context.pfaff());
     }
-    time_keeper::end("Psi Over Psi");
+    time_keeper::end("PoP");
     return ret;
 }
 

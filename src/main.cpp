@@ -458,8 +458,6 @@ void debugAprod() {
 }
 
 int main(int argc, char* argv[]) {
-    // debugAprod();
-    // return .norm()0;
     //
     int rc = ini::load(argc, argv);
     if (rc != 0) {
@@ -632,7 +630,6 @@ int main(int argc, char* argv[]) {
 
         int ch = 0;
         for (size_t i = 0; i < ini::n_epochs && ch != ''; i++) {
-            Eigen::setNbThreads(1);
             time_keeper::start("Sampling");
             sampler->sample();
             time_keeper::end("Sampling");
@@ -640,7 +637,6 @@ int main(int argc, char* argv[]) {
                 progress_bar(i + 1, ini::n_epochs,
                              optimizer->get_current_energy() / rbm->n_visible,
                              'O');
-            Eigen::setNbThreads(-1);
             time_keeper::start("Optimization");
             optimizer->optimize();
             time_keeper::end("Optimization");

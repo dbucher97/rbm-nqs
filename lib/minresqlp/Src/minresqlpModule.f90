@@ -32,6 +32,7 @@ module minresqlpModule
   private                                       ! sets default for module
   public   :: MINRESQLP, SYMORTHO
 
+
 contains
 
   !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

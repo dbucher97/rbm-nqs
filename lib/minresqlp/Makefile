@@ -5,7 +5,7 @@ FFLAGS = -g -O3
 BUILD_DIR = build
 SRC_DIR = Src
 
-OBJS = minresqlpDataModule.o zminresqlpDataModule.o zminresqlpBlasModule.o minresqlpBlasModule.o zminresqlpModule.o minresqlpModule.o
+OBJS = minresqlpDataModule.o zminresqlpDataModule.o zminresqlpBlasModule.o minresqlpBlasModule.o zminresqlpModule.o minresqlpModule.o 
 OBJS := $(addprefix $(BUILD_DIR)/,$(OBJS))
 
 ifeq ($(FC),ifort)

@@ -40,10 +40,10 @@ void time_keeper::end(const std::string& name) {
             tracked.push_back(name);
         }
         elapsed_times[name] +=
-            std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
                 clock::now() - start_times[name])
                 .count() /
-            1000.;
+            1000000.;
         counters[name]++;
     }
 }
@@ -59,7 +59,7 @@ void time_keeper::resumee() {
         double time_per_epoch = elapsed_times[name] / iteration_count;
         double calls_per_epoch = ((double)counters[name]) / iteration_count;
         double time_per_call = elapsed_times[name] / counters[name];
-        std::printf("%-20s | %10.2f | %10.2f | %10.2f\n", name.c_str(),
+        std::printf("%-20s | %10.2f | %10.5f | %10.1f\n", name.c_str(),
                     time_per_epoch, time_per_call, calls_per_epoch);
     }
 }

@@ -59,7 +59,6 @@ rbm_context rbm_symmetry::get_context(const Eigen::MatrixXcd& state) const {
 void rbm_symmetry::update_context(const Eigen::MatrixXcd& state,
                                   const std::vector<size_t>& flips,
                                   rbm_context& context) const {
-    time_keeper::start("ContextU (S)");
     Eigen::MatrixXcd& thetas = context.thetas;
     // Same as base class but with symmetries involved
     std::vector<std::vector<size_t>> cidxs;
@@ -87,12 +86,10 @@ void rbm_symmetry::update_context(const Eigen::MatrixXcd& state,
     if (pfaffian_) {
         pfaffian_->update_context(state, flips, context.pfaff());
     }
-    time_keeper::end("ContextU (S)");
 }
 
 Eigen::MatrixXcd rbm_symmetry::derivative(const Eigen::MatrixXcd& state,
                                           const rbm_context& context) const {
-    time_keeper::start("Derivative (S)");
     Eigen::MatrixXcd result = Eigen::MatrixXcd::Zero(get_n_params(), 1);
     result.block(0, 0, n_vb_, 1) = Eigen::Map<const Eigen::MatrixXcd>(
                                        state.data(), n_vb_, lattice_.n_total_uc)
@@ -112,7 +109,6 @@ Eigen::MatrixXcd rbm_symmetry::derivative(const Eigen::MatrixXcd& state,
 
     size_t offset = n_params_;
     for (auto& c : correlators_) c->derivative(state, tanh, result, offset);
-    time_keeper::end("Derivative (S)");
     return result;
 }
 
@@ -139,10 +135,8 @@ std::complex<double> rbm_symmetry::log_psi_over_psi(
     if (flips.empty()) return 0.;
 
     // Just adjusted for the single v_bias
-    time_keeper::start("notheta (S)");
     std::complex<double> ret = 0;
     for (auto& f : flips) ret -= 2. * state(f) * v_bias_(f % n_vb_);
-    time_keeper::end("notheta (S)");
 
     std::vector<std::vector<size_t>> cidxs;
     for (auto& c : correlators_) {
@@ -153,14 +147,12 @@ std::complex<double> rbm_symmetry::log_psi_over_psi(
     // Same as base class
     update_context(state, flips, updated_context);
 
-    time_keeper::start("Lncosh (S)");
     ret += (updated_context.lncoshthetas() - context.lncoshthetas()).sum();
     // ret += std::log(
     //     (updated_context.thetas.array().cosh() /
     //     context.thetas.array().cosh())
     //         .prod());
 
-    time_keeper::end("Lncosh (S)");
     return ret;
 }
 
