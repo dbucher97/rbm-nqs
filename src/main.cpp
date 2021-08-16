@@ -28,6 +28,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <chrono>
+#include <climits>
 #include <cmath>
 #include <complex>
 #include <csignal>
@@ -73,8 +74,11 @@
 #include <sampler/metropolis_sampler.hpp>
 #include <tools/ini.hpp>
 #include <tools/logger.hpp>
+#include <tools/mpi.hpp>
 #include <tools/state.hpp>
 #include <tools/time_keeper.hpp>
+
+#include "mpi.h"
 
 using namespace Eigen;
 
@@ -459,21 +463,39 @@ void debugAprod() {
 
 int main(int argc, char* argv[]) {
     //
+    mpi::init(argc, argv);
     int rc = ini::load(argc, argv);
     if (rc != 0) {
         return rc;
     }
 
-    if (!ini::print_bonds) {
+    if (!ini::print_bonds && mpi::master) {
         logger::init();
         std::cout << "Starting '" << ini::name << "'!" << std::endl;
     }
 
-    omp_set_num_threads(ini::n_threads);
-    Eigen::setNbThreads(1);
+    omp_set_num_threads(1);
+    // Eigen::setNbThreads(1);
 
-    if (!ini::print_bonds) std::cout << "Seed: " << ini::seed << std::endl;
-    std::mt19937 rng{static_cast<std::mt19937::result_type>(ini::seed)};
+    if (!ini::print_bonds && mpi::master)
+        std::cout << "Seed: " << ini::seed << std::endl;
+
+    std::mt19937 rng;
+    std::uniform_int_distribution<unsigned long> udist{0, ULONG_MAX};
+
+    unsigned long seed;
+    if (mpi::master) {
+        rng = std::mt19937{static_cast<std::mt19937::result_type>(ini::seed)};
+        for (int i = 1; i < mpi::n_proc; i++) {
+            seed = udist(rng);
+            MPI_Send(&seed, 1, MPI_UNSIGNED_LONG, i, 0, MPI_COMM_WORLD);
+        }
+        seed = udist(rng);
+    } else {
+        MPI_Recv(&seed, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD,
+                 MPI_STATUS_IGNORE);
+    }
+    rng = std::mt19937{static_cast<std::mt19937::result_type>(ini::seed)};
 
     std::unique_ptr<model::abstract_model> model;
     switch (ini::model) {
@@ -496,7 +518,7 @@ int main(int argc, char* argv[]) {
         default:
             return 1;
     }
-    if (ini::print_bonds) {
+    if (ini::print_bonds && mpi::master) {
         auto bonds = model->get_lattice().get_bonds();
         for (const auto& b : bonds) {
             std::cout << b.a << "," << b.b << "," << b.type << std::endl;
@@ -571,52 +593,67 @@ int main(int argc, char* argv[]) {
     }
 
     std::unique_ptr<optimizer::abstract_optimizer> optimizer;
-    switch (ini::opt_type) {
-        case ini::optimizer_t::SR:
-            optimizer = std::make_unique<optimizer::stochastic_reconfiguration>(
-                *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr,
-                ini::opt_sr_reg1, ini::opt_sr_reg2, ini::opt_sr_deltareg1,
-                ini::opt_sr_iterative, ini::opt_sr_max_iterations,
-                ini::opt_sr_rtol, ini::opt_resample, ini::opt_resample_alpha1,
-                ini::opt_resample_alpha2, ini::opt_resample_alpha3);
-            break;
-        case ini::optimizer_t::SGD:
-            optimizer = std::make_unique<optimizer::gradient_descent>(
-                *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr,
-                ini::opt_sgd_real_factor, ini::opt_resample,
-                ini::opt_resample_alpha1, ini::opt_resample_alpha2,
-                ini::opt_resample_alpha3);
-            break;
-        default:
-            return 1;
-    }
-
-    optimizer->register_observables();
-    std::unique_ptr<optimizer::base_plugin> p;
-    if (ini ::opt_plugin.length() > 0) {
-        if (ini::opt_plugin == "adam") {
-            p = std::make_unique<optimizer::adam_plugin>(
-                rbm->get_n_params(), ini::opt_adam_beta1, ini::opt_adam_beta2,
-                ini::opt_adam_eps);
-        } else if (ini::opt_plugin == "momentum") {
-            p = std::make_unique<optimizer::momentum_plugin>(
-                rbm->get_n_params());
-        } else if (ini::opt_plugin == "heun") {
-            p = std::make_unique<optimizer::heun_plugin>(
-                [&optimizer] { return optimizer->gradient(false); }, *rbm,
-                *sampler, ini::opt_heun_eps);
-        } else {
-            return 1;
+    if (ini::train) {
+        switch (ini::opt_type) {
+            case ini::optimizer_t::SR:
+                optimizer =
+                    std::make_unique<optimizer::stochastic_reconfiguration>(
+                        *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr,
+                        ini::opt_sr_reg1, ini::opt_sr_reg2,
+                        ini::opt_sr_deltareg1, ini::opt_sr_method,
+                        ini::opt_sr_max_iterations, ini::opt_sr_rtol,
+                        ini::opt_resample, ini::opt_resample_alpha1,
+                        ini::opt_resample_alpha2, ini::opt_resample_alpha3);
+                break;
+            case ini::optimizer_t::SGD:
+                optimizer = std::make_unique<optimizer::gradient_descent>(
+                    *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr,
+                    ini::opt_sgd_real_factor, ini::opt_resample,
+                    ini::opt_resample_alpha1, ini::opt_resample_alpha2,
+                    ini::opt_resample_alpha3);
+                break;
+            default:
+                return 1;
         }
-        optimizer->set_plugin(p.get());
+
+        optimizer->register_observables();
+        std::unique_ptr<optimizer::base_plugin> p;
+        if (ini ::opt_plugin.length() > 0) {
+            if (ini::opt_plugin == "adam") {
+                p = std::make_unique<optimizer::adam_plugin>(
+                    rbm->get_n_params(), ini::opt_adam_beta1,
+                    ini::opt_adam_beta2, ini::opt_adam_eps);
+            } else if (ini::opt_plugin == "momentum") {
+                p = std::make_unique<optimizer::momentum_plugin>(
+                    rbm->get_n_params());
+            } else if (ini::opt_plugin == "heun") {
+                p = std::make_unique<optimizer::heun_plugin>(
+                    [&optimizer] { return optimizer->gradient(false); }, *rbm,
+                    *sampler, ini::opt_heun_eps);
+            } else {
+                return 1;
+            }
+            optimizer->set_plugin(p.get());
+        }
     }
 
-    std::cout << "Number of parameters: " << rbm->get_n_params() << std::endl;
+    if (mpi::master) {
+        std::cout << "Number of parameters: " << rbm->get_n_params()
+                  << std::endl;
+    }
+
+    operators::aggregator agg{model->get_hamiltonian()};
+    sampler->register_agg(&agg);
+    sampler->sample();
+    std::cout << agg.get_result() << std::endl;
+
+    mpi::end();
+    return 0;
 
     if (ini::train) {
         struct termios oldt, newt;
         int oldf;
-        if (!ini::noprogress) {
+        if (!ini::noprogress && mpi::master) {
             // Start getchar non-block
             tcgetattr(STDIN_FILENO, &oldt);
             newt = oldt;
@@ -641,7 +678,7 @@ int main(int argc, char* argv[]) {
             optimizer->optimize();
             time_keeper::end("Optimization");
             logger::newline();
-            if (!ini::noprogress) {
+            if (!ini::noprogress && mpi::master) {
                 progress_bar(i + 1, ini::n_epochs,
                              optimizer->get_current_energy() / rbm->n_visible,
                              'S');
@@ -651,7 +688,7 @@ int main(int argc, char* argv[]) {
         }
         time_keeper::resumee();
 
-        if (!ini::noprogress) {
+        if (!ini::noprogress && mpi::master) {
             // Start getchar non-block
             tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
@@ -734,6 +771,8 @@ int main(int argc, char* argv[]) {
     // std::cout.precision(17);
     // std::cout << std::real(agg.get_result()(0)) / rbm->n_visible <<
     // std::endl;
+    //
+    mpi::end();
 
     return 0;
 }

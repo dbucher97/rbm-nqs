@@ -22,6 +22,7 @@
 #include <sstream>
 #include <string>
 //
+#include <tools/mpi.hpp>
 
 /**
  * @brief A logger singleton class. `init` needs to be called to open the
@@ -99,7 +100,9 @@ class logger {
      */
     template <typename T>
     static void log(const T& t) {
-        get().log_(t);
+        if (mpi::master) {
+            get().log_(t);
+        }
     }
 
     /**
@@ -111,17 +114,25 @@ class logger {
      */
     template <typename T>
     static void log(const T& t, const std::string& name) {
-        get().log_(t, name);
+        if (mpi::master) {
+            get().log_(t, name);
+        }
     }
 
     /**
      * @brief newline static method
      */
-    static void newline() { get().newline_(); }
+    static void newline() {
+        if (mpi::master) {
+            get().newline_();
+        }
+    }
     /**
      * @brief init static method
      */
-    static void init() { get().init_(); }
+    static void init() {
+        if (mpi::master) get().init_();
+    }
 
    private:
     // Private constructors and assign operator to allow only for singleton.
@@ -141,6 +152,8 @@ class logger {
  */
 template <typename T>
 logger& operator<<(logger& l, const T& t) {
-    l.log_(t);
+    if (mpi::master) {
+        l.log_(t);
+    }
     return l;
 }

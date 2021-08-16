@@ -21,6 +21,7 @@
 #include <machine/pfaffian.hpp>
 #include <math.hpp>
 #include <tools/eigen_fstream.hpp>
+#include <tools/mpi.hpp>
 
 using namespace machine;
 
@@ -62,23 +63,26 @@ pfaffian::pfaffian(const lattice::bravais& lattice, size_t n_sy)
 }
 
 void pfaffian::init_weights(std::mt19937& rng, double std, bool normalize) {
-    std::normal_distribution<double> dist{0, std};
-    std::complex<double> val;
-    for (size_t j = 0; j < (size_t)fs_.cols(); j++) {
-        for (size_t i = 0; i < (size_t)fs_.rows() / 4; i++) {
-            val = std::complex<double>(dist(rng), dist(rng));
-            for (size_t m = 0; m < 4; m++) {
-                fs_(i + m * (ns_ - 1), j) = val;
+    if (mpi::master) {
+        std::normal_distribution<double> dist{0, std};
+        std::complex<double> val;
+        for (size_t j = 0; j < (size_t)fs_.cols(); j++) {
+            for (size_t i = 0; i < (size_t)fs_.rows() / 4; i++) {
+                val = std::complex<double>(dist(rng), dist(rng));
+                for (size_t m = 0; m < 4; m++) {
+                    fs_(i + m * (ns_ - 1), j) = val;
+                }
             }
         }
-    }
 
-    if (normalize) {
-        Eigen::MatrixXcd mat = get_mat(Eigen::MatrixXcd::Ones(ns_, 1));
-        int exp;
-        math::pfaffian10(mat, exp);
-        fs_ /= std::pow(10, (2.0 * exp) / ns_);
+        if (normalize) {
+            Eigen::MatrixXcd mat = get_mat(Eigen::MatrixXcd::Ones(ns_, 1));
+            int exp;
+            math::pfaffian10(mat, exp);
+            fs_ /= std::pow(10, (2.0 * exp) / ns_);
+        }
     }
+    MPI_Bcast(fs_.data(), fs_.size(), MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 }
 
 Eigen::MatrixXcd pfaffian::get_mat(const Eigen::MatrixXcd& state) const {

@@ -19,6 +19,7 @@
 //
 #include <machine/correlator.hpp>
 #include <tools/eigen_fstream.hpp>
+#include <tools/mpi.hpp>
 
 using namespace machine;
 
@@ -73,22 +74,26 @@ std::complex<double> correlator::evaluate(const Eigen::MatrixXcd& state,
 void correlator::initialize_weights(std::mt19937& rng, double std_dev,
                                     double std_dev_imag) {
     // If std_dev_imag < 0, use the normal std_dev;
-    if (std_dev_imag < 0) std_dev_imag = std_dev;
+    if (mpi::master) {
+        if (std_dev_imag < 0) std_dev_imag = std_dev;
 
-    // Initialize the normal distribution
-    std::normal_distribution<double> real_dist{0, std_dev};
-    std::normal_distribution<double> imag_dist{0, std_dev_imag};
+        // Initialize the normal distribution
+        std::normal_distribution<double> real_dist{0, std_dev};
+        std::normal_distribution<double> imag_dist{0, std_dev_imag};
 
-    // Fill all weigthts and biases
-    for (size_t i = 0; i < static_cast<size_t>(bias_.size()); i++) {
-        bias_(i) = std::complex<double>(real_dist(rng), imag_dist(rng));
-    }
-    for (size_t i = 0; i < cmax; i++) {
-        for (size_t j = 0; j < n_hidden_; j++) {
-            weights_(i, j) =
-                std::complex<double>(real_dist(rng), imag_dist(rng));
+        // Fill all weigthts and biases
+        for (size_t i = 0; i < static_cast<size_t>(bias_.size()); i++) {
+            bias_(i) = std::complex<double>(real_dist(rng), imag_dist(rng));
+        }
+        for (size_t i = 0; i < cmax; i++) {
+            for (size_t j = 0; j < n_hidden_; j++) {
+                weights_(i, j) =
+                    std::complex<double>(real_dist(rng), imag_dist(rng));
+            }
         }
     }
+    MPI_Bcast(weights_.data(), weights_.size(), MPI_DOUBLE_COMPLEX, 0,
+              MPI_COMM_WORLD);
 }
 
 size_t correlator::get_n_params() const {

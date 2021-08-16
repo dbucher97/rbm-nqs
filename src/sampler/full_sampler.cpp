@@ -17,7 +17,6 @@
  */
 
 // #include <gmp.h>
-#include <omp.h>
 
 #include <Eigen/Dense>
 #include <cmath>
@@ -25,6 +24,7 @@
 //
 #include <sampler/full_sampler.hpp>
 #include <tools/ini.hpp>
+#include <tools/mpi.hpp>
 #include <tools/state.hpp>
 
 using namespace sampler;
@@ -43,17 +43,24 @@ void full_sampler::sample(bool keep_state) {
     // Number of total pit flips
     size_t max = (size_t)std::pow(2, rbm_.n_visible - bits_parallel_);
 
+    double p_local = 0;
     double p_total = 0;
 
     // The state vector if state should be kept
-    Eigen::MatrixXcd vec(static_cast<size_t>(1 << rbm_.n_visible), 1);
+    Eigen::MatrixXcd vec;
+    if (mpi::master && keep_state) {
+    }
+    Eigen::MatrixXcd local_vec;
+    Eigen::MatrixXi local_vec_idx;
+    if (keep_state) {
+        local_vec = Eigen::MatrixXcd(max, 1);
+        local_vec_idx = Eigen::MatrixXi(max, 1);
+    }
 
     int pfaff_exp = 0;
-    bool set_pfaff_exp = false;
 
     // Start the parallel runs
-#pragma omp parallel for
-    for (size_t b = 0; b < b_len; b++) {
+    for (size_t b = mpi::rank; b < b_len; b += mpi::n_proc) {
         size_t x = 0;
         size_t x_last = 0;
         size_t flip;
@@ -68,14 +75,12 @@ void full_sampler::sample(bool keep_state) {
         // Equalize pfaffian exponents, since total scaling is irrelevant, but
         // relative scaling between thread contexts make a diffrerence.
         if (rbm_.has_pfaffian()) {
-            auto pfaff_context = context.pfaff();
-#pragma omp critical
-            {
-                if (!set_pfaff_exp) {
-                    set_pfaff_exp = true;
-                    pfaff_exp = pfaff_context.exp;
-                }
+            auto& pfaff_context = context.pfaff();
+            if (mpi::master) {
+                pfaff_exp = pfaff_context.exp;
             }
+            MPI_Bcast(&pfaff_exp, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
             pfaff_context.exp -= pfaff_exp;
         }
 
@@ -89,13 +94,12 @@ void full_sampler::sample(bool keep_state) {
 
             // If keep state store \psi into the state vector
             if (keep_state) {
-#pragma omp critical
-                vec(tools::state_to_num(state)) = psi;
+                local_vec(i - 1) = psi;
+                local_vec_idx(i - 1) = tools::state_to_num(state);
             }
 
             // Cumulate probability for normalization
-#pragma omp critical
-            p_total += p;
+            p_local += p;
 
             // Evaluate operators
             for (auto op : ops_) {
@@ -122,13 +126,46 @@ void full_sampler::sample(bool keep_state) {
             }
         }
     }
+    MPI_Allreduce(&p_local, &p_total, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
     // Print the state vector if `keep_state`
     if (keep_state) {
-        std::ofstream statefile{ini::name + ".state"};
-        statefile << vec;
-        statefile.close();
+        if (mpi::master) {
+            vec = Eigen::MatrixXcd(static_cast<size_t>(1 << rbm_.n_visible), 1);
+            std::ofstream statefile{ini::name + ".state"};
+            for (size_t i = 0; i < max; i++) {
+                vec(local_vec_idx(i)) = local_vec(i);
+            }
+
+            for (int p = 1; p < mpi::n_proc; p++) {
+                MPI_Recv(local_vec_idx.data(), local_vec_idx.size(), MPI_INT, p,
+                         0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(local_vec.data(), local_vec.size(), MPI_DOUBLE_COMPLEX,
+                         p, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                for (size_t i = 0; i < max; i++) {
+                    vec(local_vec_idx(i)) = local_vec(i);
+                }
+            }
+            statefile << vec;
+            statefile.close();
+        } else {
+            MPI_Send(local_vec_idx.data(), local_vec_idx.size(), MPI_INT, 0, 0,
+                     MPI_COMM_WORLD);
+            MPI_Send(local_vec.data(), local_vec.size(), MPI_DOUBLE_COMPLEX, 0,
+                     1, MPI_COMM_WORLD);
+        }
     }
     for (auto agg : aggs_) {
         agg->finalize(p_total);
     }
+}
+
+size_t full_sampler::get_my_n_samples() const {
+    size_t b_len = (size_t)std::pow(2, bits_parallel_);
+    size_t max = (size_t)std::pow(2, rbm_.n_visible - bits_parallel_);
+    size_t ret = 0;
+    for (size_t b = mpi::rank; b < b_len; b += mpi::n_proc) {
+        ret += max;
+    }
+    return ret;
 }

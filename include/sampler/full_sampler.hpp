@@ -64,6 +64,8 @@ class full_sampler : public abstract_sampler {
      * @param keep_state Keeps the state vector.
      */
     virtual void sample(bool keep_state);
+
+    virtual size_t get_my_n_samples() const override;
 };
 
 }  // namespace sampler

@@ -15,8 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-#include <omp.h>
-
 #include <cmath>
 #include <complex>
 #include <iostream>
@@ -54,15 +52,16 @@ void metropolis_sampler::sample() {
 
     // Initialize acceptance_rate
     acceptance_rate_ = 0;
+    double local_ar = 0;
 
     // Run the chains in parallel.
-#pragma omp parallel for
-    for (size_t c = 0; c < n_chains_; c++) {
+    for (size_t c = mpi::rank; c < n_chains_; c += mpi::n_proc) {
         double ar = sample_chain(samples_per_chain + (c == 0 ? residue : 0));
         // Accumulate acceptance_rate
-#pragma omp critical
-        acceptance_rate_ += ar;
+        local_ar += ar;
     }
+    MPI_Allreduce(&local_ar, &acceptance_rate_, 1, MPI_DOUBLE, MPI_SUM,
+                  MPI_COMM_WORLD);
     // Average acceptance rate.
     acceptance_rate_ /= n_chains_;
 
@@ -148,4 +147,14 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
 
 void metropolis_sampler::log() {
     logger::log(acceptance_rate_, "AccetpanceRate");
+}
+
+size_t metropolis_sampler::get_my_n_samples() const {
+    size_t samples_per_chain = n_samples_ / n_chains_;
+    size_t residue = n_samples_ - samples_per_chain * n_chains_;
+    size_t ret = 0;
+    for (size_t c = mpi::rank; c < n_chains_; c += mpi::n_proc) {
+        ret += samples_per_chain + (c == 0 ? residue : 0);
+    }
+    return ret;
 }

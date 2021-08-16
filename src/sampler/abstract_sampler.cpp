@@ -57,5 +57,5 @@ void abstract_sampler::register_agg(operators::aggregator* agg_ptr) {
 
 void abstract_sampler::clear_aggs() { aggs_.clear(); }
 
-size_t abstract_sampler::get_n_samples() { return n_samples_; }
+size_t abstract_sampler::get_n_samples() const { return n_samples_; }
 void abstract_sampler::set_n_samples(size_t samples) { n_samples_ = samples; }

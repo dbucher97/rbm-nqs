@@ -19,6 +19,7 @@
 
 #include <chrono>
 #include <cstdio>
+#include <tools/mpi.hpp>
 #include <tools/time_keeper.hpp>
 
 namespace time_keeper {

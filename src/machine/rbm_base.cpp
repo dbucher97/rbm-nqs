@@ -25,6 +25,7 @@
 #include <machine/rbm_base.hpp>
 #include <math.hpp>
 #include <tools/eigen_fstream.hpp>
+#include <tools/mpi.hpp>
 #include <tools/time_keeper.hpp>
 
 using namespace machine;
@@ -51,29 +52,39 @@ void rbm_base::initialize_weights(std::mt19937& rng, double std_dev,
                                   const std::string& init_type) {
     n_updates_ = 0;
 
-    // If std_dev_imag < 0, use the normal std_dev;
-    if (std_dev_imag < 0) std_dev_imag = std_dev;
+    if (mpi::master) {
+        // If std_dev_imag < 0, use the normal std_dev;
+        if (std_dev_imag < 0) std_dev_imag = std_dev;
 
-    // Initialize the normal distribution
-    std::normal_distribution<double> real_dist{0, std_dev};
-    std::normal_distribution<double> imag_dist{0, std_dev_imag};
+        // Initialize the normal distribution
+        std::normal_distribution<double> real_dist{0, std_dev};
+        std::normal_distribution<double> imag_dist{0, std_dev_imag};
 
-    // Fill all weigthts and biases
-    if (n_vb_ == n_visible &&
-        lattice_.supports_custom_weight_initialization() && init_type != "") {
-        lattice_.initialize_vb(init_type, v_bias_);
-    } else {
-        for (size_t i = 0; i < n_vb_; i++) {
-            v_bias_(i) = std::complex<double>(real_dist(rng), imag_dist(rng));
+        // Fill all weigthts and biases
+        if (n_vb_ == n_visible &&
+            lattice_.supports_custom_weight_initialization() &&
+            init_type != "") {
+            lattice_.initialize_vb(init_type, v_bias_);
+        } else {
+            for (size_t i = 0; i < n_vb_; i++) {
+                v_bias_(i) =
+                    std::complex<double>(real_dist(rng), imag_dist(rng));
+            }
+        }
+        for (size_t i = 0; i < n_alpha_; i++) {
+            h_bias_(i) = std::complex<double>(real_dist(rng), imag_dist(rng));
+            for (size_t j = 0; j < n_visible; j++) {
+                weights_(j, i) =
+                    std::complex<double>(real_dist(rng), imag_dist(rng));
+            }
         }
     }
-    for (size_t i = 0; i < n_alpha_; i++) {
-        h_bias_(i) = std::complex<double>(real_dist(rng), imag_dist(rng));
-        for (size_t j = 0; j < n_visible; j++) {
-            weights_(j, i) =
-                std::complex<double>(real_dist(rng), imag_dist(rng));
-        }
-    }
+    MPI_Bcast(v_bias_.data(), v_bias_.size(), MPI_DOUBLE_COMPLEX, 0,
+              MPI_COMM_WORLD);
+    MPI_Bcast(h_bias_.data(), h_bias_.size(), MPI_DOUBLE_COMPLEX, 0,
+              MPI_COMM_WORLD);
+    MPI_Bcast(weights_.data(), weights_.size(), MPI_DOUBLE_COMPLEX, 0,
+              MPI_COMM_WORLD);
 
     // Initialize weights
     for (auto& c : correlators_)

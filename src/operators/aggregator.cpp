@@ -16,12 +16,11 @@
  *
  */
 
-#include <omp.h>
-
 #include <Eigen/Dense>
 #include <stdexcept>
 //
 #include <operators/aggregator.hpp>
+#include <tools/mpi.hpp>
 
 using namespace operators;
 
@@ -43,11 +42,19 @@ void aggregator::set_zero() {
 
 void aggregator::finalize(double num) {
     // Normalize result
-    result_ /= num;
+
+    Eigen::MatrixXcd tmpresult = result_ / num;
+
+    MPI_Allreduce(tmpresult.data(), result_.data(), result_.size(),
+                  MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
+
     if (track_variance_) {
-        variance_ /= num;
+        Eigen::MatrixXd tmpvariance = variance_ / num;
         // Calculate variance <0^2> - <0>^2
-        variance_ -= (Eigen::MatrixXd)result_.array().real().pow(2);
+        tmpvariance -= (Eigen::MatrixXd)result_.array().real().pow(2);
+
+        MPI_Allreduce(tmpvariance.data(), variance_.data(), variance_.size(),
+                      MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     }
 }
 
@@ -61,17 +68,13 @@ Eigen::MatrixXcd aggregator::aggregate_() {
 
 void aggregator::aggregate(double weight) {
     // Calculate the weight * observable
-    Eigen::MatrixXcd x = weight * aggregate_();
+    Eigen::MatrixXcd x = aggregate_();
+    result_.noalias() += weight * x;
     // Safly aggeregte the result
-#pragma omp critical
-    { result_ += x; }
 
     if (track_variance_) {
         // Calculate the resul of the squared observable
-        Eigen::MatrixXd xx = x.array().real().pow(2) / weight;
-        // Safely aggregate teh variance.
-#pragma omp critical
-        variance_ += xx;
+        variance_.noalias() += weight * x.real().cwiseAbs2();
     }
 }
 
@@ -102,30 +105,32 @@ Eigen::MatrixXcd outer_aggregator::aggregate_() {
 }
 
 outer_aggregator_lazy::outer_aggregator_lazy(const base_op& op, size_t samples)
-    : Base{op, op.rows() * op.cols(), samples}, diag_(op.rows()) {}
+    : Base{op, op.rows() * op.cols(), samples}, diag_(op.rows() * op.cols()) {}
 
 void outer_aggregator_lazy::aggregate(double weight) {
-    size_t m_current_index;
-#pragma omp critical
-    {
-        m_current_index = current_index_;
-        current_index_++;
-    }
-    result_.col(m_current_index).noalias() =
+    result_.col(current_index_) =
         std::sqrt(weight) * Eigen::Map<const Eigen::MatrixXcd>(
                                 op_.get_result().data(), result_.rows(), 1);
+    diag_.noalias() += result_.col(current_index_).cwiseAbs2();
+    current_index_++;
 }
 
-void outer_aggregator_lazy::finalize(double val) { norm_ = val; }
+void outer_aggregator_lazy::finalize(double val) {
+    norm_ = val;
+    Eigen::MatrixXcd dtmp = diag_ / norm_;
+    MPI_Allreduce(dtmp.data(), diag_.data(), diag_.size(), MPI_DOUBLE, MPI_SUM,
+                  MPI_COMM_WORLD);
+}
 
 void outer_aggregator_lazy::set_zero() {
     Base::set_zero();
     current_index_ = 0;
     norm_ = 0;
+    diag_.setZero();
 }
 
 optimizer::OuterMatrix outer_aggregator_lazy::construct_outer_matrix(
     aggregator& derivative, double reg1, double reg2) {
-    diag_ = result_.cwiseAbs2().rowwise().sum() / norm_;
+    // diag_ = result_.cwiseAbs2().rowwise().sum() / norm_;
     return {result_, derivative.get_result(), diag_, norm_, reg1, reg2};
 }

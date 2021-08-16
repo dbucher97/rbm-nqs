@@ -74,6 +74,9 @@ LDFLAGS += $(PFAPACK) $(PFAPACKC) $(MINRESQLP) -lgfortran
 
 TEST_LDFLAGS = /usr/local/lib/libgtest.a /usr/local/lib/libgtest_main.a
 
+# USE MPI
+MPI = $(shell mpic++ -show | cut -d' ' -f2-)
+
 install: all
 	cp $(BUILD_DIR)/$(TARGET_EXEC) $(DESTDIR)/$(TARGET_EXEC)
 	cp tools/* $(DESTDIR)/
@@ -82,16 +85,16 @@ all: $(BUILD_DIR)/$(TARGET_EXEC)
 
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS) $(PFAPACK) $(PFAPACKC) $(MINRESQLP)
 	@echo "[ LD ] $@"
-	@$(CXX) $(OMP) $(LDFLAGS) $^ -o $@ 
+	@$(CXX) $(OMP) $(MPI) $(LDFLAGS) $^ -o $@ 
 
 $(BUILD_DIR)/$(TARGET_UNITTEST): $(TEST_OBJS) $(PFAPACK) $(PFAPACKC) $(MINRESQLP)
 	@echo "[ LD ] $@"
-	@$(CXX) $(OMP) $(LDFLAGS) $(TEST_LDFLAGS) $^ -o $@ 
+	@$(CXX) $(OMP) $(MPI) $(LDFLAGS) $(TEST_LDFLAGS) $^ -o $@ 
 # c++ source
 $(BUILD_DIR)/%.cpp.o: %.cpp
 	@$(MKDIR_P) $(dir $@)
 	@echo "[ $(notdir $(CXX)) ] $<"
-	@$(CXX) $(OMP) $(CPPFLAGS) -c $< -o $@
+	@$(CXX) $(OMP) $(MPI) $(CPPFLAGS) -c $< -o $@
 
 .PHONY: install all clean
 

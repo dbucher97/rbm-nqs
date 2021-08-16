@@ -35,20 +35,21 @@ stochastic_reconfiguration::stochastic_reconfiguration(
     machine::abstract_machine& rbm, sampler::abstract_sampler& sampler,
     operators::base_op& hamiltonian, const ini::decay_t& lr,
     const ini::decay_t& kp1, const ini::decay_t& kp2, const ini::decay_t& kp1d,
-    bool iterative, size_t max_iterations, double rtol, bool resample,
+    std::string method, size_t max_iterations, double rtol, bool resample,
     double alpha1, double alpha2, double alpha3)
     : Base{rbm, sampler, hamiltonian, lr, resample, alpha1, alpha2, alpha3},
       // Initialize SR aggregators
-      iterative_{iterative},
+      method_{method},
       max_iterations_{max_iterations},
       rtol_{rtol},
       a_dh_{derivative_, hamiltonian_},
-      a_dd_{iterative_ ? (std::unique_ptr<operators::aggregator>)
-                             std::make_unique<operators::outer_aggregator_lazy>(
-                                 derivative_, sampler.get_n_samples())
-                       : (std::unique_ptr<operators::aggregator>)
-                             std::make_unique<operators::outer_aggregator>(
-                                 derivative_)},
+      a_dd_{
+          method_ != "direct"
+              ? (std::unique_ptr<operators::aggregator>)
+                    std::make_unique<operators::outer_aggregator_lazy>(
+                        derivative_, sampler.get_my_n_samples())
+              : (std::unique_ptr<operators::aggregator>)
+                    std::make_unique<operators::outer_aggregator>(derivative_)},
       // Initialize the regularization.
       kp1_{kp1, rbm_.get_n_updates()},
       kp2_{kp2, rbm_.get_n_updates()},
@@ -84,7 +85,7 @@ Eigen::MatrixXcd stochastic_reconfiguration::gradient(bool log) {
     // Calculate Gradient
     VectorXcd F = dh - h(0) * d.conjugate();
 
-    if (iterative_) {
+    if (method_ == "minresqlp") {
         // Get covariance matrix in GMRES form
 
         /* OuterMatrix S =
@@ -114,7 +115,7 @@ Eigen::MatrixXcd stochastic_reconfiguration::gradient(bool log) {
         if (plug_) {
             plug_->add_metric(&(oa->get_result()), &a_d_.get_result());
         }
-    } else {
+    } else if (method_ == "direct") {
         auto& dd = a_dd_->get_result();
         // Calculate Covariance matrix.
         Eigen::MatrixXcd S = dd - d.conjugate() * d.transpose();
@@ -139,6 +140,8 @@ Eigen::MatrixXcd stochastic_reconfiguration::gradient(bool log) {
             acc += Sod < Sd;
         }
         dw = S.completeOrthogonalDecomposition().solve(F);
+    } else {
+        throw std::runtime_error("SR method '" + method_ + "' does not exist!");
     }
 
     // logger::log(dw.norm() / dw.size(), "DW Norm");

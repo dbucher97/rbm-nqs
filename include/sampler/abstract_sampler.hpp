@@ -113,7 +113,14 @@ class abstract_sampler {
      *
      * @return Number of samples
      */
-    size_t get_n_samples();
+    size_t get_n_samples() const;
+
+    /**
+     * @brief Get number of samples of current mpi process
+     *
+     * @return Number of samples
+     */
+    virtual size_t get_my_n_samples() const = 0;
 
     /**
      * @brief Set number of samples
