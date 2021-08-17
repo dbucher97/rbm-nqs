@@ -92,7 +92,7 @@ class bravais {
      *
      * @return Unitcell index
      */
-    size_t uc_idx(size_t idx) const;
+    virtual size_t uc_idx(size_t idx) const;
 
     /**
      * @brief Returns the unitcell index for a set of unitcell indices in all
@@ -103,7 +103,7 @@ class bravais {
      *
      * @return Unitcell index.
      */
-    size_t uc_idx(std::vector<size_t>&& idxs) const;
+    virtual size_t uc_idx(std::vector<size_t>&& idxs) const;
 
     /**
      * @brief Returns the basis index for a site index
@@ -145,7 +145,7 @@ class bravais {
      *
      * @return Index of new unitcell.
      */
-    size_t up(size_t uc_idx, size_t dir = 0, size_t step = 1) const;
+    virtual size_t up(size_t uc_idx, size_t dir = 0, size_t step = 1) const;
 
     /**
      * @brief move one unitcell down in given dimension
@@ -156,7 +156,7 @@ class bravais {
      *
      * @return Index of new unitcell.
      */
-    size_t down(size_t ux_idx, size_t dir = 0, size_t step = 1) const;
+    virtual size_t down(size_t ux_idx, size_t dir = 0, size_t step = 1) const;
 
     /**
      * @brief Returns the nearest neighbour sites to a given site.

@@ -54,6 +54,8 @@ void honeycomb::construct_bonds() {
     }
 }
 
+size_t honeycomb::rot180(size_t idx) const { return n_total - 1 - idx; }
+
 std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
 honeycomb::construct_symmetry() const {
     if (full_symm_) {
@@ -78,7 +80,7 @@ honeycomb::construct_symmetry() const {
                 // If s == true do the 180° rotation. otherwise just return the 
                 // ew site_index
                 if (s) {
-                    indices(i) = n_total - 1 - idx(uc, b_idx(i));
+                    indices(i) = rot180(idx(uc, b_idx(i)));
                 } else {
                     indices(i) = idx(uc, b_idx(i));
                 }
