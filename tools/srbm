@@ -38,7 +38,7 @@ fi
 
 addstr=""
 for arg in $@; do
-  addstr="${addstr}_`echo $arg | sed -r 's/^--(\w+\.)*(\w)\w*=([\w\.]+)$/\2\3/g'`"
+  addstr="${addstr}_`echo $arg | sed -r -e 's/^--(\w+\.)*(\w)\w*=/\2/g'`"
 done
 name="$name$addstr"
 
