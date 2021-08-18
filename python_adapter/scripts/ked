@@ -1,0 +1,37 @@
+#! /usr/bin/env python3
+
+import sys
+import rbm
+import numpy as np
+
+if __name__ == '__main__':
+    if len(sys.argv) == 1:
+        print('You must specify at least the system size')
+        exit(1)
+    args = sys.argv[2:]
+    if 'x' in sys.argv[1]:
+        size, size_b = sys.argv[1].split('x')
+        size = int(size)
+        args += [f'--model.n_cells_b={size_b}']
+    elif 'h' in sys.argv[1]:
+        size = int(sys.argv[1][1:])
+        args += ['--model.lattice_type=hex']
+    else:
+        size = int(sys.argv[1])
+    ham = rbm.get_hamiltonian(size, log=True, args=args)
+    print('Exact Diagonalization')
+    v, w = rbm.eigsh(ham)
+    print(v)
+    N = np.log2(w.shape[0])
+    print('E0', np.min(v) / N)
+    gs = w[:, np.abs(v - np.min(v)) < 1e-10].T
+    hex = rbm.get_hex(size, log=True, args=args)
+    for j, g in enumerate(gs):
+        fn = f'state_{sys.argv[1]}_{j}.txt'
+        print(f'Store State in "{fn}"')
+        with open(fn, 'w') as f:
+            for x in g:
+                f.write(f'({np.real(x)},{np.imag(x)})\n')
+        print(f'Eval for GS({j})')
+        for i, h in enumerate(hex):
+            print(f'Wp{i}', rbm.evaluate(g, h))

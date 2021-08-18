@@ -41,6 +41,7 @@ bool train = false;
 bool evaluate = false;
 bool noprogress = false;
 bool print_bonds = false;
+bool print_hex = false;
 
 // Model
 model_t model = KITAEV;
@@ -141,6 +142,7 @@ int ini::load(int argc, char* argv[]) {
     ("train",                                 po::bool_switch(&train),                      "train the RBM")
     ("evaluate",                              po::bool_switch(&evaluate),                   "evaluate results of the RBM")
     ("print_bonds",                           po::bool_switch(&print_bonds),                "print the bonds of the current model and exit")
+    ("print_hex",                             po::bool_switch(&print_hex),                  "print the hexagons of the current model if existing and exit")
     ("seed",                                  po::value(&seed),                             "seed of the rng")
     ("infile,i",                              po::value<std::string>(),                     "ini file for params")
     ("name,n",                                po::value(&name),                             "set name of current rbm")

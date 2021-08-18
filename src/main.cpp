@@ -465,7 +465,7 @@ int main(int argc, char* argv[]) {
         return rc;
     }
 
-    if (!ini::print_bonds) {
+    if (!ini::print_bonds && !ini::print_hex) {
         logger::init();
         std::cout << "Starting '" << ini::name << "'!" << std::endl;
     }
@@ -473,7 +473,8 @@ int main(int argc, char* argv[]) {
     omp_set_num_threads(ini::n_threads);
     Eigen::setNbThreads(1);
 
-    if (!ini::print_bonds) std::cout << "Seed: " << ini::seed << std::endl;
+    if (!ini::print_bonds && !ini::print_hex)
+        std::cout << "Seed: " << ini::seed << std::endl;
     std::mt19937 rng{static_cast<std::mt19937::result_type>(ini::seed)};
 
     std::unique_ptr<model::abstract_model> model;
@@ -502,6 +503,15 @@ int main(int argc, char* argv[]) {
         auto bonds = model->get_lattice().get_bonds();
         for (const auto& b : bonds) {
             std::cout << b.a << "," << b.b << "," << b.type << std::endl;
+        }
+        return 0;
+    }
+    if (ini::print_hex) {
+        auto hex = dynamic_cast<lattice::honeycomb*>(&model->get_lattice())
+                       ->get_hexagons();
+        for (const auto& h : hex) {
+            for (const auto& e : h) std::cout << e << ",";
+            std::cout << std::endl;
         }
         return 0;
     }
