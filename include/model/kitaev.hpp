@@ -22,7 +22,6 @@
 #include <complex>
 #include <vector>
 //
-#include <lattice/honeycomb.hpp>
 #include <model/abstract_model.hpp>
 #include <operators/bond_op.hpp>
 
@@ -44,9 +43,13 @@ class kitaev : public abstract_model {
      * @param size Number of unitcells in one direction.
      * @param J the coupling in all three directions
      * @param size Number of unitcells in another direction.
+     * @param full_symm Use full symmetry including 180 deg rotation.
+     * @param hex_base Use the lattice with hexagon shape.
      */
-    kitaev(size_t size, double J, int size_b = -1, bool full_symm = true)
-        : kitaev(size, std::array<double, 3>{J, J, J}, size_b, full_symm) {}
+    kitaev(size_t size, double J, int size_b = -1, bool full_symm = true,
+           bool hex_base = false)
+        : kitaev(size, std::array<double, 3>{J, J, J}, size_b, full_symm,
+                 hex_base) {}
 
     /**
      * @brief Kitaev model consturctor.
@@ -54,13 +57,15 @@ class kitaev : public abstract_model {
      * @param size Number of unitcells in one direction.
      * @param J the coupling in form of a vector
      * @param size Number of unitcells in another direction.
+     * @param full_symm Use full symmetry including 180 deg rotation.
+     * @param hex_base Use the lattice with hexagon shape.
      */
     kitaev(size_t size, const std::vector<double>& J, int size_b = -1,
-           bool full_symm = true)
+           bool full_symm = true, bool hex_base = false)
         : kitaev(size,
                  std::array<double, 3>{J[0 % J.size()], J[1 % J.size()],
                                        J[2 % J.size()]},
-                 size_b, full_symm) {}
+                 size_b, full_symm, hex_base) {}
 
     /**
      * @brief Kitaev model constructor.
@@ -68,9 +73,11 @@ class kitaev : public abstract_model {
      * @param size Number of unitcells in one direction.
      * @param J Array of coupling constant {J_x, J_y, J_z}.
      * @param size Number of unitcells in another direction.
+     * @param full_symm Use full symmetry including 180 deg rotation.
+     * @param hex_base Use the lattice with hexagon shape.
      */
     kitaev(size_t size, const std::array<double, 3>& J, int size_b = -1,
-           bool full_symm = true);
+           bool full_symm = true, bool hex_base = false);
 
     virtual bool supports_helper_hamiltonian() const override { return true; }
 

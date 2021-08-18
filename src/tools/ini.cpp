@@ -49,6 +49,7 @@ int n_cells_b = -1;
 coupling_t J = {{-1.}};
 double helper_strength = 0.;
 bool full_symm = true;
+std::string lattice_type = "";
 
 // RBM
 rbm_t rbm = BASIC;
@@ -152,6 +153,7 @@ int ini::load(int argc, char* argv[]) {
     ("model.J",                               po::value(&J)->multitoken(),                                "Interaction strength")
     ("model.helper_strength",                 po::value(&helper_strength),                  "Helper Hamiltonian strength")
     ("model.full_symmetry",                   po::value(&full_symm),                        "Use Honeycomb full symmetry")
+    ("model.lattice_type",                    po::value(&lattice_type),                     "Set lattice type if special type is available (honeycomb -> hex base)")
     // RBM
     ("rbm.type",                              po::value(&rbm),                              "set rbm type")
     ("rbm.alpha",                             po::value(&alpha),                            "set number of hidden units = alpha * n_visbile")

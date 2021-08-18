@@ -43,6 +43,7 @@
 //
 #include <lattice/honeycomb.hpp>
 #include <lattice/honeycombS3.hpp>
+#include <lattice/honeycomb_hex.hpp>
 #include <lattice/square.hpp>
 #include <lattice/toric_lattice.hpp>
 #include <machine/abstract_machine.hpp>
@@ -501,7 +502,8 @@ int main(int argc, char* argv[]) {
     switch (ini::model) {
         case ini::model_t::KITAEV:
             model = std::make_unique<model::kitaev>(
-                ini::n_cells, ini::J.strengths, ini::n_cells_b, ini::full_symm);
+                ini::n_cells, ini::J.strengths, ini::n_cells_b, ini::full_symm,
+                ini::lattice_type == "hex");
             break;
         case ini::model_t::KITAEV_S3:
             model = std::make_unique<model::kitaevS3>(ini::n_cells,
@@ -677,6 +679,11 @@ int main(int argc, char* argv[]) {
             time_keeper::start("Optimization");
             optimizer->optimize();
             time_keeper::end("Optimization");
+            if (std::isnan(optimizer->get_current_energy())) {
+                std::cerr << "\nEnergy went NaN." << std::endl;
+                rc = 55;
+                break;
+            }
             logger::newline();
             if (!ini::noprogress && mpi::master) {
                 progress_bar(i + 1, ini::n_epochs,
@@ -774,5 +781,5 @@ int main(int argc, char* argv[]) {
     //
     mpi::end();
 
-    return 0;
+    return rc;
 }

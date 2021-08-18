@@ -46,8 +46,10 @@ class rbm_base : public abstract_machine {
                                                     rbm_context&,
                                                     rbm_context&) const;
 
-    Eigen::MatrixXcd (*cosh_)(const Eigen::MatrixXcd&);
-    Eigen::MatrixXcd (*tanh_)(const Eigen::MatrixXcd&);
+    size_t
+        cosh_mode_;  ///< Cosh mode 0 for default 1 for approximate 2 for lncosh
+    Eigen::ArrayXXcd (*cosh_)(const Eigen::MatrixXcd&);
+    Eigen::ArrayXXcd (*tanh_)(const Eigen::MatrixXcd&);
 
     /**
      * @brief Hidden Constructor for the RBM used by derived classes to get

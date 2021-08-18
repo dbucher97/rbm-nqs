@@ -50,12 +50,21 @@ struct rbm_context {
     bool did_lncoshthetas_ = false;
     Eigen::ArrayXXcd lncoshthetas_;
 
+    std::function<Eigen::ArrayXXcd(const Eigen::MatrixXcd&)> cosh_;
+    std::function<Eigen::ArrayXXcd(const Eigen::MatrixXcd&)> lncosh_;
+
+    size_t cosh_mode_;
+
+    void init_cosh_funcs();
+
    public:
     rbm_context() {}
 
-    rbm_context(const Eigen::MatrixXcd& thetas);
-    rbm_context(const Eigen::MatrixXcd& thetas, const pfaff_context& other);
-    rbm_context(const Eigen::MatrixXcd& thetas, pfaff_context&& other);
+    rbm_context(const Eigen::MatrixXcd& thetas, size_t cosh_mode);
+    rbm_context(const Eigen::MatrixXcd& thetas, const pfaff_context& other,
+                size_t cosh_mode);
+    rbm_context(const Eigen::MatrixXcd& thetas, pfaff_context&& other,
+                size_t cosh_mode);
 
     rbm_context(const rbm_context& other);
 
@@ -65,10 +74,12 @@ struct rbm_context {
 
     const pfaff_context& pfaff() const;
 
+    inline Eigen::ArrayXXcd lncosh_default(const Eigen::MatrixXcd&);
+
     Eigen::ArrayXXcd& coshthetas();
     Eigen::ArrayXXcd& lncoshthetas();
 
-    void reset_cosh();
+    void updated_thetas();
 
    private:
     std::unique_ptr<pfaff_context> pfaff_;

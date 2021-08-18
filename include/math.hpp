@@ -36,16 +36,16 @@ static const double ln2 = std::log(2);  ///< log(2) stored.
  *
  * @return ln(cosh(x))
  */
-static inline double lncosh(double x) {
-    x = std::abs(x);
-    // for x larger than the specified value, a linear approximation is more
-    // than sufficient
-    if (x > LNCOSH_CUTOFF) {
-        return x - ln2;
-    } else {
-        return std::log(std::cosh(x));
-    }
-}
+// static inline double lncosh(double x) {
+//     x = std::abs(x);
+//     // for x larger than the specified value, a linear approximation is more
+//     // than sufficient
+//     if (x > LNCOSH_CUTOFF) {
+//         return x - ln2;
+//     } else {
+//         return std::log(std::cosh(x));
+//     }
+// }
 
 /**
  * @brief Calculates lncosh for a complex value.
@@ -54,20 +54,20 @@ static inline double lncosh(double x) {
  *
  * @return ln(cosh(x))
  */
-static inline std::complex<double> lncosh(std::complex<double> x) {
-    const double xr = x.real();
-    const double xi = x.imag();
+// static inline std::complex<double> lncosh(std::complex<double> x) {
+//     const double xr = x.real();
+//     const double xi = x.imag();
 
-    // Calculate the real lncosh
-    std::complex<double> ret = lncosh(xr);
+//     // Calculate the real lncosh
+//     std::complex<double> ret = lncosh(xr);
 
-    // Calculate the complete lncosh with tanh, sin, which do not go to
-    // infinity with real values.
-    ret += std::log(
-        std::complex<double>(std::cos(xi), std::tanh(xr) * std::sin(xi)));
+//     // Calculate the complete lncosh with tanh, sin, which do not go to
+//     // infinity with real values.
+//     ret += std::log(
+//         std::complex<double>(std::cos(xi), std::tanh(xr) * std::sin(xi)));
 
-    return ret;
-}
+//     return ret;
+// }
 
 /**
  * @brief A `MatrixXcd` wrapper for lncosh, applying lncosh to all elements.
@@ -76,50 +76,37 @@ static inline std::complex<double> lncosh(std::complex<double> x) {
  *
  * @return MatrixXcd result.
  */
-extern inline Eigen::MatrixXcd lncosh(const Eigen::MatrixXcd& x) {
-    Eigen::MatrixXcd ret(x.rows(), x.cols());
-    for (size_t i = 0; i < static_cast<size_t>(ret.size()); i++) {
-        ret(i) = lncosh(x(i));
-    }
+
+extern inline Eigen::ArrayXXcd lncosh(const Eigen::MatrixXcd& x) {
+    Eigen::ArrayXXd xr = x.real().array();
+    Eigen::ArrayXXd xi = x.imag().array();
+    Eigen::ArrayXXcd ret;
+
+    ret = (xr.abs() < LNCOSH_CUTOFF).select(xr.cosh().log(), xr - ln2);
+
+    ret +=
+        (xi.cos() + std::complex<double>(0, 1.) * xr.tanh() * xi.sin()).log();
     return ret;
 }
 
-/**
- * @brief A wrapper for calculating the sum of all elements of the diffrence
- * lncosh(A) - lncosh(B).
- *
- * @param x The reference to the matrix A.
- * @param x The reference to the matrix B.
- *
- * @return compelx result.
- */
-extern inline std::complex<double> lncoshdiff(const Eigen::MatrixXcd& x,
-                                              const Eigen::MatrixXcd& y) {
-    std::complex<double> ret;
-    for (size_t i = 0; i < static_cast<size_t>(x.size()); i++) {
-        ret += lncosh(x(i)) - lncosh(y(i));
-    }
-    return ret;
-}
-
-extern inline Eigen::MatrixXcd cosh2(const Eigen::MatrixXcd& x) {
+extern inline Eigen::ArrayXXcd cosh2(const Eigen::MatrixXcd& x) {
     return (1 + x.real().array().pow(2) / 2) * x.imag().array().cos() +
            std::complex<double>(0, 1) * x.real().array() *
                x.imag().array().sin();
 }
 
-extern inline Eigen::MatrixXcd tanh2(const Eigen::MatrixXcd& x) {
+extern inline Eigen::ArrayXXcd tanh2(const Eigen::MatrixXcd& x) {
     return (x.real().array() * x.imag().array().cos() +
             std::complex<double>(0, 1) * (1 + x.real().array().pow(2) / 2) *
                 x.imag().array().sin()) /
            cosh2(x).array();
 }
 
-extern inline Eigen::MatrixXcd cosh1(const Eigen::MatrixXcd& x) {
+extern inline Eigen::ArrayXXcd cosh1(const Eigen::MatrixXcd& x) {
     return x.array().cosh();
 }
 
-extern inline Eigen::MatrixXcd tanh1(const Eigen::MatrixXcd& x) {
+extern inline Eigen::ArrayXXcd tanh1(const Eigen::MatrixXcd& x) {
     Eigen::MatrixXcd r = x.array().tanh();
     return r.array().isFinite().select(r, 0.);
 }

@@ -34,7 +34,7 @@ class file_psi : public abstract_machine {
 
     virtual rbm_context get_context(
         const Eigen::MatrixXcd& state) const override {
-        return {Eigen::MatrixXcd::Zero(1, 1)};
+        return {Eigen::MatrixXcd::Zero(1, 1), 0};
     }
 
     virtual Eigen::MatrixXcd derivative(const Eigen::MatrixXcd&,

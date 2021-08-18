@@ -156,6 +156,7 @@ extern int n_cells_b;
 extern coupling_t J;
 extern double helper_strength;
 extern bool full_symm;
+extern std::string lattice_type;
 
 // RBM
 extern rbm_t rbm;

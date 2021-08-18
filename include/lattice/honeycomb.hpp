@@ -29,7 +29,7 @@
 namespace lattice {
 
 class honeycomb : public bravais {
-   private:
+   protected:
     /**
      * @brief Counts the number of occurances of one site in the hightlights
      * vector.
@@ -46,6 +46,8 @@ class honeycomb : public bravais {
                              const std::vector<size_t>& highlights) const;
 
     bool full_symm_;
+
+    virtual size_t rot180(size_t idx) const;
 
    public:
     using Base = bravais;

@@ -18,6 +18,8 @@
 
 #include <Eigen/Dense>
 //
+#include <lattice/honeycomb.hpp>
+#include <lattice/honeycomb_hex.hpp>
 #include <model/kitaev.hpp>
 #include <operators/local_op.hpp>
 #include <operators/local_op_chain.hpp>
@@ -25,8 +27,13 @@
 using namespace model;
 
 kitaev::kitaev(size_t size, const std::array<double, 3>& J, int size_b,
-               bool full_symm) {
-    lattice_ = std::make_unique<lattice::honeycomb>(size, size_b, full_symm);
+               bool full_symm, bool hex_base) {
+    if (hex_base) {
+        lattice_ = std::make_unique<lattice::honeycomb_hex>(size, full_symm);
+    } else {
+        lattice_ =
+            std::make_unique<lattice::honeycomb>(size, size_b, full_symm);
+    }
     std::vector<SparseXcd> bond_ops = {
         J[0] * kron({sx(), sx()}),
         J[1] * kron({sy(), sy()}),

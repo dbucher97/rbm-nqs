@@ -40,6 +40,7 @@ rbm_base::rbm_base(size_t n_alpha, size_t n_v_bias, lattice::bravais& l,
       n_vb_{n_v_bias},
       psi_over_psi_{pop_mode == 0 ? &rbm_base::psi_over_psi_default
                                   : &rbm_base::psi_over_psi_alt},
+      cosh_mode_{cosh_mode},
       cosh_{(pop_mode == 0 || cosh_mode == 0) ? &math::cosh1 : &math::cosh2},
       tanh_{(pop_mode == 0 || cosh_mode == 0) ? &math::tanh1 : &math::tanh2} {}
 
@@ -130,9 +131,9 @@ rbm_context rbm_base::get_context(const Eigen::MatrixXcd& state) const {
         (state.transpose() * weights_).transpose() + h_bias_;
     for (auto& c : correlators_) c->add_thetas(state, thetas);
     if (pfaffian_) {
-        return {thetas, pfaffian_->get_context(state)};
+        return {thetas, pfaffian_->get_context(state), cosh_mode_};
     } else {
-        return {thetas};
+        return {thetas, cosh_mode_};
     }
 }
 
@@ -154,6 +155,7 @@ void rbm_base::update_context(const Eigen::MatrixXcd& state,
     if (pfaffian_) {
         pfaffian_->update_context(state, flips, context.pfaff());
     }
+    context.updated_thetas();
 }
 
 Eigen::MatrixXcd rbm_base::derivative(const Eigen::MatrixXcd& state,
@@ -264,9 +266,7 @@ std::complex<double> rbm_base::log_psi_over_psi(
     // Caclulate the diffrenece of the lncoshs, which is the same as the log
     // of the ratio of coshes.
     // ret += math::lncoshdiff(updated_context.thetas, context.thetas);
-    ret += (updated_context.thetas.array().cosh().log() -
-            context.thetas.array().cosh().log())
-               .sum();
+    ret += (updated_context.lncoshthetas() - context.lncoshthetas()).sum();
 
     return ret;
 }
@@ -288,9 +288,7 @@ std::complex<double> rbm_base::psi_over_psi_alt(
     // Update the thetas with the flips
     update_context(state, flips, updated_context);
 
-    ret *= ((*cosh_)(updated_context.thetas).array() /
-            (*cosh_)(context.thetas).array())
-               .prod();
+    ret *= (updated_context.coshthetas() / context.coshthetas()).prod();
 
     return ret;
 }

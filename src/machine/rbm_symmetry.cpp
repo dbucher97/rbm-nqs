@@ -50,9 +50,9 @@ rbm_context rbm_symmetry::get_context(const Eigen::MatrixXcd& state) const {
         for (auto& c : correlators_) c->add_thetas(state, ret, s);
     }
     if (pfaffian_) {
-        return {ret, pfaffian_->get_context(state)};
+        return {ret, pfaffian_->get_context(state), cosh_mode_};
     } else {
-        return {ret};
+        return {ret, cosh_mode_};
     }
 }
 
@@ -86,6 +86,7 @@ void rbm_symmetry::update_context(const Eigen::MatrixXcd& state,
     if (pfaffian_) {
         pfaffian_->update_context(state, flips, context.pfaff());
     }
+    context.updated_thetas();
 }
 
 Eigen::MatrixXcd rbm_symmetry::derivative(const Eigen::MatrixXcd& state,
