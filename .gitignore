@@ -1,4 +1,5 @@
 build/
+train/
 cluster/build
 tsf-out/
 .DS_Store
