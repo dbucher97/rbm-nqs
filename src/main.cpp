@@ -642,6 +642,11 @@ int main(int argc, char* argv[]) {
             time_keeper::start("Optimization");
             optimizer->optimize();
             time_keeper::end("Optimization");
+            if (std::isnan(optimizer->get_current_energy())) {
+                std::cerr << "\nEnergy went NaN." << std::endl;
+                rc = 55;
+                break;
+            }
             logger::newline();
             if (!ini::noprogress) {
                 progress_bar(i + 1, ini::n_epochs,
@@ -737,5 +742,5 @@ int main(int argc, char* argv[]) {
     // std::cout << std::real(agg.get_result()(0)) / rbm->n_visible <<
     // std::endl;
 
-    return 0;
+    return rc;
 }

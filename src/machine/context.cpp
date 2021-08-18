@@ -17,6 +17,7 @@
  */
 
 #include <machine/context.hpp>
+#include <math.hpp>
 
 using namespace machine;
 
@@ -48,21 +49,33 @@ pfaff_context& pfaff_context::operator=(pfaff_context&& other) {
     return *this;
 }
 
-rbm_context::rbm_context(const Eigen::MatrixXcd& thetas) : thetas{thetas} {}
+rbm_context::rbm_context(const Eigen::MatrixXcd& thetas, size_t cosh_mode)
+    : thetas{thetas}, cosh_mode_{cosh_mode} {
+    init_cosh_funcs();
+};
 
 rbm_context::rbm_context(const Eigen::MatrixXcd& thetas,
-                         const pfaff_context& other)
-    : thetas{thetas}, pfaff_{std::make_unique<pfaff_context>(other)} {}
+                         const pfaff_context& other, size_t cosh_mode)
+    : rbm_context{thetas, cosh_mode} {
+    pfaff_ = std::make_unique<pfaff_context>(other);
+}
 
-rbm_context::rbm_context(const Eigen::MatrixXcd& thetas, pfaff_context&& other)
-    : thetas{thetas},
-      pfaff_{
-          std::make_unique<pfaff_context>(std::forward<pfaff_context>(other))} {
+rbm_context::rbm_context(const Eigen::MatrixXcd& thetas, pfaff_context&& other,
+                         size_t cosh_mode)
+    : rbm_context{thetas, cosh_mode} {
+    pfaff_ =
+        std::make_unique<pfaff_context>(std::forward<pfaff_context>(other));
 }
 
 rbm_context::rbm_context(const rbm_context& other) {
     thetas = other.thetas;
     if (other.pfaff_) pfaff_ = std::make_unique<pfaff_context>(*other.pfaff_);
+    lncoshthetas_ = other.lncoshthetas_;
+    coshthetas_ = other.coshthetas_;
+    did_lncoshthetas_ = other.did_lncoshthetas_;
+    did_coshthetas_ = other.did_coshthetas_;
+    cosh_mode_ = other.cosh_mode_;
+    init_cosh_funcs();
 }
 
 rbm_context& rbm_context::operator=(rbm_context& other) {
@@ -72,7 +85,19 @@ rbm_context& rbm_context::operator=(rbm_context& other) {
     std::swap(coshthetas_, other.coshthetas_);
     std::swap(did_lncoshthetas_, other.did_lncoshthetas_);
     std::swap(did_coshthetas_, other.did_coshthetas_);
+    std::swap(cosh_mode_, other.cosh_mode_);
+    std::swap(cosh_, other.cosh_);
+    std::swap(lncosh_, other.lncosh_);
     return *this;
+}
+
+void rbm_context::init_cosh_funcs() {
+    cosh_ = (cosh_mode_ == 1) ? math::cosh2 : math::cosh1;
+    if (cosh_mode_ == 2)
+        lncosh_ = math::lncosh;
+    else
+        lncosh_ = std::bind(&rbm_context::lncosh_default, this,
+                            std::placeholders::_1);
 }
 
 pfaff_context& rbm_context::pfaff() {
@@ -84,21 +109,30 @@ const pfaff_context& rbm_context::pfaff() const { return *pfaff_; }
 
 Eigen::ArrayXXcd& rbm_context::coshthetas() {
     if (!did_coshthetas_) {
+        if (did_lncoshthetas_) {
+            coshthetas_ = lncoshthetas_.exp();
+        } else {
+            coshthetas_ = cosh_(thetas);
+        }
         did_coshthetas_ = true;
-        coshthetas_ = thetas.array().cosh();
     }
     return coshthetas_;
 }
 
 Eigen::ArrayXXcd& rbm_context::lncoshthetas() {
     if (!did_lncoshthetas_) {
+        lncoshthetas_ = lncosh_(thetas);
         did_lncoshthetas_ = true;
-        lncoshthetas_ = coshthetas().log();
     }
     return lncoshthetas_;
 }
 
-void rbm_context::reset_cosh() {
+void rbm_context::updated_thetas() {
     did_lncoshthetas_ = false;
     did_coshthetas_ = false;
+}
+
+inline Eigen::ArrayXXcd rbm_context::lncosh_default(
+    const Eigen::MatrixXcd& mat) {
+    return coshthetas().log();
 }

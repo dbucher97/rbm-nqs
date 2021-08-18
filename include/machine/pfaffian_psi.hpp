@@ -37,7 +37,7 @@ class pfaffian_psi : public abstract_machine {
 
     virtual inline rbm_context get_context(
         const Eigen::MatrixXcd& state) const override {
-        return {Eigen::MatrixXcd::Zero(1, 1), pfaffian_->get_context(state)};
+        return {Eigen::MatrixXcd::Zero(1, 1), pfaffian_->get_context(state), 0};
     }
 
     virtual inline Eigen::MatrixXcd derivative(
