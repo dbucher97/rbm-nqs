@@ -84,7 +84,8 @@ def get_hex(n : int, log : bool = False, args : list = []) -> list[sp.csr_matrix
     for l in out.strip().split('\n'):
         s = l.strip().split(',')[:-1]
         s = list(map(int, s))
-        midx=max(s)
+        if midx < max(s):
+            midx = max(s)
         hex.append((s, 0))
     hex_ops = get_hex_ops()
 
