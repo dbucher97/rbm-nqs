@@ -5,15 +5,15 @@ import numpy as np
 import scipy.sparse as sp
 import platform
 from scipy.sparse.linalg import eigsh
-from typing import Union
+from typing import Union, List, Tuple
 
 SZ = sp.csr_matrix(np.array([[1, 0], [0, -1]]))
 SY = sp.csr_matrix(np.array([[0, -1j], [1j, 0]]))
 SX = sp.csr_matrix(np.array([[0, 1], [1, 0]]))
 
 
-def construct_op(bonds : list[tuple], bond_ops : list[tuple], N : int , J :
-        list[int] = [1], log: bool = False) -> sp.csr_matrix:
+def construct_op(bonds : List[Tuple], bond_ops : List[Tuple], N : int , J :
+        List[int] = [1], log: bool = False) -> sp.csr_matrix:
     ret = sp.csr_matrix((2**N, 2**N), dtype=complex)
     c = 0
     for sites, t in bonds:
@@ -34,15 +34,15 @@ def construct_op(bonds : list[tuple], bond_ops : list[tuple], N : int , J :
     return ret
 
 
-def get_bonds_ops(model : str = "kitaev") -> list[tuple]:
+def get_bonds_ops(model : str = "kitaev") -> List[Tuple]:
     if model == "kitaev":
         return [(SX, SX), (SY, SY), (SZ, SZ)]
     return []
-def get_hex_ops() -> list[tuple]:
+def get_hex_ops() -> List[Tuple]:
     return [(SX, SY, SZ, SX, SY, SZ)]
 
 
-def get_hamiltonian(n : int, model : str = "kitaev", log : bool = False, args : list = []) -> sp.csr_matrix:
+def get_hamiltonian(n : int, model : str = "kitaev", log : bool = False, args : List = []) -> sp.csr_matrix:
     prstr = ''
     if platform.system() == 'Darwin':
         prstr = 'env DYLD_LIBRARY_PATH=$HOME/boost-gcc/lib: '
@@ -71,7 +71,7 @@ def get_hamiltonian(n : int, model : str = "kitaev", log : bool = False, args : 
 
     return construct_op(bonds, bond_ops, N=midx+1, J=[-1], log=log)
 
-def get_hex(n : int, log : bool = False, args : list = []) -> list[sp.csr_matrix]:
+def get_hex(n : int, log : bool = False, args : List = []) -> List[sp.csr_matrix]:
     prstr = ''
     if platform.system() == 'Darwin':
         prstr = 'env DYLD_LIBRARY_PATH=$HOME/boost-gcc/lib: '
@@ -102,6 +102,6 @@ def get_hex(n : int, log : bool = False, args : list = []) -> list[sp.csr_matrix
 def evaluate(state : np.ndarray, op : Union[np.ndarray, sp.csr_matrix]) -> complex:
     return state.T.conj() @ op @ state
 
-def groundstate(ham : sp.csr_matrix) -> tuple[float, np.ndarray]:
+def groundstate(ham : sp.csr_matrix) -> Tuple[float, np.ndarray]:
     v, w = eigsh(ham, k=1)
     return v[0], w[:, 0]
