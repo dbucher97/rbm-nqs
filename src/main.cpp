@@ -342,7 +342,7 @@ void test_minresqlp() {
 
     Eigen::VectorXcd tmp(nb, 1);
     Eigen::VectorXcd diag(na, 1);
-    diag = mat.cwiseAbs2().rowwise().sum();
+    diag = mat.cwiseAbs2().rowwise().sum() / norm - vec.cwiseAbs2();
     optimizer::minresqlp_adapter min{mat, vec, e1, e2, de, norm, nn, diag, tmp};
 
     min.itnlim = 1000;
@@ -354,7 +354,7 @@ void test_minresqlp() {
 
     y = S * z;
 
-    std::cout << (x - y).cwiseAbs2().mean() << std::endl;
+    std::cout << (x - y).norm() << std::endl;
 }
 
 void debug_general_pfaffprocedure() {
