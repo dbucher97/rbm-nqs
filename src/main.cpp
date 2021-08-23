@@ -309,13 +309,13 @@ void debug_pfaffian2() {
 }
 
 void test_minresqlp() {
-    int na = 1000, nb = 500, nn = 300;
+    int na = 500, nb = 500, nn = 50;
     Eigen::MatrixXcd mat(na, nb);
     double norm = 0.1;
 
-    double e1 = 0.1;
-    double de = 0.1;
-    double e2 = 0.1;
+    double e1 = 1;
+    double de = 1;
+    double e2 = 1;
     mat.setRandom();
 
     Eigen::MatrixXcd vec;
@@ -337,26 +337,24 @@ void test_minresqlp() {
     Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1> x(na), y(na);
     Eigen::MatrixXcd z(na, 1);
     x.setRandom();
-    x.normalize();
     y.setZero();
     z.setZero();
 
-    // y = S.inverse() * x;
-    // y.array() += d.array() * x.array() * e1;
+    Eigen::VectorXcd tmp(nb, 1);
+    Eigen::VectorXcd diag(na, 1);
+    diag = mat.cwiseAbs2().rowwise().sum();
+    optimizer::minresqlp_adapter min{mat, vec, e1, e2, de, norm, nn, diag, tmp};
 
-    // optimizer::minresqlp_adapter min{mat, vec, e1, e2, de, norm, nn};
+    min.itnlim = 1000;
+    std::cout << "start" << std::endl;
+    std::cout << min.apply(x, z) << std::endl;
+    std::cout << min.getItn() << std::endl;
+    std::cout << min.getAcond() << std::endl;
+    std::cout << min.getRnorm() << std::endl;
 
-    // min.itnlim = 50;
-    // std::cout << "start" << std::endl;
-    // std::cout << min.apply(x, z) << std::endl;
-    // std::cout << min.getItn() << std::endl;
-    // std::cout << min.getAcond() << std::endl;
-    // std::cout << min.getRnorm() << std::endl;
+    y = S * z;
 
-    // y = S * z;
-    // // y.normalize();
-
-    // std::cout << std::pow(std::abs(x.dot(y)), 2) << std::endl;
+    std::cout << (x - y).cwiseAbs2().mean() << std::endl;
 }
 
 void debug_general_pfaffprocedure() {
@@ -474,8 +472,8 @@ void debugAprod() {
 }
 
 int main(int argc, char* argv[]) {
-    // debugAprod();
-    // return 0;
+    test_minresqlp();
+    return 0;
     //
     mpi::init(argc, argv);
     int rc = ini::load(argc, argv);
