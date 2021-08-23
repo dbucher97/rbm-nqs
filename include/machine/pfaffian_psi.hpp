@@ -72,7 +72,7 @@ class pfaffian_psi : public abstract_machine {
         return pfaffian_->psi_over_psi(state, flips, updated_context.pfaff());
     }
 
-    virtual bool save(const std::string& name) override {
+    virtual bool save(const std::string& name, bool silent = false) override {
         std::ofstream output{name + ".rbm", std::ios::binary};
         if (output.is_open()) {
             // Write the matrices into the outputstream. (<eigen_fstream.h>)
@@ -82,7 +82,9 @@ class pfaffian_psi : public abstract_machine {
 
             output.close();
             // Give a status update.
-            std::cout << "Saved Pfaffian to '" << name << ".rbm'!" << std::endl;
+            if (!silent)
+                std::cout << "Saved Pfaffian to '" << name << ".rbm'!"
+                          << std::endl;
             return true;
         } else {
             return false;

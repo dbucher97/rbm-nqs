@@ -157,7 +157,7 @@ class outer_aggregator_lazy : public aggregator {
 
     size_t current_index_ = 0;
     double norm_ = 0;
-    Eigen::Matrix<double, Eigen::Dynamic, 1> diag_;
+    Eigen::VectorXd diag_;
 
    public:
     /**
@@ -176,6 +176,9 @@ class outer_aggregator_lazy : public aggregator {
                                                   double reg2);
 
     double get_norm() { return norm_; }
+
+    void finalize_diag(const Eigen::MatrixXcd&);
+    Eigen::VectorXd& get_diag();
 };
 
 }  // namespace operators

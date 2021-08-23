@@ -122,7 +122,7 @@ class rbm_base : public abstract_machine {
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
         rbm_context& context, rbm_context& updated_context) const override;
 
-    virtual bool save(const std::string& name) final;
+    virtual bool save(const std::string& name, bool silent = false) final;
 
     virtual bool load(const std::string& name) final;
 

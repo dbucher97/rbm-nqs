@@ -24,6 +24,7 @@
 //
 #include <operators/aggregator.hpp>
 #include <optimizer/abstract_optimizer.hpp>
+#include <optimizer/abstract_solver.hpp>
 #include <optimizer/plugin.hpp>
 
 namespace optimizer {
@@ -38,8 +39,6 @@ namespace optimizer {
  */
 class stochastic_reconfiguration : public abstract_optimizer {
     using Base = abstract_optimizer;
-
-    using VectorXcd = Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>;
 
    public:
     /**
@@ -78,11 +77,16 @@ class stochastic_reconfiguration : public abstract_optimizer {
 
     operators::prod_aggregator
         a_dh_;  ///< Derivative Hamiltonian aggregator <D^* H>
-    std::unique_ptr<operators::aggregator>
+    operators::outer_aggregator_lazy
         a_dd_;  ///< Outer product derivative aggregator <D^* D^T>
 
     decay_t kp1_;   ///< Regularization scale
     decay_t kp2_;   ///< Regularization shift
     decay_t kp1d_;  ///< Regularization scale offset pfaffian parameters
+
+    std::unique_ptr<abstract_solver> solver_;
+
+    Eigen::VectorXcd F_;
+    Eigen::MatrixXcd dw_;
 };
 }  // namespace optimizer

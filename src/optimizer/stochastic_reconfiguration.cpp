@@ -24,7 +24,8 @@
 #include <tools/logger.hpp>
 #include <vector>
 //
-#include <optimizer/minres_adapter.hpp>
+#include <optimizer/direct_solver.hpp>
+#include <optimizer/minres_solver.hpp>
 #include <optimizer/outer_matrix.hpp>
 #include <optimizer/plugin.hpp>
 #include <optimizer/stochastic_reconfiguration.hpp>
@@ -43,22 +44,28 @@ stochastic_reconfiguration::stochastic_reconfiguration(
       max_iterations_{max_iterations},
       rtol_{rtol},
       a_dh_{derivative_, hamiltonian_},
-      a_dd_{
-          method_ != "direct"
-              ? (std::unique_ptr<operators::aggregator>)
-                    std::make_unique<operators::outer_aggregator_lazy>(
-                        derivative_, sampler.get_my_n_samples())
-              : (std::unique_ptr<operators::aggregator>)
-                    std::make_unique<operators::outer_aggregator>(derivative_)},
+      a_dd_{derivative_, sampler.get_my_n_samples()},
       // Initialize the regularization.
       kp1_{kp1, rbm_.get_n_updates()},
       kp2_{kp2, rbm_.get_n_updates()},
-      kp1d_{kp1d, rbm_.get_n_updates()} {}
+      kp1d_{kp1d, rbm_.get_n_updates()},
+      F_(rbm.get_n_params()),
+      dw_(rbm.get_n_params(), 1) {
+    if (method == "direct") {
+        solver_ = std::make_unique<direct_solver>(rbm_.get_n_params(),
+                                                  rbm_.get_n_neural_params());
+    } else if (method == "minres") {
+        solver_ = std::make_unique<minres_solver>(
+            rbm_.get_n_params(), sampler.get_n_samples(),
+            sampler.get_my_n_samples(), rbm_.get_n_neural_params(),
+            max_iterations, rtol);
+    }
+}
 
 void stochastic_reconfiguration::register_observables() {
     // Register operators and aggregators
     Base::register_observables();
-    sampler_.register_aggs({&a_dh_, a_dd_.get()});
+    sampler_.register_aggs({&a_dh_, &a_dd_});
 }
 
 Eigen::MatrixXcd stochastic_reconfiguration::gradient(bool log) {
@@ -66,6 +73,7 @@ Eigen::MatrixXcd stochastic_reconfiguration::gradient(bool log) {
     auto& h = a_h_.get_result();
     auto& d = a_d_.get_result();
     auto& dh = a_dh_.get_result();
+    a_dd_.finalize_diag(d);
 
     if (log) {
         // Log energy, energy variance and sampler properties.
@@ -76,74 +84,67 @@ Eigen::MatrixXcd stochastic_reconfiguration::gradient(bool log) {
         sampler_.log();
     }
 
-    Eigen::MatrixXcd dw(rbm_.get_n_params(), 1);
-
     double reg1 = kp1_.get();
     double reg2 = kp2_.get();
     double reg1delta = kp1d_.get();
+    std::cout << reg1 << ", " << reg2 << ", " << reg1delta << std::endl;
 
     // Calculate Gradient
-    VectorXcd F = dh - h(0) * d.conjugate();
+    F_ = dh - h(0) * d.conjugate();
 
-    if (method_ == "minresqlp") {
-        // Get covariance matrix in GMRES form
+    dw_.setZero();
+    solver_->solve(a_dd_.get_result(), d, a_dd_.get_norm(), F_, dw_, reg1, reg2,
+                   reg1delta, a_dd_.get_diag());
 
-        /* OuterMatrix S =
-        dynamic_cast<operators::outer_aggregator_lazy*>(a_dd_.get())
-                ->construct_outer_matrix(a_d_, reg1, reg2);
-
-        Eigen::ConjugateGradient<OuterMatrix, Eigen::Upper | Eigen::Lower,
-                                 Eigen::IdentityPreconditioner>
-            cg;
-        if (max_iterations_) cg.setMaxIterations(max_iterations_);
-        cg.compute(S);
-        dw = cg.solve(F); */
-
-        auto oa = dynamic_cast<operators::outer_aggregator_lazy*>(a_dd_.get());
-        minresqlp_adapter min(oa->get_result(), a_d_.get_result(), reg1, reg2,
-                              reg1delta, oa->get_norm(),
-                              rbm_.get_n_neural_params());
-        if (max_iterations_) min.itnlim = max_iterations_;
-        if (rtol_ > 0.0) min.rtol = rtol_;
-        min.apply(F, dw);
-        /* std::cout << std::endl;
-        std::cout << "Acond: " << min.getAcond() << std::endl;
-        std::cout << "Rnorm: " << min.getRnorm() << std::endl;
-        std::cout << "Rtol: " << min.rtol << std::endl;
-        std::cout << "Itn: " << min.getItn() << std::endl;
-        std::cout << "Istop: " << min.getIstop() << std::endl; */
-        if (plug_) {
-            plug_->add_metric(&(oa->get_result()), &a_d_.get_result());
-        }
-    } else if (method_ == "direct") {
-        auto& dd = a_dd_->get_result();
-        // Calculate Covariance matrix.
-        Eigen::MatrixXcd S = dd - d.conjugate() * d.transpose();
-        // Add regularization.
-        auto Sdiag = S.diagonal();
-        S += Eigen::DiagonalMatrix<std::complex<double>, Eigen::Dynamic>(reg1 *
-                                                                         Sdiag);
-        S += reg2 * Sdiag.cwiseAbs().maxCoeff() *
-             Eigen::MatrixXcd::Identity(S.rows(), S.cols());
-        double Sd = 0, Sod = 0;
-        int acc = 0;
-        for (size_t i = 0; i < static_cast<size_t>(S.rows()); i++) {
-            Sd = 0;
-            Sod = 0;
-            for (size_t j = 0; j < static_cast<size_t>(S.cols()); j++) {
-                if (i == j) {
-                    Sd = std::abs(S(i, i));
-                } else {
-                    Sod += std::abs(S(i, j));
-                }
-            }
-            acc += Sod < Sd;
-        }
-        dw = S.completeOrthogonalDecomposition().solve(F);
-    } else {
-        throw std::runtime_error("SR method '" + method_ + "' does not exist!");
+    if (plug_) {
+        plug_->add_metric(&(a_dd_.get_result()), &a_d_.get_result());
     }
+    // if (method_ == "minresqlp") {
+    // Get covariance matrix in GMRES form
+
+    /* OuterMatrix S =
+    dynamic_cast<operators::outer_aggregator_lazy*>(a_dd_.get())
+            ->construct_outer_matrix(a_d_, reg1, reg2);
+
+    Eigen::ConjugateGradient<OuterMatrix, Eigen::Upper | Eigen::Lower,
+                             Eigen::IdentityPreconditioner>
+        cg;
+    if (max_iterations_) cg.setMaxIterations(max_iterations_);
+    cg.compute(S);
+    dw = cg.solve(F); */
+
+    // auto oa =
+    // dynamic_cast<operators::outer_aggregator_lazy*>(a_dd_.get());
+    // minresqlp_adapter min(oa->get_result(), a_d_.get_result(), reg1,
+    // reg2,
+    //                       reg1delta, oa->get_norm(),
+    //                       rbm_.get_n_neural_params());
+    // if (max_iterations_) min.itnlim = max_iterations_;
+    // if (rtol_ > 0.0) min.rtol = rtol_;
+    // min.apply(F, dw);
+    /* std::cout << std::endl;
+    std::cout << "Acond: " << min.getAcond() << std::endl;
+    std::cout << "Rnorm: " << min.getRnorm() << std::endl;
+    std::cout << "Rtol: " << min.rtol << std::endl;
+    std::cout << "Itn: " << min.getItn() << std::endl;
+    std::cout << "Istop: " << min.getIstop() << std::endl; */
+    // } else if (method_ == "direct") {
+    //     auto& dd = a_dd_->get_result();
+    //     // Calculate Covariance matrix.
+    //     Eigen::MatrixXcd S = dd - d.conjugate() * d.transpose();
+    //     // Add regularization.
+    //     auto Sdiag = S.diagonal();
+    //     S += Eigen::DiagonalMatrix<std::complex<double>,
+    //     Eigen::Dynamic>(reg1 *
+    //                                                                      Sdiag);
+    //     S += reg2 * Sdiag.cwiseAbs().maxCoeff() *
+    //          Eigen::MatrixXcd::Identity(S.rows(), S.cols());
+    //     dw = S.completeOrthogonalDecomposition().solve(F);
+    // } else {
+    //     throw std::runtime_error("SR method '" + method_ + "' does not
+    //     exist!");
+    // }
 
     // logger::log(dw.norm() / dw.size(), "DW Norm");
-    return dw;
+    return dw_;
 }

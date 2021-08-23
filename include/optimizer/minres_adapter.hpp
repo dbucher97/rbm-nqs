@@ -25,11 +25,11 @@ namespace optimizer {
 
 const std::complex<double> g_one = 1., g_zero = 0., g_mone = -1.;
 
-extern std::complex<double>* g_mat;
-extern std::complex<double>* g_vec;
+extern const std::complex<double>* g_mat;
+extern const std::complex<double>* g_vec;
 extern std::complex<double>* g_tmp;
 extern std::complex<double>* g_dot;
-extern std::complex<double>* g_diag;
+extern const std::complex<double>* g_diag;
 extern double g_norm;
 extern double* g_reg;
 extern int g_mat_dim2, g_nn;
@@ -38,7 +38,6 @@ extern void Aprod(int* n, std::complex<double>* x, std::complex<double>* y);
 extern void Msolve(int* n, std::complex<double>* x, std::complex<double>* y);
 
 class minresqlp_adapter {
-    using VectorXcd = Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1>;
     int n;
     int istop;
     int itn;
@@ -50,10 +49,10 @@ class minresqlp_adapter {
 
     std::complex<double> dot;
 
-    Eigen::MatrixXcd& mat;
-    Eigen::MatrixXcd& vec;
-    VectorXcd diag;
-    VectorXcd tmp;
+    const Eigen::MatrixXcd& mat;
+    const Eigen::MatrixXcd& vec;
+    const Eigen::VectorXcd& diag;
+    Eigen::VectorXcd& tmp;
     double reg[3];
 
    public:
@@ -66,10 +65,12 @@ class minresqlp_adapter {
     double Acondlim = 1e15;
     bool precond = false;
 
-    minresqlp_adapter(Eigen::MatrixXcd& mat, Eigen::MatrixXcd& vec, double e1,
-                      double e2, double de, double norm, int nn);
+    minresqlp_adapter(const Eigen::MatrixXcd& mat, const Eigen::MatrixXcd& vec,
+                      const double e1, const double e2, const double de,
+                      const double norm, const int nn,
+                      const Eigen::VectorXcd& diag, Eigen::VectorXcd& tmp);
 
-    int apply(VectorXcd& b, Eigen::MatrixXcd& x);
+    int apply(const Eigen::VectorXcd& b, Eigen::MatrixXcd& x);
 
     const int getIstop() { return istop; }
     const int getItn() { return itn; }

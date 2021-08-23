@@ -222,7 +222,9 @@ class abstract_machine {
      *
      * @return true if worked.
      */
-    virtual bool save(const std::string& name) { return true; };
+    virtual bool save(const std::string& name, bool silent = false) {
+        return true;
+    };
 
     /**
      * @brief Loads the state from the file '`name`.rbm'.

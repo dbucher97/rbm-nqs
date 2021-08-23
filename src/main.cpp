@@ -102,7 +102,11 @@ void progress_bar(size_t i, size_t n_epochs, double energy, char state) {
               << ") " << state << " ";
     struct winsize size;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &size);
-    int plen = size.ws_col - (2 * (int)std::log10(n_epochs) + 37);
+    int x = size.ws_col;
+    if (x == 0) {
+        x = 100;
+    }
+    int plen = x - (2 * (int)std::log10(n_epochs) + 37);
     int p = (int)(plen * progress + 0.5);
     int m = plen - p;
     std::cout << "[" << std::string(p, '#') << std::string(m, ' ') << "]";
@@ -305,7 +309,7 @@ void debug_pfaffian2() {
 }
 
 void test_minresqlp() {
-    int na = 10000, nb = 500, nn = 300;
+    int na = 1000, nb = 500, nn = 300;
     Eigen::MatrixXcd mat(na, nb);
     double norm = 0.1;
 
@@ -340,19 +344,19 @@ void test_minresqlp() {
     // y = S.inverse() * x;
     // y.array() += d.array() * x.array() * e1;
 
-    optimizer::minresqlp_adapter min{mat, vec, e1, e2, de, norm, nn};
+    // optimizer::minresqlp_adapter min{mat, vec, e1, e2, de, norm, nn};
 
-    min.itnlim = 50;
-    std::cout << "start" << std::endl;
-    std::cout << min.apply(x, z) << std::endl;
-    std::cout << min.getItn() << std::endl;
-    std::cout << min.getAcond() << std::endl;
-    std::cout << min.getRnorm() << std::endl;
+    // min.itnlim = 50;
+    // std::cout << "start" << std::endl;
+    // std::cout << min.apply(x, z) << std::endl;
+    // std::cout << min.getItn() << std::endl;
+    // std::cout << min.getAcond() << std::endl;
+    // std::cout << min.getRnorm() << std::endl;
 
-    y = S * z;
-    // y.normalize();
+    // y = S * z;
+    // // y.normalize();
 
-    std::cout << std::pow(std::abs(x.dot(y)), 2) << std::endl;
+    // std::cout << std::pow(std::abs(x.dot(y)), 2) << std::endl;
 }
 
 void debug_general_pfaffprocedure() {
@@ -457,12 +461,21 @@ void debugAprod() {
     optimizer::Aprod(&n, x.data(), y1.data());
     tmp2 = mat.transpose() * x;
     y2 = S * x;
+    Eigen::MatrixXcd r1(n, 1);
+    Eigen::MatrixXcd r2(n, 1);
+    optimizer::Aprod(&n, y1.data(), r1.data());
+    r2 = S * y2;
 
-    std::cout << (y1 - y2).norm() << std::endl;
-    std::cout << (tmp2 - tmp).norm() << std::endl;
+    std::cout << y1.squaredNorm() << std::endl;
+    std::cout << r1.adjoint() * x << std::endl;
+
+    // std::cout << (y1 - y2).cwiseAbs2().mean() << std::endl;
+    // std::cout << (tmp2 - tmp).cwiseAbs2().mean() << std::endl;
 }
 
 int main(int argc, char* argv[]) {
+    // debugAprod();
+    // return 0;
     //
     mpi::init(argc, argv);
     int rc = ini::load(argc, argv);
@@ -475,8 +488,8 @@ int main(int argc, char* argv[]) {
         std::cout << "Starting '" << ini::name << "'!" << std::endl;
     }
 
-    omp_set_num_threads(1);
     // Eigen::setNbThreads(1);
+    omp_set_num_threads(2);
 
     if (!ini::print_bonds && mpi::master)
         std::cout << "Seed: " << ini::seed << std::endl;
@@ -644,14 +657,6 @@ int main(int argc, char* argv[]) {
                   << std::endl;
     }
 
-    operators::aggregator agg{model->get_hamiltonian()};
-    sampler->register_agg(&agg);
-    sampler->sample();
-    std::cout << agg.get_result() << std::endl;
-
-    mpi::end();
-    return 0;
-
     if (ini::train) {
         struct termios oldt, newt;
         int oldf;
@@ -669,10 +674,11 @@ int main(int argc, char* argv[]) {
 
         int ch = 0;
         for (size_t i = 0; i < ini::n_epochs && ch != ''; i++) {
+            if (i > 0 && i % 100 == 0) rbm->save(ini::name, true);
             time_keeper::start("Sampling");
             sampler->sample();
             time_keeper::end("Sampling");
-            if (!ini::noprogress)
+            if (!ini::noprogress && mpi::master)
                 progress_bar(i + 1, ini::n_epochs,
                              optimizer->get_current_energy() / rbm->n_visible,
                              'O');
@@ -693,7 +699,7 @@ int main(int argc, char* argv[]) {
             }
             time_keeper::itn();
         }
-        time_keeper::resumee();
+        if (mpi::master) time_keeper::resumee();
 
         if (!ini::noprogress && mpi::master) {
             // Start getchar non-block
@@ -704,7 +710,7 @@ int main(int argc, char* argv[]) {
             std::cout << std::endl;
         }
 
-        std::cout << optimizer->get_total_resamples() << std::endl;
+        // std::cout << optimizer->get_total_resamples() << std::endl;
 
         rbm->save(ini::name);
     }

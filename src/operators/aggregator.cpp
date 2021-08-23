@@ -115,15 +115,21 @@ void outer_aggregator_lazy::aggregate(double weight) {
     current_index_++;
 }
 
+Eigen::VectorXd& outer_aggregator_lazy::get_diag() { return diag_; }
+
 void outer_aggregator_lazy::finalize(double val) {
     norm_ = val;
-    Eigen::MatrixXcd dtmp = diag_ / norm_;
-    MPI_Allreduce(dtmp.data(), diag_.data(), diag_.size(), MPI_DOUBLE, MPI_SUM,
+    diag_ /= norm_;
+    MPI_Allreduce(MPI_IN_PLACE, diag_.data(), diag_.size(), MPI_DOUBLE, MPI_SUM,
                   MPI_COMM_WORLD);
 }
 
+void outer_aggregator_lazy::finalize_diag(const Eigen::MatrixXcd& v) {
+    diag_ -= v.cwiseAbs2();
+}
+
 void outer_aggregator_lazy::set_zero() {
-    Base::set_zero();
+    // Base::set_zero();
     current_index_ = 0;
     norm_ = 0;
     diag_.setZero();

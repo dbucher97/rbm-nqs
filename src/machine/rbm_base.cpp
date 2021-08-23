@@ -181,7 +181,8 @@ Eigen::MatrixXcd rbm_base::derivative(const Eigen::MatrixXcd& state,
     return result;
 }
 
-bool rbm_base::save(const std::string& name) {
+bool rbm_base::save(const std::string& name, bool silent) {
+    if (!mpi::master) return true;
     // Open the output stream
     std::ofstream output{name + ".rbm", std::ios::binary};
     if (output.is_open()) {
@@ -197,7 +198,8 @@ bool rbm_base::save(const std::string& name) {
 
         output.close();
         // Give a status update.
-        std::cout << "Saved RBM to '" << name << ".rbm'!" << std::endl;
+        if (!silent)
+            std::cout << "Saved RBM to '" << name << ".rbm'!" << std::endl;
         return true;
     } else {
         return false;
