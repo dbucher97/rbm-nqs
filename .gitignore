@@ -12,6 +12,7 @@ tsf-out/
 !trained/*.rbm
 .ipynb_checkpoints/
 __pycache__/
+dist/
 
 notebooks/Plots/
 
