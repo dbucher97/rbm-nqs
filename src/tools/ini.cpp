@@ -92,7 +92,7 @@ double opt_adam_beta1 = 0.9;
 double opt_adam_beta2 = 0.999;
 double opt_adam_eps = 1e-8;
 double opt_mom_alpha = 0.3;
-bool opt_sr_iterative = false;
+std::string opt_sr_method = "direct";
 size_t opt_sr_max_iterations = 0;
 double opt_sr_rtol = 0.;
 double opt_heun_eps = 1e-3;
@@ -188,7 +188,7 @@ int ini::load(int argc, char* argv[]) {
     ("optimizer.sr.reg1",                     po::value(&opt_sr_reg1)->multitoken(),         "set regularization diagonal scaling decay rate optionally with decay factor")
     ("optimizer.sr.reg2",                     po::value(&opt_sr_reg2)->multitoken(),         "set regularization diagonal shift decay rate optionally with decay factor")
     ("optimizer.sr.deltareg1",                po::value(&opt_sr_deltareg1)->multitoken(),   "diagonal scaling offset for pfaffian parameters")
-    ("optimizer.sr.iterative",                po::value(&opt_sr_iterative),                 "use efficient ConjugateGradiant for covariance matrix inversion")
+    ("optimizer.sr.method",                   po::value(&opt_sr_method),                 "use efficient ConjugateGradiant for covariance matrix inversion")
     ("optimizer.sr.max_iterations",           po::value(&opt_sr_max_iterations),            "set number of max iterations for iterative method")
     ("optimizer.sr.rtol",                     po::value(&opt_sr_rtol),                      "set residue tolerance for the iterative method")
     ("optimizer.sgd.real_factor",             po::value(&opt_sgd_real_factor),              "set the factor the real part of the update vector is divided by (default 1.)")

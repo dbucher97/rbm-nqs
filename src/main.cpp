@@ -590,7 +590,7 @@ int main(int argc, char* argv[]) {
             optimizer = std::make_unique<optimizer::stochastic_reconfiguration>(
                 *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr,
                 ini::opt_sr_reg1, ini::opt_sr_reg2, ini::opt_sr_deltareg1,
-                ini::opt_sr_iterative, ini::opt_sr_max_iterations,
+                ini::opt_sr_method == "cg", ini::opt_sr_max_iterations,
                 ini::opt_sr_rtol, ini::opt_resample, ini::opt_resample_alpha1,
                 ini::opt_resample_alpha2, ini::opt_resample_alpha3);
             break;

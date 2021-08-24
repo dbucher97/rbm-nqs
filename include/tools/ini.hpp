@@ -194,7 +194,7 @@ extern decay_t opt_lr;
 extern decay_t opt_sr_reg1;
 extern decay_t opt_sr_reg2;
 extern decay_t opt_sr_deltareg1;
-extern bool opt_sr_iterative;
+extern std::string opt_sr_method;
 extern size_t opt_sr_max_iterations;
 extern double opt_sr_rtol;
 extern double opt_sgd_real_factor;
