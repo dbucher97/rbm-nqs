@@ -269,6 +269,8 @@ void cg_solver::solve(const Eigen::MatrixXcd& mat, const Eigen::VectorXcd& d,
                       const double norm, const Eigen::VectorXcd& b,
                       Eigen::VectorXcd& x, const double r1, const double r2,
                       const double rd, const Eigen::VectorXd& diag) {
+    // if (mpi::master)
+    //     std::cout << "\n" << r1 << ", " << r2 << ", " << rd << std::endl;
     int nnn = n_ - n_neural_;
     double max_diag = diag.maxCoeff();
     auto Aprod = [&](const Eigen::VectorXcd& b, Eigen::VectorXcd& x) {
