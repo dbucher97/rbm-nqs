@@ -336,7 +336,9 @@ void test_minresqlp() {
     // y = S.inverse() * x;
     // y.array() += d.array() * x.array() * e1;
 
-    optimizer::minresqlp_adapter min{mat, vec, e1, e2, de, norm, nn};
+    Eigen::VectorXcd tmp(mat.cols());
+    optimizer::minresqlp_adapter min{mat,  vec, e1,           e2, de,
+                                     norm, nn,  S.diagonal(), tmp};
 
     min.itnlim = 50;
     std::cout << "start" << std::endl;

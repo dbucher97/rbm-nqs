@@ -99,9 +99,13 @@ Eigen::MatrixXcd stochastic_reconfiguration::gradient(bool log) {
         dw = cg.solve(F); */
 
         auto oa = dynamic_cast<operators::outer_aggregator_lazy*>(a_dd_.get());
+        Eigen::VectorXcd diag =
+            oa->get_result().cwiseAbs2().rowwise().sum() / oa->get_norm();
+        diag -= d.cwiseAbs2();
+        Eigen::VectorXcd tmp(oa->get_result().cols());
         minresqlp_adapter min(oa->get_result(), a_d_.get_result(), reg1, reg2,
                               reg1delta, oa->get_norm(),
-                              rbm_.get_n_neural_params());
+                              rbm_.get_n_neural_params(), diag, tmp);
         if (max_iterations_) min.itnlim = max_iterations_;
         if (rtol_ > 0.0) min.rtol = rtol_;
         min.apply(F, dw);

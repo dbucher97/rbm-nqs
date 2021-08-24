@@ -28,11 +28,11 @@
 
 namespace optimizer {
 
-std::complex<double>* g_mat = 0;
-std::complex<double>* g_vec = 0;
+const std::complex<double>* g_mat = 0;
+const std::complex<double>* g_vec = 0;
 std::complex<double>* g_tmp = 0;
 std::complex<double>* g_dot = 0;
-std::complex<double>* g_diag = 0;
+const std::complex<double>* g_diag = 0;
 double g_norm = 0;
 double* g_reg = 0;
 int g_mat_dim2 = 0, g_nn = 0;
@@ -72,16 +72,19 @@ void Msolve(int* n, std::complex<double>* x, std::complex<double>* y) {
 
 using namespace optimizer;
 
-minresqlp_adapter::minresqlp_adapter(Eigen::MatrixXcd& mat,
-                                     Eigen::MatrixXcd& vec, double e1,
-                                     double e2, double de, double norm, int nn)
+minresqlp_adapter::minresqlp_adapter(const Eigen::MatrixXcd& mat,
+                                     const Eigen::MatrixXcd& vec,
+                                     const double e1, const double e2,
+                                     const double de, const double norm,
+                                     const int nn, const Eigen::VectorXcd& diag,
+                                     Eigen::VectorXcd& tmp)
     : n{static_cast<int>(mat.rows())},
       mat{mat},
       vec{vec},
-      diag(mat.rows()),
-      tmp(mat.cols()) {
+      diag{diag},
+      tmp{tmp} {
     itnlim = 4 * n;
-    diag = mat.cwiseAbs2().rowwise().sum() / norm - vec.cwiseAbs2();
+    // diag = mat.cwiseAbs2().rowwise().sum() / norm - vec.cwiseAbs2();
     reg[0] = e1;
     reg[1] = e1 + de;
     g_diag = diag.data();
@@ -96,10 +99,12 @@ minresqlp_adapter::minresqlp_adapter(Eigen::MatrixXcd& mat,
     shift -= e2 * diag.real().maxCoeff();
 }
 
-int minresqlp_adapter::apply(VectorXcd& b, Eigen::MatrixXcd& x) {
+int minresqlp_adapter::apply(const VectorXcd& b, Eigen::MatrixXcd& x) {
     istop =
         minresqlp(n, Aprod, b.data(), x.data(), &shift, precond ? Msolve : 0,
                   &disable, 0, &itnlim, &rtol, &maxnorm, &trancond, &Acondlim,
                   &itn, &rnorm, &Arnorm, &xnorm, &Anorm, &Acond);
+    std::cout << itn << ", " << rnorm << ", " << Arnorm << ", " << xnorm << ", "
+              << Anorm << ", " << Acond << std::endl;
     return istop;
 }
