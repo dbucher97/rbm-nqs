@@ -32,7 +32,7 @@ class direct_solver : public abstract_solver {
 
     void solve(const Eigen::MatrixXcd& mat, const Eigen::VectorXcd& d,
                const double norm, const Eigen::VectorXcd& b,
-               Eigen::MatrixXcd& x, const double r1, const double r2,
+               Eigen::VectorXcd& x, const double r1, const double r2,
                const double rd, const Eigen::VectorXd& diag) override;
 };
 

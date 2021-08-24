@@ -43,18 +43,18 @@ void aggregator::set_zero() {
 void aggregator::finalize(double num) {
     // Normalize result
 
-    Eigen::MatrixXcd tmpresult = result_ / num;
+    result_ /= num;
 
-    MPI_Allreduce(tmpresult.data(), result_.data(), result_.size(),
+    MPI_Allreduce(MPI_IN_PLACE, result_.data(), result_.size(),
                   MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
 
     if (track_variance_) {
-        Eigen::MatrixXd tmpvariance = variance_ / num;
+        variance_ /= num;
         // Calculate variance <0^2> - <0>^2
-        tmpvariance -= (Eigen::MatrixXd)result_.array().real().pow(2);
 
-        MPI_Allreduce(tmpvariance.data(), variance_.data(), variance_.size(),
+        MPI_Allreduce(MPI_IN_PLACE, variance_.data(), variance_.size(),
                       MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        variance_ -= result_.real().cwiseAbs2();
     }
 }
 

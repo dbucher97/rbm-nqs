@@ -53,7 +53,7 @@ class gradient_descent : public abstract_optimizer {
 
     virtual void register_observables() override;
 
-    virtual Eigen::MatrixXcd gradient(bool log = false) override;
+    virtual Eigen::VectorXcd& gradient(bool log = false) override;
 
    private:
     operators::prod_aggregator

@@ -39,7 +39,7 @@ adam_plugin::adam_plugin(size_t l, double beta1, double beta2, double eps)
     wi_.setZero();
 }
 
-void adam_plugin::apply(Eigen::MatrixXcd& dw, double lr) {
+void adam_plugin::apply(Eigen::VectorXcd& dw, double lr) {
     // Calcualte the Adam optimization,
     // see https://en.wikipedia.org/wiki/Stochastic_gradient_descent#Adam
     m_ = beta1_ * m_ + (1 - beta1_) * dw;
@@ -63,18 +63,18 @@ momentum_plugin::momentum_plugin(size_t l, double alpha)
     m_.setZero();
 }
 
-void momentum_plugin::apply(Eigen::MatrixXcd& dw, double lr) {
+void momentum_plugin::apply(Eigen::VectorXcd& dw, double lr) {
     // Do the momentum update step.
     m_ = alpha_ * m_ + lr * dw;
     dw = m_;
 }
 
-heun_plugin::heun_plugin(const std::function<Eigen::MatrixXcd(void)>& gradient,
+heun_plugin::heun_plugin(const std::function<Eigen::VectorXcd&(void)>& gradient,
                          machine::abstract_machine& rbm,
                          sampler::abstract_sampler& sampler, double eps)
     : Base{}, gradient_{gradient}, rbm_{rbm}, sampler_{sampler}, eps_{eps} {}
 
-void heun_plugin::apply(Eigen::MatrixXcd& dw, double lr) {
+void heun_plugin::apply(Eigen::VectorXcd& dw, double lr) {
     Eigen::MatrixXcd delta = 0.5 * lr * dw;
     rbm_.update_weights_nc(delta);
     sampler_.sample();
@@ -91,11 +91,11 @@ void heun_plugin::apply(Eigen::MatrixXcd& dw, double lr) {
     } else {
         x = delta.norm();
     }
-//    std::cout << std::endl;
-//    std::cout << x << ", " << delta.norm() << ", " << delta.norm() / x
-//              << std::endl;
+    //    std::cout << std::endl;
+    //    std::cout << x << ", " << delta.norm() << ", " << delta.norm() / x
+    //              << std::endl;
 
     x = std::pow(eps_ / x, 1. / 3);
-//    std::cout << x << std::endl;
+    //    std::cout << x << std::endl;
     dw *= (x - 0.5) * lr;
 }

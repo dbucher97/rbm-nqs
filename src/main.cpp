@@ -335,7 +335,7 @@ void test_minresqlp() {
     // S += e2 * Eigen::MatrixXcd::Identity(na, na);
 
     Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1> x(na), y(na);
-    Eigen::MatrixXcd z(na, 1);
+    Eigen::VectorXcd z(na);
     x.setRandom();
     y.setZero();
     z.setZero();
@@ -487,7 +487,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Eigen::setNbThreads(1);
-    // omp_set_num_threads(2);
+    omp_set_num_threads(2);
 
     if (!ini::print_bonds && mpi::master)
         std::cout << "Seed: " << ini::seed << std::endl;
@@ -641,8 +641,10 @@ int main(int argc, char* argv[]) {
                     rbm->get_n_params());
             } else if (ini::opt_plugin == "heun") {
                 p = std::make_unique<optimizer::heun_plugin>(
-                    [&optimizer] { return optimizer->gradient(false); }, *rbm,
-                    *sampler, ini::opt_heun_eps);
+                    [&optimizer]() -> Eigen::VectorXcd& {
+                        return optimizer->gradient(false);
+                    },
+                    *rbm, *sampler, ini::opt_heun_eps);
             } else {
                 return 1;
             }

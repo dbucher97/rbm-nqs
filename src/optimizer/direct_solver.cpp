@@ -30,7 +30,7 @@ direct_solver::direct_solver(size_t n, size_t n_neural)
     : Base{n, n_neural}, S(n, n) {}
 void direct_solver::solve(const Eigen::MatrixXcd& mat,
                           const Eigen::VectorXcd& d, const double norm,
-                          const Eigen::VectorXcd& b, Eigen::MatrixXcd& x,
+                          const Eigen::VectorXcd& b, Eigen::VectorXcd& x,
                           const double r1, const double r2, const double rd,
                           const Eigen::VectorXd& diag) {
     S = mat.conjugate() * mat.transpose() / norm;

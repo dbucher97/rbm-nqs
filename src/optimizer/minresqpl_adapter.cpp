@@ -101,7 +101,7 @@ minresqlp_adapter::minresqlp_adapter(const Eigen::MatrixXcd& mat,
     shift -= e2 * diag.real().maxCoeff();
 }
 
-int minresqlp_adapter::apply(const Eigen::VectorXcd& b, Eigen::MatrixXcd& x) {
+int minresqlp_adapter::apply(const Eigen::VectorXcd& b, Eigen::VectorXcd& x) {
     istop =
         minresqlp(n, Aprod, b.data(), x.data(), &shift, precond ? Msolve : 0,
                   &disable, 0, &itnlim, &rtol, &maxnorm, &trancond, &Acondlim,

@@ -54,14 +54,14 @@ minres_solver::~minres_solver() {
 
 void minres_solver::solve(const Eigen::MatrixXcd& mat,
                           const Eigen::VectorXcd& d, const double norm,
-                          const Eigen::VectorXcd& b, Eigen::MatrixXcd& x,
+                          const Eigen::VectorXcd& b, Eigen::VectorXcd& x,
                           const double r1, const double r2, const double rd,
                           const Eigen::VectorXd& diag) {
     MPI_Gatherv(mat.data(), mat.size(), MPI_DOUBLE_COMPLEX, mat_.data(),
                 n_samples, n_offsets, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
     if (mpi::master) {
-        // int nt = omp_get_num_threads();
-        // omp_set_num_threads(ini::n_threads);
+        int nt = omp_get_num_threads();
+        omp_set_num_threads(ini::n_threads);
 
         diag_ = diag.cast<std::complex<double>>();
         vec_ = d.conjugate();
@@ -72,16 +72,7 @@ void minres_solver::solve(const Eigen::MatrixXcd& mat,
         if (rtol_ > 0.0) min.rtol = rtol_;
         min.apply(b, x);
 
-        // omp_set_num_threads(nt);
-        std::cout << "Acond: " << min.getAcond() << std::endl;
-        std::cout << "Rnorm: " << min.getRnorm() << std::endl;
-        std::cout << "Rtol: " << min.rtol << std::endl;
-        std::cout << "Itn: " << min.getItn() << std::endl;
-        std::cout << "Istop: " << min.getIstop() << std::endl;
-        std::cout << "Rnorm: " << min.getRnorm() << std::endl;
-        std::cout << "Anorm: " << min.getAnorm() << std::endl;
-        std::cout << "Arnorm: " << min.getArnorm() << std::endl;
-        std::cout << "Xnorm: " << min.getXnorm() << std::endl;
+        omp_set_num_threads(nt);
     }
 
     MPI_Bcast(x.data(), x.size(), MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);

@@ -97,6 +97,7 @@ class abstract_optimizer {
     Eigen::MatrixXcd last_update_;
     size_t total_resamples_ = 0;
 
+    Eigen::VectorXcd dw_;
     /**
      * @brief Protected Abstract optimizer constructor.
      *
@@ -125,7 +126,7 @@ class abstract_optimizer {
     /**
      * @brief Do the optimization step described in the class description.
      */
-    virtual Eigen::MatrixXcd gradient(bool log = false) = 0;
+    virtual Eigen::VectorXcd& gradient(bool log = false) = 0;
 
     /**
      * @brief Do the optimization step described in the class description.

@@ -68,7 +68,7 @@ class stochastic_reconfiguration : public abstract_optimizer {
 
     virtual void register_observables() override;
 
-    virtual Eigen::MatrixXcd gradient(bool log = false) override;
+    virtual Eigen::VectorXcd& gradient(bool log = false) override;
 
    private:
     std::string method_;     ///< Use ConjugateGradient flag
@@ -87,6 +87,5 @@ class stochastic_reconfiguration : public abstract_optimizer {
     std::unique_ptr<abstract_solver> solver_;
 
     Eigen::VectorXcd F_;
-    Eigen::MatrixXcd dw_;
 };
 }  // namespace optimizer

@@ -49,7 +49,7 @@ class base_plugin {
      *
      * @return The adaptive update of weights (without learning rate.)
      */
-    virtual void apply(Eigen::MatrixXcd& dw, double lr) = 0;
+    virtual void apply(Eigen::VectorXcd& dw, double lr) = 0;
 
     virtual void add_metric(Eigen::MatrixXcd* met1, Eigen::MatrixXcd* met2) {
         met1_ = met1;
@@ -84,7 +84,7 @@ class adam_plugin : public base_plugin {
     adam_plugin(size_t l, double beta1 = 0.9, double beta2 = 0.999,
                 double eps = 1e-8);
 
-    virtual void apply(Eigen::MatrixXcd&, double lr) override;
+    virtual void apply(Eigen::VectorXcd&, double lr) override;
 };
 
 /**
@@ -107,7 +107,7 @@ class momentum_plugin : public base_plugin {
      */
     momentum_plugin(size_t l, double alpha = 0.1);
 
-    virtual void apply(Eigen::MatrixXcd&, double lr) override;
+    virtual void apply(Eigen::VectorXcd&, double lr) override;
 };
 
 /**
@@ -119,17 +119,17 @@ class momentum_plugin : public base_plugin {
 class heun_plugin : public base_plugin {
     using Base = base_plugin;
 
-    std::function<Eigen::MatrixXcd(void)> gradient_;
+    const std::function<Eigen::VectorXcd&(void)>& gradient_;
     machine::abstract_machine& rbm_;
     sampler::abstract_sampler& sampler_;
     double eps_;
 
    public:
-    heun_plugin(const std::function<Eigen::MatrixXcd(void)>& gradient,
+    heun_plugin(const std::function<Eigen::VectorXcd&(void)>& gradient,
                 machine::abstract_machine& rbm,
                 sampler::abstract_sampler& sampler, double eps_);
 
-    virtual void apply(Eigen::MatrixXcd&, double lr) override;
+    virtual void apply(Eigen::VectorXcd&, double lr) override;
 };
 
 }  // namespace optimizer

@@ -27,11 +27,11 @@ class cg_solver : public abstract_solver {
 
     size_t max_iterations_;
     double rtol_;
-    Eigen::MatrixXcd mat_;
-    Eigen::VectorXcd tmp_;
+    Eigen::VectorXcd p_, Ap_, r_;
 
     double rs_;
-    int itn_;
+    size_t itn_;
+    size_t bs_ = 64;
 
     void cg(const std::function<void(const Eigen::VectorXcd&,
                                      Eigen::VectorXcd&)>& Aprod,
@@ -41,13 +41,15 @@ class cg_solver : public abstract_solver {
                                       Eigen::VectorXcd&)>& Aprod,
              const Eigen::VectorXcd& b, Eigen::VectorXcd& x);
 
+    void split_blocks(size_t, size_t, int*);
+
    public:
-    cg_solver(size_t n, size_t m, int mloc, size_t n_neural,
-              size_t max_iterations = 0, double r_tol = 0);
+    cg_solver(size_t n, size_t m, size_t n_neural, size_t max_iterations = 0,
+              double r_tol = 0);
 
     void solve(const Eigen::MatrixXcd& mat, const Eigen::VectorXcd& d,
                const double norm, const Eigen::VectorXcd& b,
-               Eigen::MatrixXcd& x, const double r1, const double r2,
+               Eigen::VectorXcd& x, const double r1, const double r2,
                const double rd, const Eigen::VectorXd& diag) override;
 
     double get_rs() { return rs_; }

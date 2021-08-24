@@ -66,12 +66,14 @@ abstract_optimizer::abstract_optimizer(machine::abstract_machine& rbm,
       resample_{resample},
       alpha1_{alpha1},
       alpha2_{alpha2},
-      alpha3_{alpha3} {}
+      alpha3_{alpha3},
+      dw_(rbm_.get_n_params()) {}
 
 void abstract_optimizer::set_plugin(base_plugin* plug) { plug_ = plug; }
 void abstract_optimizer::remove_plugin() { plug_ = nullptr; }
 
 void abstract_optimizer::optimize() {
+    double lr = lr_.get();
     // Check resample criteria
     if (resample_) {
         std::complex<double> e = a_h_.get_result()(0);
@@ -95,16 +97,17 @@ void abstract_optimizer::optimize() {
 
                 // Repeat last step update
                 sampler_.sample();
-                Eigen::MatrixXcd dw = gradient(false) / std::pow(2, rcount);
+                gradient(false);
+                dw_ /= std::pow(2, rcount);
                 // Apply plugin if set
                 if (plug_) {
-                    plug_->apply(dw, lr_.get());
+                    plug_->apply(dw_, lr);
                 } else {
-                    dw *= lr_.get();
+                    dw_ *= lr;
                 }
                 // Update weights
-                rbm_.update_weights(dw);
-                last_update_ = dw;
+                rbm_.update_weights(dw_);
+                last_update_ = dw_;
 
                 // Resample
                 sampler_.sample();
@@ -117,17 +120,17 @@ void abstract_optimizer::optimize() {
         total_resamples_ += rcount;
     }
     //
-    Eigen::MatrixXcd dw = gradient(true);
+    gradient(true);
 
     // Apply plugin if set
     if (plug_) {
-        plug_->apply(dw, lr_.get());
+        plug_->apply(dw_, lr);
     } else {
-        dw *= lr_.get();
+        dw_ *= lr;
     }
     // Update the weights.
-    rbm_.update_weights(dw);
-    if (resample_) last_update_ = dw;
+    rbm_.update_weights(dw_);
+    if (resample_) last_update_ = dw_;
 }
 
 double abstract_optimizer::get_current_energy() {

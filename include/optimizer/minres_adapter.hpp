@@ -70,7 +70,7 @@ class minresqlp_adapter {
                       const double norm, const int nn,
                       const Eigen::VectorXcd& diag, Eigen::VectorXcd& tmp);
 
-    int apply(const Eigen::VectorXcd& b, Eigen::MatrixXcd& x);
+    int apply(const Eigen::VectorXcd& b, Eigen::VectorXcd& x);
 
     const int getIstop() { return istop; }
     const int getItn() { return itn; }

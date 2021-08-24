@@ -39,7 +39,7 @@ void gradient_descent::register_observables() {
     sampler_.register_agg(&a_dh_);
 }
 
-Eigen::MatrixXcd gradient_descent::gradient(bool log) {
+Eigen::VectorXcd& gradient_descent::gradient(bool log) {
     // Get the result
     auto& h = a_h_.get_result();
     auto& d = a_d_.get_result();
@@ -54,9 +54,8 @@ Eigen::MatrixXcd gradient_descent::gradient(bool log) {
     }
 
     // Calculate the gradient descent
-    Eigen::MatrixXcd dw = dh - d.conjugate() * h(0);
+    dw_ = dh - d.conjugate() * h(0);
 
-    dw.real() /= real_factor_;
-
-    return dw;
+    dw_.real() /= real_factor_;
+    return dw_;
 }
