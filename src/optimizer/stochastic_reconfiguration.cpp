@@ -85,36 +85,28 @@ Eigen::MatrixXcd stochastic_reconfiguration::gradient(bool log) {
     VectorXcd F = dh - h(0) * d.conjugate();
 
     if (iterative_) {
-        // Get covariance matrix in GMRES form
-
-        /* OuterMatrix S =
-        dynamic_cast<operators::outer_aggregator_lazy*>(a_dd_.get())
-                ->construct_outer_matrix(a_d_, reg1, reg2);
-
-        Eigen::ConjugateGradient<OuterMatrix, Eigen::Upper | Eigen::Lower,
-                                 Eigen::IdentityPreconditioner>
-            cg;
-        if (max_iterations_) cg.setMaxIterations(max_iterations_);
-        cg.compute(S);
-        dw = cg.solve(F); */
-
         auto oa = dynamic_cast<operators::outer_aggregator_lazy*>(a_dd_.get());
-        Eigen::VectorXcd diag =
-            oa->get_result().cwiseAbs2().rowwise().sum() / oa->get_norm();
-        diag -= d.cwiseAbs2();
+        const Eigen::VectorXcd diag =
+            oa->get_result().cwiseAbs2().rowwise().sum() / oa->get_norm() -
+            d.cwiseAbs2();
         Eigen::VectorXcd tmp(oa->get_result().cols());
-        minresqlp_adapter min(oa->get_result(), a_d_.get_result(), reg1, reg2,
-                              reg1delta, oa->get_norm(),
-                              rbm_.get_n_neural_params(), diag, tmp);
+        const Eigen::MatrixXcd d2 = d.conjugate().eval();
+
+        minresqlp_adapter min(oa->get_result(), d2, reg1, reg2, reg1delta,
+                              oa->get_norm(), rbm_.get_n_neural_params(), diag,
+                              tmp);
+
         if (max_iterations_) min.itnlim = max_iterations_;
         if (rtol_ > 0.0) min.rtol = rtol_;
+
         min.apply(F, dw);
-        std::cout << std::endl;
-        std::cout << "Acond: " << min.getAcond() << std::endl;
-        std::cout << "Rnorm: " << min.getRnorm() << std::endl;
-        std::cout << "Rtol: " << min.rtol << std::endl;
-        std::cout << "Itn: " << min.getItn() << std::endl;
-        std::cout << "Istop: " << min.getIstop() << std::endl;
+
+        // std::cout << std::endl;
+        // std::cout << "Acond: " << min.getAcond() << std::endl;
+        // std::cout << "Rnorm: " << min.getRnorm() << std::endl;
+        // std::cout << "Rtol: " << min.rtol << std::endl;
+        // std::cout << "Itn: " << min.getItn() << std::endl;
+        // std::cout << "Istop: " << min.getIstop() << std::endl;
         if (plug_) {
             plug_->add_metric(&(oa->get_result()), &a_d_.get_result());
         }
@@ -124,8 +116,10 @@ Eigen::MatrixXcd stochastic_reconfiguration::gradient(bool log) {
         Eigen::MatrixXcd S = dd - d.conjugate() * d.transpose();
         // Add regularization.
         auto Sdiag = S.diagonal();
-        S += Eigen::DiagonalMatrix<std::complex<double>, Eigen::Dynamic>(reg1 *
-                                                                         Sdiag);
+        S.diagonal().topRows(rbm_.get_n_neural_params()) *= (1 + reg1);
+        S.diagonal().bottomRows(rbm_.get_n_params() -
+                                rbm_.get_n_neural_params()) *=
+            (1 + reg1 + reg1delta);
         S += reg2 * Sdiag.cwiseAbs().maxCoeff() *
              Eigen::MatrixXcd::Identity(S.rows(), S.cols());
         double Sd = 0, Sod = 0;
