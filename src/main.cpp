@@ -472,8 +472,8 @@ void debugAprod() {
 }
 
 int main(int argc, char* argv[]) {
-    test_minresqlp();
-    return 0;
+    // test_minresqlp();
+    // return 0;
     //
     mpi::init(argc, argv);
     int rc = ini::load(argc, argv);
@@ -487,7 +487,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Eigen::setNbThreads(1);
-    omp_set_num_threads(2);
+    // omp_set_num_threads(2);
 
     if (!ini::print_bonds && mpi::master)
         std::cout << "Seed: " << ini::seed << std::endl;
