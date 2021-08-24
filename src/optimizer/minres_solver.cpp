@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * */
 
+#include <cblas.h>
 #include <mpi.h>
 #include <omp.h>
 
@@ -59,24 +60,40 @@ void minres_solver::solve(const Eigen::MatrixXcd& mat,
     if (mpi::master) {
         // int nt = omp_get_num_threads();
         // omp_set_num_threads(ini::n_threads);
+        Eigen::VectorXcd diag_ = diag.cast<std::complex<double>>();
         Eigen::MatrixXcd A(mat_.rows(), mat_.rows());
         A = mat_.conjugate() * mat_.transpose() / norm;
+        Eigen::MatrixXcd Ax = A;
         A -= d.conjugate() * d.transpose();
-        Eigen::VectorXcd diag_ = diag.cast<std::complex<double>>();
-        std::cout << std::endl
-                  << (A.adjoint() - A).cwiseAbs().mean() << std::endl;
-        std::cout << (A.diagonal() - diag_).norm() << std::endl;
-        minresqlp_adapter min(mat_, d, r1, r2, rd, norm, n_neural_, diag_,
+        Eigen::MatrixXcd A0 = A;
+        // std::cout << std::endl
+        //           << (A.adjoint() - A).cwiseAbs().mean() << std::endl;
+        // std::cout << (A.diagonal() - diag_).norm() << std::endl;
+        A.diagonal().topRows(n_neural_) *= (1 + r1);
+        A.diagonal().bottomRows(n_ - n_neural_) *= (1 + r1 + rd);
+        A += r2 * diag.maxCoeff() * Eigen::MatrixXcd::Identity(n_, n_);
+        Eigen::VectorXcd d2 = d.conjugate();
+        minresqlp_adapter min(mat_, d2, r1, r2, rd, norm, n_neural_, diag_,
                               tmp_);
         // if (max_iterations_) min.itnlim = max_iterations_;
         // if (rtol_ > 0.0) min.rtol = rtol_;
-        min.apply(b, x);
+        // min.apply(b, x);
+        x = A.completeOrthogonalDecomposition().pseudoInverse() * b;
+        Eigen::VectorXcd vec(n_);
+        int n = n_;
+
+        Aprod(&n, x.data(), vec.data());
+
+
+        A -= r2 * diag.maxCoeff() * Eigen::MatrixXcd::Identity(n_, n_);
+        std::cout << (A * x - vec).norm() << std::endl;
+
         // omp_set_num_threads(nt);
-        std::cout << "Acond: " << min.getAcond() << std::endl;
-        std::cout << "Rnorm: " << min.getRnorm() << std::endl;
-        std::cout << "Rtol: " << min.rtol << std::endl;
-        std::cout << "Itn: " << min.getItn() << std::endl;
-        std::cout << "Istop: " << min.getIstop() << std::endl;
+        // std::cout << "Acond: " << min.getAcond() << std::endl;
+        // std::cout << "Rnorm: " << min.getRnorm() << std::endl;
+        // std::cout << "Rtol: " << min.rtol << std::endl;
+        // std::cout << "Itn: " << min.getItn() << std::endl;
+        // std::cout << "Istop: " << min.getIstop() << std::endl;
     }
 
     MPI_Bcast(x.data(), x.size(), MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);

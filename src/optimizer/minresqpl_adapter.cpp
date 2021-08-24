@@ -72,6 +72,9 @@ void Msolve(int* n, std::complex<double>* x, std::complex<double>* y) {
 
 using namespace optimizer;
 
+// ================== ATTENTION ==============================
+// `vec` must be present in conjugated form.
+// ===========================================================
 minresqlp_adapter::minresqlp_adapter(const Eigen::MatrixXcd& mat,
                                      const Eigen::MatrixXcd& vec,
                                      const double e1, const double e2,
@@ -103,7 +106,5 @@ int minresqlp_adapter::apply(const Eigen::VectorXcd& b, Eigen::MatrixXcd& x) {
         minresqlp(n, Aprod, b.data(), x.data(), &shift, precond ? Msolve : 0,
                   &disable, 0, &itnlim, &rtol, &maxnorm, &trancond, &Acondlim,
                   &itn, &rnorm, &Arnorm, &xnorm, &Anorm, &Acond);
-    std::cout << itn << ", " << Arnorm << ", " << xnorm << ", " << Anorm << ", "
-              << Acond << std::endl;
     return istop;
 }

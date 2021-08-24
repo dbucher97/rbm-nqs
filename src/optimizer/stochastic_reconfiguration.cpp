@@ -87,7 +87,6 @@ Eigen::MatrixXcd stochastic_reconfiguration::gradient(bool log) {
     double reg1 = kp1_.get();
     double reg2 = kp2_.get();
     double reg1delta = kp1d_.get();
-    std::cout << reg1 << ", " << reg2 << ", " << reg1delta << std::endl;
 
     // Calculate Gradient
     F_ = dh - h(0) * d.conjugate();
