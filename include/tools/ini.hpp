@@ -35,7 +35,7 @@ namespace ini {
 struct decay_t {
     double initial;
     double min;
-    double decay;
+    double decay = 1.;
 };
 struct coupling_t {
     std::vector<double> strengths;

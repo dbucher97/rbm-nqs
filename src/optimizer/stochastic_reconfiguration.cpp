@@ -105,12 +105,12 @@ Eigen::MatrixXcd stochastic_reconfiguration::gradient(bool log) {
         if (max_iterations_) min.itnlim = max_iterations_;
         if (rtol_ > 0.0) min.rtol = rtol_;
         min.apply(F, dw);
-        /* std::cout << std::endl;
+        std::cout << std::endl;
         std::cout << "Acond: " << min.getAcond() << std::endl;
         std::cout << "Rnorm: " << min.getRnorm() << std::endl;
         std::cout << "Rtol: " << min.rtol << std::endl;
         std::cout << "Itn: " << min.getItn() << std::endl;
-        std::cout << "Istop: " << min.getIstop() << std::endl; */
+        std::cout << "Istop: " << min.getIstop() << std::endl;
         if (plug_) {
             plug_->add_metric(&(oa->get_result()), &a_d_.get_result());
         }
