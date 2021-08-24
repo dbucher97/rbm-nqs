@@ -748,22 +748,24 @@ int main(int argc, char* argv[]) {
 
         sampler->sample();
 
-        std::cout << "BEGIN OUTPUT" << std::endl;
-        std::cout.precision(16);
-        for (size_t i = 0; i < hex.size(); i++) {
-            std::cout << aggs[i]->get_result() << std::endl;
-        }
+        if (mpi::master) {
+            std::cout << "BEGIN OUTPUT" << std::endl;
+            std::cout.precision(16);
+            for (size_t i = 0; i < hex.size(); i++) {
+                std::cout << aggs[i]->get_result() << std::endl;
+            }
 
-        std::cout << ah.get_result() / rbm->n_visible << std::endl;
-        std::cout << std::sqrt(ah.get_variance()(0)) / rbm->n_visible
-                  << std::endl;
-        if (ini::sa_type == ini::sampler_t::METROPOLIS) {
-            std::cout << dynamic_cast<sampler::metropolis_sampler*>(
-                             sampler.get())
-                             ->get_acceptance_rate()
+            std::cout << ah.get_result() / rbm->n_visible << std::endl;
+            std::cout << std::sqrt(ah.get_variance()(0)) / rbm->n_visible
                       << std::endl;
+            if (ini::sa_type == ini::sampler_t::METROPOLIS) {
+                std::cout << dynamic_cast<sampler::metropolis_sampler*>(
+                                 sampler.get())
+                                 ->get_acceptance_rate()
+                          << std::endl;
+            }
+            std::cout << "END OUTPUT" << std::endl;
         }
-        std::cout << "END OUTPUT" << std::endl;
     }
 
     // std::ofstream ws{"weights/weights_" + ini::name + ".txt"};

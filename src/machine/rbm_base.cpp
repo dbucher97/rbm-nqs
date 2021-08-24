@@ -223,7 +223,8 @@ bool rbm_base::load(const std::string& name) {
         input.close();
 
         // Give a status update.
-        std::cout << "Loaded RBM from '" << name << ".rbm'!" << std::endl;
+        if (mpi::master)
+            std::cout << "Loaded RBM from '" << name << ".rbm'!" << std::endl;
         return true;
     } else {
         return false;
