@@ -103,5 +103,7 @@ int minresqlp_adapter::apply(const Eigen::VectorXcd& b, Eigen::MatrixXcd& x) {
         minresqlp(n, Aprod, b.data(), x.data(), &shift, precond ? Msolve : 0,
                   &disable, 0, &itnlim, &rtol, &maxnorm, &trancond, &Acondlim,
                   &itn, &rnorm, &Arnorm, &xnorm, &Anorm, &Acond);
+    std::cout << itn << ", " << Arnorm << ", " << xnorm << ", " << Anorm << ", "
+              << Acond << std::endl;
     return istop;
 }

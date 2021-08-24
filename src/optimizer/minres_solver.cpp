@@ -57,21 +57,21 @@ void minres_solver::solve(const Eigen::MatrixXcd& mat,
     MPI_Gatherv(mat.data(), mat.size(), MPI_DOUBLE_COMPLEX, mat_.data(),
                 n_samples, n_offsets, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
     if (mpi::master) {
-        int nt = omp_get_num_threads();
-        omp_set_num_threads(ini::n_threads);
+        // int nt = omp_get_num_threads();
+        // omp_set_num_threads(ini::n_threads);
         Eigen::MatrixXcd A(mat_.rows(), mat_.rows());
         A = mat_.conjugate() * mat_.transpose() / norm;
         A -= d.conjugate() * d.transpose();
         Eigen::VectorXcd diag_ = diag.cast<std::complex<double>>();
         std::cout << std::endl
                   << (A.adjoint() - A).cwiseAbs().mean() << std::endl;
-        std::cout << (A.diagonal() - diag).cwiseAbs().maxCoeff() << std::endl;
+        std::cout << (A.diagonal() - diag_).norm() << std::endl;
         minresqlp_adapter min(mat_, d, r1, r2, rd, norm, n_neural_, diag_,
                               tmp_);
         // if (max_iterations_) min.itnlim = max_iterations_;
         // if (rtol_ > 0.0) min.rtol = rtol_;
         min.apply(b, x);
-        omp_set_num_threads(nt);
+        // omp_set_num_threads(nt);
         std::cout << "Acond: " << min.getAcond() << std::endl;
         std::cout << "Rnorm: " << min.getRnorm() << std::endl;
         std::cout << "Rtol: " << min.rtol << std::endl;
