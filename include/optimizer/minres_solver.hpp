@@ -29,6 +29,8 @@ class minres_solver : public abstract_solver {
     double rtol_;
     Eigen::MatrixXcd mat_;
     Eigen::VectorXcd tmp_;
+    Eigen::VectorXcd diag_;
+    Eigen::MatrixXcd vec_;
     int* n_samples;
     int* n_offsets;
 
