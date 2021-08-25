@@ -54,15 +54,15 @@ stochastic_reconfiguration::stochastic_reconfiguration(
     if (method == "direct") {
         solver_ = std::make_unique<direct_solver>(rbm_.get_n_params(),
                                                   rbm_.get_n_neural_params());
-    } else if (method == "minres") {
+    } else if (method == "minresqlp") {
         solver_ = std::make_unique<minres_solver>(
             rbm_.get_n_params(), sampler.get_n_samples(),
             sampler.get_my_n_samples(), rbm_.get_n_neural_params(),
             max_iterations, rtol);
-    } else if (method == "cg") {
+    } else if (method == "cg" || method == "minres") {
         solver_ = std::make_unique<cg_solver>(
             rbm_.get_n_params(), sampler.get_n_samples(),
-            rbm_.get_n_neural_params(), max_iterations, rtol);
+            rbm_.get_n_neural_params(), max_iterations, rtol, method);
     }
 }
 

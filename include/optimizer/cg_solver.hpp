@@ -22,30 +22,38 @@
 
 namespace optimizer {
 
+enum cg_method { CG, MINRES };
+
 class cg_solver : public abstract_solver {
     using Base = abstract_solver;
 
     size_t max_iterations_;
     double rtol_;
-    Eigen::VectorXcd p_, Ap_, r_;
+    Eigen::VectorXcd p_, Ap_, r_, p2_, Ap2_;
 
     double rs_;
     size_t itn_;
     size_t bs_ = 64;
 
-    void cg(const std::function<void(const Eigen::VectorXcd&,
-                                     Eigen::VectorXcd&)>& Aprod,
-            const Eigen::VectorXcd& b, Eigen::VectorXcd& x);
+    const cg_method method_;
+
+    void minres(const std::function<void(const Eigen::VectorXcd&,
+                                         Eigen::VectorXcd&)>& Aprod,
+                const Eigen::VectorXcd& b, Eigen::VectorXcd& x);
 
     void cg1(const std::function<void(const Eigen::VectorXcd&,
                                       Eigen::VectorXcd&)>& Aprod,
              const Eigen::VectorXcd& b, Eigen::VectorXcd& x);
 
-    void split_blocks(size_t, size_t, int*);
+    // void cg(const std::function<void(const Eigen::VectorXcd&,
+    //                                  Eigen::VectorXcd&)>& Aprod,
+    //         const Eigen::VectorXcd& b, Eigen::VectorXcd& x);
+
+    // void split_blocks(size_t, size_t, int*);
 
    public:
     cg_solver(size_t n, size_t m, size_t n_neural, size_t max_iterations = 0,
-              double r_tol = 0);
+              double r_tol = 0, const std::string& method = "cg");
 
     void solve(const Eigen::MatrixXcd& mat, const Eigen::VectorXcd& d,
                const double norm, const Eigen::VectorXcd& b,

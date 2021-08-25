@@ -19,6 +19,7 @@
 // #include <omp.h>
 
 #include <fcntl.h>
+#include <float.h>
 #include <omp.h>
 #include <stdio.h>
 #include <sys/ioctl.h>
@@ -471,45 +472,27 @@ void debugAprod() {
     // std::cout << (tmp2 - tmp).cwiseAbs2().mean() << std::endl;
 }
 
-int main(int argc, char* argv[]) {
-    // test_minresqlp();
-    // return 0;
-    //
-    mpi::init(argc, argv);
-    int rc = ini::load(argc, argv);
-    if (rc != 0) {
-        return rc;
-    }
-
-    if (!ini::print_bonds && mpi::master) {
-        logger::init();
-        std::cout << "Starting '" << ini::name << "'!" << std::endl;
-    }
-
-    // Eigen::setNbThreads(1);
-    omp_set_num_threads(2);
-
-    if (!ini::print_bonds && mpi::master)
-        std::cout << "Seed: " << ini::seed << std::endl;
-
-    std::mt19937 rng;
+void init_seed(size_t g_seed, std::unique_ptr<std::mt19937>& rng) {
     std::uniform_int_distribution<unsigned long> udist{0, ULONG_MAX};
 
     unsigned long seed;
     if (mpi::master) {
-        rng = std::mt19937{static_cast<std::mt19937::result_type>(ini::seed)};
+        rng = std::make_unique<std::mt19937>(
+            static_cast<std::mt19937::result_type>(g_seed));
         for (int i = 1; i < mpi::n_proc; i++) {
-            seed = udist(rng);
+            seed = udist(*rng);
             MPI_Send(&seed, 1, MPI_UNSIGNED_LONG, i, 0, MPI_COMM_WORLD);
         }
-        seed = udist(rng);
     } else {
         MPI_Recv(&seed, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD,
                  MPI_STATUS_IGNORE);
     }
-    rng = std::mt19937{static_cast<std::mt19937::result_type>(ini::seed)};
+    if (!mpi::master)
+        rng = std::make_unique<std::mt19937>(
+            static_cast<std::mt19937::result_type>(seed));
+}
 
-    std::unique_ptr<model::abstract_model> model;
+int init_model(std::unique_ptr<model::abstract_model>& model) {
     switch (ini::model) {
         case ini::model_t::KITAEV:
             model = std::make_unique<model::kitaev>(
@@ -531,20 +514,15 @@ int main(int argc, char* argv[]) {
         default:
             return 1;
     }
-    if (ini::print_bonds && mpi::master) {
-        auto bonds = model->get_lattice().get_bonds();
-        for (const auto& b : bonds) {
-            std::cout << b.a << "," << b.b << "," << b.type << std::endl;
-        }
-        return 0;
-    }
-
     if (model->supports_helper_hamiltonian() && ini::helper_strength != 0.) {
         model->add_helper_hamiltonian(ini::helper_strength);
     }
+    return 0;
+}
 
-    std::unique_ptr<machine::abstract_machine> rbm;
-
+int init_machine(std::unique_ptr<machine::abstract_machine>& rbm,
+                 machine::pfaffian* pfaff,
+                 const std::unique_ptr<model::abstract_model>& model) {
     switch (ini::rbm) {
         case ini::rbm_t::BASIC:
             rbm = std::make_unique<machine::rbm_base>(
@@ -564,19 +542,22 @@ int main(int argc, char* argv[]) {
             rbm = std::make_unique<machine::pfaffian_psi>(model->get_lattice());
             break;
         default:
-            return 1;
+            return 2;
     }
 
     if (ini::rbm_correlators && model->get_lattice().has_correlators()) {
         auto c = model->get_lattice().get_correlators();
         rbm->add_correlators(c);
     }
-
-    machine::pfaffian* pfaff = 0;
     if (ini::rbm_pfaffian || ini::rbm == ini::rbm_t::PFAFFIAN) {
         pfaff = rbm->add_pfaffian(ini::rbm_pfaffian_symmetry).get();
     }
-    if (ini::rbm_force || !rbm->load(ini::name)) {
+    return 0;
+}
+
+void init_weights(std::unique_ptr<machine::abstract_machine>& rbm,
+                  machine::pfaffian* pfaff, bool force, std::mt19937& rng) {
+    if (force || !rbm->load(ini::name)) {
         rbm->initialize_weights(rng, ini::rbm_weights, ini::rbm_weights_imag,
                                 ini::rbm_weights_init_type);
         if (pfaff) {
@@ -587,8 +568,11 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+}
 
-    std::unique_ptr<sampler::abstract_sampler> sampler;
+int init_sampler(std::unique_ptr<sampler::abstract_sampler>& sampler,
+                 const std::unique_ptr<machine::abstract_machine>& rbm,
+                 std::mt19937& rng) {
     switch (ini::sa_type) {
         case ini::sampler_t::FULL:
             sampler = std::make_unique<sampler::full_sampler>(
@@ -602,53 +586,153 @@ int main(int argc, char* argv[]) {
                 ini::sa_metropolis_bond_flips);
             break;
         default:
-            return 1;
+            return 4;
+    }
+    return 0;
+}
+
+int init_optimizer(std::unique_ptr<optimizer::abstract_optimizer>& optimizer,
+                   std::unique_ptr<model::abstract_model>& model,
+                   std::unique_ptr<machine::abstract_machine>& rbm,
+                   std::unique_ptr<sampler::abstract_sampler>& sampler) {
+    switch (ini::opt_type) {
+        case ini::optimizer_t::SR:
+            optimizer = std::make_unique<optimizer::stochastic_reconfiguration>(
+                *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr,
+                ini::opt_sr_reg1, ini::opt_sr_reg2, ini::opt_sr_deltareg1,
+                ini::opt_sr_method, ini::opt_sr_max_iterations,
+                ini::opt_sr_rtol, ini::opt_resample, ini::opt_resample_alpha1,
+                ini::opt_resample_alpha2, ini::opt_resample_alpha3);
+            break;
+        case ini::optimizer_t::SGD:
+            optimizer = std::make_unique<optimizer::gradient_descent>(
+                *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr,
+                ini::opt_sgd_real_factor, ini::opt_resample,
+                ini::opt_resample_alpha1, ini::opt_resample_alpha2,
+                ini::opt_resample_alpha3);
+            break;
+        default:
+            return 8;
     }
 
-    std::unique_ptr<optimizer::abstract_optimizer> optimizer;
-    if (ini::train) {
-        switch (ini::opt_type) {
-            case ini::optimizer_t::SR:
-                optimizer =
-                    std::make_unique<optimizer::stochastic_reconfiguration>(
-                        *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr,
-                        ini::opt_sr_reg1, ini::opt_sr_reg2,
-                        ini::opt_sr_deltareg1, ini::opt_sr_method,
-                        ini::opt_sr_max_iterations, ini::opt_sr_rtol,
-                        ini::opt_resample, ini::opt_resample_alpha1,
-                        ini::opt_resample_alpha2, ini::opt_resample_alpha3);
-                break;
-            case ini::optimizer_t::SGD:
-                optimizer = std::make_unique<optimizer::gradient_descent>(
-                    *rbm, *sampler, model->get_hamiltonian(), ini::opt_lr,
-                    ini::opt_sgd_real_factor, ini::opt_resample,
-                    ini::opt_resample_alpha1, ini::opt_resample_alpha2,
-                    ini::opt_resample_alpha3);
-                break;
-            default:
-                return 1;
+    optimizer->register_observables();
+    std::unique_ptr<optimizer::base_plugin> p;
+    if (ini ::opt_plugin.length() > 0) {
+        if (ini::opt_plugin == "adam") {
+            p = std::make_unique<optimizer::adam_plugin>(
+                rbm->get_n_params(), ini::opt_adam_beta1, ini::opt_adam_beta2,
+                ini::opt_adam_eps);
+        } else if (ini::opt_plugin == "momentum") {
+            p = std::make_unique<optimizer::momentum_plugin>(
+                rbm->get_n_params());
+        } else if (ini::opt_plugin == "heun") {
+            p = std::make_unique<optimizer::heun_plugin>(
+                [&optimizer]() -> Eigen::VectorXcd& {
+                    return optimizer->gradient(false);
+                },
+                *rbm, *sampler, ini::opt_heun_eps);
+        } else {
+            return 16;
         }
+        optimizer->set_plugin(p.get());
+    }
+    return 0;
+}
 
-        optimizer->register_observables();
-        std::unique_ptr<optimizer::base_plugin> p;
-        if (ini ::opt_plugin.length() > 0) {
-            if (ini::opt_plugin == "adam") {
-                p = std::make_unique<optimizer::adam_plugin>(
-                    rbm->get_n_params(), ini::opt_adam_beta1,
-                    ini::opt_adam_beta2, ini::opt_adam_eps);
-            } else if (ini::opt_plugin == "momentum") {
-                p = std::make_unique<optimizer::momentum_plugin>(
-                    rbm->get_n_params());
-            } else if (ini::opt_plugin == "heun") {
-                p = std::make_unique<optimizer::heun_plugin>(
-                    [&optimizer]() -> Eigen::VectorXcd& {
-                        return optimizer->gradient(false);
-                    },
-                    *rbm, *sampler, ini::opt_heun_eps);
-            } else {
-                return 1;
+int main(int argc, char* argv[]) {
+    // test_minresqlp();
+    // return 0;
+    //
+    mpi::init(argc, argv);
+    int rc = ini::load(argc, argv);
+    if (rc != 0) {
+        return rc;
+    }
+
+    if (ini::print_bonds && mpi::master) {
+        std::unique_ptr<model::abstract_model> model;
+        init_model(model);
+        auto bonds = model->get_lattice().get_bonds();
+        for (const auto& b : bonds) {
+            std::cout << b.a << "," << b.b << "," << b.type << std::endl;
+        }
+        mpi::end();
+        return 0;
+    }
+
+    if (mpi::master) {
+        logger::init();
+        std::cout << "Starting '" << ini::name << "'!" << std::endl;
+    }
+
+    omp_set_num_threads(2);
+    std::unique_ptr<std::mt19937> rng;
+    std::unique_ptr<model::abstract_model> model;
+    std::unique_ptr<machine::abstract_machine> rbm;
+    machine::pfaffian* pfaff = 0;
+    std::unique_ptr<sampler::abstract_sampler> sampler;
+    std::unique_ptr<optimizer::abstract_optimizer> optimizer;
+
+    size_t seed = ini::seed;
+    // Init Model
+    rc |= init_model(model);
+    // Init RBM
+    rc |= init_machine(rbm, pfaff, model);
+
+    if (ini::train && ini::seed_search) {
+        size_t best_seed;
+        double best_energy = DBL_MAX;
+        std::unique_ptr<std::mt19937> best_rng;
+        std::unique_ptr<machine::abstract_machine> best_rbm;
+        std::unique_ptr<sampler::abstract_sampler> best_sampler;
+        std::unique_ptr<optimizer::abstract_optimizer> best_optimizer;
+        std::uniform_int_distribution<unsigned long> udist(0, ULONG_MAX);
+        for (int i = 0; i < ini::seed_search; i++) {
+            init_seed(seed, rng);
+            seed = udist(*rng);
+            if (mpi::master) std::cout << "Seed: " << seed << std::endl;
+            init_machine(rbm, pfaff, model);
+            // Init Weights
+            init_weights(rbm, pfaff, true, *rng);
+            // Init Sampler
+            rc |= init_sampler(sampler, rbm, *rng);
+            rc |= init_optimizer(optimizer, model, rbm, sampler);
+
+            for (size_t e = 0; e < ini::seed_search_epochs; e++) {
+                sampler->sample();
+                optimizer->optimize();
+                logger::newline();
             }
-            optimizer->set_plugin(p.get());
+            if (optimizer->get_current_energy() < best_energy) {
+                best_energy = optimizer->get_current_energy();
+                best_rng = std::move(rng);
+                best_rbm = std::move(rbm);
+                best_sampler = std::move(sampler);
+                best_optimizer = std::move(optimizer);
+                best_seed = seed;
+            }
+
+            rng.reset(0);
+            rbm.reset(0);
+            sampler.reset(0);
+            optimizer.reset(0);
+        }
+        std::cout << "Best Seed: " << best_seed
+                  << " at E=" << best_energy / best_rbm->n_visible << std::endl;
+        seed = best_seed;
+        rng = std::move(best_rng);
+        rbm = std::move(best_rbm);
+        sampler = std::move(best_sampler);
+        optimizer = std::move(best_optimizer);
+    } else {
+        init_seed(seed, rng);
+        if (mpi::master) std::cout << "Seed: " << ini::seed << std::endl;
+        // Init Weights
+        init_weights(rbm, pfaff, ini::rbm_force, *rng);
+        // Init Sampler
+        rc |= init_sampler(sampler, rbm, *rng);
+        if (ini::train) {
+            rc |= init_optimizer(optimizer, model, rbm, sampler);
         }
     }
 
@@ -673,7 +757,9 @@ int main(int argc, char* argv[]) {
         }
 
         int ch = 0;
-        for (size_t i = 0; i < ini::n_epochs && ch != ''; i++) {
+        size_t i = 0;
+        if (ini::seed_search) i = ini::seed_search_epochs;
+        for (; i < ini::n_epochs && ch != ''; i++) {
             if (i > 0 && i % 100 == 0) rbm->save(ini::name, true);
             time_keeper::start("Sampling");
             sampler->sample();

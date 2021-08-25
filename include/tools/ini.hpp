@@ -148,6 +148,8 @@ extern bool train;
 extern bool evaluate;
 extern bool print_bonds;
 extern bool noprogress;
+extern int seed_search;
+extern size_t seed_search_epochs;
 
 // Model
 extern model_t model;

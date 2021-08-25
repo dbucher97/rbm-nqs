@@ -41,6 +41,8 @@ bool train = false;
 bool evaluate = false;
 bool noprogress = false;
 bool print_bonds = false;
+int seed_search = 0;
+size_t seed_search_epochs = 200;
 
 // Model
 model_t model = KITAEV;
@@ -146,6 +148,8 @@ int ini::load(int argc, char* argv[]) {
     ("name,n",                                po::value(&name),                             "set name of current rbm")
     ("n_threads,t",                           po::value(&n_threads),                        "set number of omp threads")
     ("noprogress,P",                          po::bool_switch(&noprogress),                 "switch to turn off progress bar")
+    ("seed_search",                           po::value(&seed_search),                      "set the number of different seeds to try")
+    ("seed_search_epochs",                    po::value(&seed_search_epochs),               "set the number of epochs after which seeds are compared")
     // Model
     ("model.type",                            po::value(&model),                            "Model type.")
     ("model.n_cells,c",                       po::value(&n_cells),                          "set number of unit cells in one dimension")
