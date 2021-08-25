@@ -30,13 +30,14 @@ TEST_OBJS += $(filter-out $(BUILD_DIR)/src/main.cpp.o,$(OBJS))
 
 # INDCLUDE DIRS
 INC_DIRS += $(HOME)/eigen3/
-INC_DIRS += $(HOME)/OpenBLAS/
 INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
 CPPFLAGS += $(INC_FLAGS) $(MKL_INC) -MMD -MP -Wall -std=c++14 -O3 -march=native
 CPPFLAGS += -DITERATIVE_USE_MKL
 
 OMP = -fopenmp
+# USE MPI
+MPI = $(shell mpiCC -show | cut -d' ' -f2-)
 
 # HANDLE DIFFERENT MATH BACKENDS
 ifeq ($(MAT_BACKEND),BLAS)
@@ -71,16 +72,16 @@ all: $(BUILD_DIR)/$(TARGET_EXEC)
 
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS) $(PFAPACKC) $(PFAPACK) $(MINRESQLP)
 	@echo "[ LD ] $@"
-	@$(CXX) $(OMP) $^ $(LDFLAGS) -o $@
+	@$(CXX) $(OMP) $(MPI) $^ $(LDFLAGS) -o $@
 
 $(BUILD_DIR)/$(TARGET_UNITTEST): $(TEST_OBJS) $(PFAPACKC) $(PFAPACK) $(MINRESQLP)
 	@echo "[ LD ] $@"
-	@$(CXX) $(OMP) $^ $(LDFLAGS) $(TEST_LDFLAGS) -o $@
+	@$(CXX) $(OMP) $(MPI) $^ $(LDFLAGS) $(TEST_LDFLAGS) -o $@
 # c++ source
 $(BUILD_DIR)/%.cpp.o: %.cpp
 	@$(MKDIR_P) $(dir $@)
 	@echo "[ $(notdir $(CXX)) ] $<"
-	@$(CXX) $(OMP) $(CPPFLAGS) -c $< -o $@
+	@$(CXX) $(OMP) $(MPI) $(CPPFLAGS) -c $< -o $@
 
 .PHONY: install all clean
 

@@ -101,7 +101,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
 
         flips.clear();
         // With probability 1/2 flip a second site.
-        if (bond_flips_ && u_dist_(rng_) < 0.5) {
+        if (bond_flips_ && u_dist_(rng_) < 0.75) {
             auto& b = bonds[b_dist(rng_)];
             flips = {b.a, b.b};
         } else {
