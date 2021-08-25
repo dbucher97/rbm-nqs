@@ -11,7 +11,10 @@ tsf-out/
 .cache/
 !trained/*.rbm
 .ipynb_checkpoints/
+*.egg-info/
+dist/
 __pycache__/
+dist/
 
 notebooks/Plots/
 
