@@ -207,28 +207,43 @@ bool rbm_base::save(const std::string& name, bool silent) {
 }
 
 bool rbm_base::load(const std::string& name) {
-    // Open the input stream
-    std::ifstream input{name + ".rbm", std::ios::binary};
-    if (input.good()) {
-        // Read the matrices from the inputstream. (<eigen_fstream.h>)
-        input >> weights_ >> h_bias_ >> v_bias_;
+    bool rc = false;
+    if (mpi::master) {
+        // Open the input stream
+        std::ifstream input{name + ".rbm", std::ios::binary};
+        if (input.good()) {
+            // Read the matrices from the inputstream. (<eigen_fstream.h>)
+            input >> weights_ >> h_bias_ >> v_bias_;
 
-        // Read the n_updates_ from the inputstream.
-        input.read((char*)&n_updates_, sizeof(size_t));
+            // Read the n_updates_ from the inputstream.
+            input.read((char*)&n_updates_, sizeof(size_t));
 
-        for (auto& c : correlators_) c->load(input);
+            for (auto& c : correlators_) c->load(input);
 
-        if (pfaffian_) pfaffian_->load(input);
+            if (pfaffian_) pfaffian_->load(input);
 
-        input.close();
+            input.close();
 
-        // Give a status update.
-        if (mpi::master)
+            // Give a status update.
             std::cout << "Loaded RBM from '" << name << ".rbm'!" << std::endl;
-        return true;
-    } else {
-        return false;
+
+            rc = true;
+        }
     }
+
+    MPI_Bcast(&rc, 1, MPI_CXX_BOOL, 0, MPI_COMM_WORLD);
+    if (rc) {
+        MPI_Bcast(weights_.data(), weights_.size(), MPI_DOUBLE_COMPLEX, 0,
+                  MPI_COMM_WORLD);
+        MPI_Bcast(h_bias_.data(), h_bias_.size(), MPI_DOUBLE_COMPLEX, 0,
+                  MPI_COMM_WORLD);
+        MPI_Bcast(v_bias_.data(), v_bias_.size(), MPI_DOUBLE_COMPLEX, 0,
+                  MPI_COMM_WORLD);
+        for (auto& c : correlators_) c->bcast(0);
+
+        if (pfaffian_) pfaffian_->bcast(0);
+    }
+    return rc;
 }
 
 void rbm_base::add_correlator(const std::vector<std::vector<size_t>>& corr) {

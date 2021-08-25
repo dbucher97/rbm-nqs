@@ -73,6 +73,7 @@ class pfaffian {
     bool load_from_pfaffian_psi(const std::string& filename);
     /* Eigen::MatrixXi& get_bs() { return bs_; }
     Eigen::MatrixXi& get_ss() { return ss_; } */
+    void bcast(int rank);
 
    private:
     inline bool spidx(size_t i, const Eigen::MatrixXcd& state,

@@ -184,3 +184,10 @@ void correlator::derivative(const Eigen::MatrixXcd& state,
 void correlator::load(std::ifstream& input) { input >> weights_ >> bias_; }
 
 void correlator::save(std::ofstream& output) { output << weights_ << bias_; }
+
+void correlator::bcast(int rank) {
+    MPI_Bcast(weights_.data(), weights_.size(), MPI_DOUBLE_COMPLEX, rank,
+              MPI_COMM_WORLD);
+    MPI_Bcast(bias_.data(), bias_.size(), MPI_DOUBLE_COMPLEX, rank,
+              MPI_COMM_WORLD);
+}

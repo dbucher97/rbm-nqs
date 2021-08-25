@@ -24,6 +24,7 @@
 //
 #include <machine/abstract_machine.hpp>
 #include <tools/eigen_fstream.hpp>
+#include <tools/mpi.hpp>
 
 namespace machine {
 
@@ -93,22 +94,28 @@ class pfaffian_psi : public abstract_machine {
 
     virtual bool load(const std::string& name) override {
         // Open the input stream
-        std::ifstream input{name + ".rbm", std::ios::binary};
-        if (input.good()) {
-            // Read the n_updates_ from the inputstream.
-            input.read((char*)&n_updates_, sizeof(size_t));
+        bool rc = false;
+        if (mpi::master) {
+            std::ifstream input{name + ".rbm", std::ios::binary};
+            if (input.good()) {
+                // Read the n_updates_ from the inputstream.
+                input.read((char*)&n_updates_, sizeof(size_t));
 
-            pfaffian_->load(input);
+                pfaffian_->load(input);
 
-            input.close();
+                input.close();
 
-            // Give a status update.
-            std::cout << "Loaded Pfaffian from '" << name << ".rbm'!"
-                      << std::endl;
-            return true;
-        } else {
-            return false;
+                // Give a status update.
+                std::cout << "Loaded Pfaffian from '" << name << ".rbm'!"
+                          << std::endl;
+                rc = true;
+            }
         }
+        MPI_Bcast(&rc, 1, MPI_CXX_BOOL, 0, MPI_COMM_WORLD);
+        if (rc) {
+            pfaffian_->bcast(0);
+        }
+        return rc;
     }
 };
 

@@ -226,3 +226,7 @@ bool pfaffian::load_from_pfaffian_psi(const std::string& filename) {
         return false;
     }
 }
+
+void pfaffian::bcast(int rank) {
+    MPI_Bcast(fs_.data(), fs_.size(), MPI_DOUBLE_COMPLEX, rank, MPI_COMM_WORLD);
+}

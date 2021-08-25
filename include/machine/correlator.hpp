@@ -90,5 +90,7 @@ class correlator {
 
     void load(std::ifstream& input);
     void save(std::ofstream& output);
+
+    void bcast(int rank);
 };
 }  // namespace machine

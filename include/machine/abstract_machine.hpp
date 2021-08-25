@@ -53,8 +53,7 @@ class abstract_machine {
      * @breif abstract machine protected constructor
      *
      * @param lattice Bravais Lattice reference
-     * @param n_params Number of params (default 0)
-     */
+     * @param n_params Number of params (default 0) */
     abstract_machine(lattice::bravais& lattice, size_t n_params = 0)
         : n_visible{lattice.n_total}, n_params_{n_params}, lattice_{lattice} {}
 
