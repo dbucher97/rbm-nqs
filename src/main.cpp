@@ -679,7 +679,7 @@ int main(int argc, char* argv[]) {
     // Init RBM
     rc |= init_machine(rbm, pfaff, model);
 
-    if (ini::train && ini::seed_search) {
+    if (ini::train && ini::seed_search && ini::rbm_force) {
         size_t best_seed;
         double best_energy = DBL_MAX;
         std::unique_ptr<std::mt19937> best_rng;
