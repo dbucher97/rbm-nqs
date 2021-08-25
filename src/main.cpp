@@ -86,6 +86,7 @@ using namespace Eigen;
 
 volatile static bool g_interrupt = false;
 volatile static bool g_saved = false;
+int g_x;
 
 void interrupt(int sig) {
     g_interrupt = sig == SIGINT;
@@ -101,12 +102,7 @@ void progress_bar(size_t i, size_t n_epochs, double energy, char state) {
     if (i == 0) digs = (int)std::log10(n_epochs);
     std::cout << "\rEpochs: (" << std::string(digs, ' ') << i << "/" << n_epochs
               << ") " << state << " ";
-    struct winsize size;
-    ioctl(STDOUT_FILENO, TIOCGWINSZ, &size);
-    int x = size.ws_col;
-    if (x == 0) {
-        x = 100;
-    }
+    int x = g_x;
     int plen = x - (2 * (int)std::log10(n_epochs) + 37);
     int p = (int)(plen * progress + 0.5);
     int m = plen - p;
@@ -717,7 +713,8 @@ int main(int argc, char* argv[]) {
             sampler.reset(0);
             optimizer.reset(0);
         }
-        std::cout << "Best Seed: " << best_seed
+        if(mpi::master)
+            std::cout << "Best Seed: " << best_seed
                   << " at E=" << best_energy / best_rbm->n_visible << std::endl;
         seed = best_seed;
         rng = std::move(best_rng);
@@ -745,6 +742,13 @@ int main(int argc, char* argv[]) {
         struct termios oldt, newt;
         int oldf;
         if (!ini::noprogress && mpi::master) {
+            struct winsize size;
+            ioctl(STDOUT_FILENO, TIOCGWINSZ, &size);
+            g_x = size.ws_col;
+            if(g_x <= 0 || g_x > 500) {
+                g_x = 100;
+            }
+
             // Start getchar non-block
             tcgetattr(STDIN_FILENO, &oldt);
             newt = oldt;

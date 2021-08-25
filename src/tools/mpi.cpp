@@ -32,7 +32,6 @@ void mpi::init(int argc, char* argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi::rank);
     MPI_Comm_size(MPI_COMM_WORLD, &mpi::n_proc);
     master = (rank == 0);
-    std::cout << "MPI init " << rank << "/" << n_proc << std::endl;
 }
 void mpi::end() {
     MPI_Barrier(MPI_COMM_WORLD);
