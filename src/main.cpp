@@ -1,9 +1,5 @@
 /*
- * Copyright (c) 2021 David Bucher <David.Bucher@physik.lmu.de>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
+ * Copyright (c) 2021 David Bucher <David.Bucher@physik.lmu.de> * * This program is free software: you can redistribute it and/or modify * it under the terms of the GNU Affero General Public License as * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -761,9 +757,7 @@ int main(int argc, char* argv[]) {
         }
 
         int ch = 0;
-        size_t i = 0;
-        if (ini::seed_search) i = ini::seed_search_epochs;
-        for (; i < ini::n_epochs && ch != ''; i++) {
+        for (int i = rbm->get_n_updates(); i < ini::n_epochs && ch != ''; i++) {
             if (i > 0 && i % 100 == 0) rbm->save(ini::name, true);
             time_keeper::start("Sampling");
             sampler->sample();

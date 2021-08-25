@@ -11,9 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Affero
  * General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
+ * You should have received a copy of the GNU Affero General Public License * along with this program.  If not, see <https://www.gnu.org/licenses/>.  *
  */
 
 #include <cmath>
@@ -233,6 +231,8 @@ bool rbm_base::load(const std::string& name) {
 
     MPI_Bcast(&rc, 1, MPI_CXX_BOOL, 0, MPI_COMM_WORLD);
     if (rc) {
+        MPI_Bcast(&n_updates_, 1, MPI_UNSIGNED_LONG, 0,
+                  MPI_COMM_WORLD);
         MPI_Bcast(weights_.data(), weights_.size(), MPI_DOUBLE_COMPLEX, 0,
                   MPI_COMM_WORLD);
         MPI_Bcast(h_bias_.data(), h_bias_.size(), MPI_DOUBLE_COMPLEX, 0,
