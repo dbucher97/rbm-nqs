@@ -58,7 +58,6 @@ sub="#!/usr/bin/env sh
 #SBATCH --export=NONE
 #SBATCH --time=72:00:00
 
-module list
 module load slurm_setup
 
 source set_compiler.sh $CC
