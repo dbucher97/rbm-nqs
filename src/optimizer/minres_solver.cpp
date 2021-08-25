@@ -58,7 +58,7 @@ void minres_solver::solve(const Eigen::MatrixXcd& mat,
     MPI_Gatherv(mat.data(), mat.size(), MPI_DOUBLE_COMPLEX, mat_.data(),
                 n_samples, n_offsets, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
     if (mpi::master) {
-        int nt = omp_get_num_threads();
+        int nt = omp_get_max_threads();
         omp_set_num_threads(ini::n_threads);
 
         diag_ = diag.cast<std::complex<double>>();

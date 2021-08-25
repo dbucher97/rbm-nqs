@@ -16,8 +16,6 @@
  *
  */
 
-// #include <omp.h>
-
 #include <fcntl.h>
 #include <float.h>
 #include <omp.h>
@@ -661,7 +659,6 @@ int main(int argc, char* argv[]) {
         std::cout << "Starting '" << ini::name << "'!" << std::endl;
     }
 
-    omp_set_num_threads(2);
     std::unique_ptr<std::mt19937> rng;
     std::unique_ptr<model::abstract_model> model;
     std::unique_ptr<machine::abstract_machine> rbm;
@@ -713,9 +710,10 @@ int main(int argc, char* argv[]) {
             sampler.reset(0);
             optimizer.reset(0);
         }
-        if(mpi::master)
+        if (mpi::master)
             std::cout << "Best Seed: " << best_seed
-                  << " at E=" << best_energy / best_rbm->n_visible << std::endl;
+                      << " at E=" << best_energy / best_rbm->n_visible
+                      << std::endl;
         seed = best_seed;
         rng = std::move(best_rng);
         rbm = std::move(best_rbm);
@@ -745,7 +743,7 @@ int main(int argc, char* argv[]) {
             struct winsize size;
             ioctl(STDOUT_FILENO, TIOCGWINSZ, &size);
             g_x = size.ws_col;
-            if(g_x <= 0 || g_x > 500) {
+            if (g_x <= 0 || g_x > 500) {
                 g_x = 100;
             }
 

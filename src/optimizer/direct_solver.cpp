@@ -41,7 +41,7 @@ void direct_solver::solve(const Eigen::MatrixXcd& mat,
         MPI_Reduce(S.data(), S.data(), S.size(), MPI_DOUBLE_COMPLEX, MPI_SUM, 0,
                    MPI_COMM_WORLD);
     if (mpi::master) {
-        int nt = omp_get_num_threads();
+        int nt = omp_get_max_threads();
         omp_set_num_threads(ini::n_threads);
         S -= d.conjugate() * d.transpose();
         // Add regularization.

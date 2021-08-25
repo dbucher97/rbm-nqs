@@ -79,7 +79,7 @@ void cg_solver::cg1(const std::function<void(const Eigen::VectorXcd&,
         rsold = r_.squaredNorm();
     }
 
-    int omp_prev = omp_get_num_threads();
+    int omp_prev = omp_get_max_threads();
     for (itn_ = 0; itn_ < max_iterations_; itn_++) {
         MPI_Bcast(p_.data(), p_.size(), MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
         Aprod(p_, Ap_);
@@ -144,7 +144,7 @@ void cg_solver::minres(const std::function<void(const Eigen::VectorXcd&,
         rsold = r_.squaredNorm();
     }
 
-    int omp_prev = omp_get_num_threads();
+    int omp_prev = omp_get_max_threads();
     for (itn_ = 0; itn_ < max_iterations_; itn_++) {
         MPI_Bcast(p_.data(), p_.size(), MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
         Aprod(p_, Ap_);
