@@ -7,9 +7,9 @@ import platform
 from scipy.sparse.linalg import eigsh
 from typing import Union, List, Tuple
 
-SZ = sp.csr_matrix(np.array([[1, 0], [0, -1]]))
-SY = sp.csr_matrix(np.array([[0, -1j], [1j, 0]]))
-SX = sp.csr_matrix(np.array([[0, 1], [1, 0]]))
+SZ = sp.csr_matrix([[1, 0], [0, -1]])
+SY = sp.csr_matrix([[0, -1j], [1j, 0]])
+SX = sp.csr_matrix([[0, 1], [1, 0]])
 
 
 def construct_op(bonds : List[Tuple], bond_ops : List[Tuple], N : int , J :
@@ -24,10 +24,13 @@ def construct_op(bonds : List[Tuple], bond_ops : List[Tuple], N : int , J :
         x = sp.identity(1)
         for site, op in sso:
             lower = site
-            x = sp.kron(x, sp.identity(2**(upper-lower-1)))
+            x = sp.kron(x, sp.identity(2**(upper-lower-1))).tocsr()
+            x.eliminate_zeros()
             upper = lower
-            x = sp.kron(x, op)
-        x = sp.kron(x, sp.identity(2**upper))
+            x = sp.kron(x, op).tocsr()
+            x.eliminate_zeros()
+        x = sp.kron(x, sp.identity(2**upper)).tocsr()
+        x.eliminate_zeros()
         ret += J[t % len(J)] * x
         if log:
             print(f'constructed bond {c}/{len(bonds)}')
