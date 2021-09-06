@@ -16,6 +16,7 @@
  */
 
 #include <optimizer/abstract_optimizer.hpp>
+#include <tools/mpi.hpp>
 
 using namespace optimizer;
 
@@ -75,25 +76,28 @@ void abstract_optimizer::remove_plugin() { plug_ = nullptr; }
 void abstract_optimizer::optimize() {
     double lr = lr_.get();
     // Check resample criteria
-    if (resample_) {
+    if (resample_ && rbm_.get_n_updates() > 50) {
         std::complex<double> e = a_h_.get_result()(0);
         double d = std::sqrt(a_h_.get_variance()(0));
-        bool resample = true;
+        int resample = 1;
         size_t rcount = 0;
-        while (resample && last_energy_std_ != -1 &&
-               rbm_.get_n_updates() > 50 && rcount < 3) {
-            resample = false;
-            resample |= std::abs(std::real(last_energy_ - e)) >= alpha1_;
-            resample |= std::abs(std::imag(e)) >= alpha2_ * d;
-            resample |= d >= alpha3_ * last_energy_std_;
+        while (resample && last_energy_std_ != -1 && rcount < 3) {
+            resample = 0;
+            resample |= std::abs(std::real(last_energy_ - e) /
+                                 rbm_.n_visible) >= alpha1_;
+            resample |= (std::abs(std::imag(e)) >= alpha2_ * d) << 1;
+            resample |= (d / last_energy_std_ >= alpha3_) << 2;
+            resample |= (last_energy_std_ / d > alpha3_) << 3;
             // std::cout << "resample" << std::endl;
 
             if (resample) {
+                mpi::cout << "resample " << resample << ", " << d << " "
+                          << last_energy_std_ << mpi::endl;
                 rcount++;
                 // std::cout << "resample" << std::endl;
 
                 // Undo last update
-                rbm_.update_weights(-last_update_);
+                rbm_.update_weights_nc(-last_update_);
 
                 // Repeat last step update
                 sampler_.sample();
@@ -106,7 +110,7 @@ void abstract_optimizer::optimize() {
                     dw_ *= lr;
                 }
                 // Update weights
-                rbm_.update_weights(dw_);
+                rbm_.update_weights_nc(dw_);
                 last_update_ = dw_;
 
                 // Resample

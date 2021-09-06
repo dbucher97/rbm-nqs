@@ -23,6 +23,10 @@ namespace mpi {
 int rank = -1;
 int n_proc = -1;
 bool master = false;
+mpi::ostream cout;
+mpi::streamflag flush = FLUSH;
+mpi::streamflag endl = ENDL;
+
 }  // namespace mpi
 
 using namespace mpi;

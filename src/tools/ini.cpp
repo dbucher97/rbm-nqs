@@ -79,14 +79,14 @@ size_t sa_metropolis_n_warmup_steps = 100;
 size_t sa_metropolis_n_steps_per_sample = 10;
 size_t sa_full_n_parallel_bits = 3;
 std::string sa_exact_gs_file = "";
-bool sa_metropolis_bond_flips = true;
+double sa_metropolis_bond_flips = 0.5;
 
 // Optimizer
 optimizer_t opt_type = SR;
 std::string opt_plugin = "";
 decay_t opt_lr = {0.001, 0.001, 1.};
-decay_t opt_sr_reg1 = {1e-4, 1e-5, 0.98};
-decay_t opt_sr_reg2 = {1e-3, 1e-7, 0.9};
+decay_t opt_sr_reg1 = {1e-4};
+decay_t opt_sr_reg2 = {1e-3, 1e-6, 0.9};
 decay_t opt_sr_deltareg1 = {1e-2};
 double opt_sgd_real_factor = 1.;
 double opt_adam_beta1 = 0.9;
@@ -98,9 +98,9 @@ size_t opt_sr_max_iterations = 0;
 double opt_sr_rtol = 0.;
 double opt_heun_eps = 1e-3;
 bool opt_resample = false;
-double opt_resample_alpha1 = 2;
+double opt_resample_alpha1 = 0.1;
 double opt_resample_alpha2 = 5;
-double opt_resample_alpha3 = 6;
+double opt_resample_alpha3 = 10;
 
 // Train
 size_t n_epochs = 600;
@@ -183,7 +183,7 @@ int ini::load(int argc, char* argv[]) {
     ("sampler.metropolis.n_warmup_steps",     po::value(&sa_metropolis_n_warmup_steps),     "set number of MCMC warmup steps")
     ("sampler.metropolis.n_steps_per_sample", po::value(&sa_metropolis_n_steps_per_sample), "set number of MCMC steps between a sample")
     ("sampler.exact.gs_file",                 po::value(&sa_exact_gs_file),                 "set file of ground state for exact sampling")
-    ("sampler.metropolis.bond_flips",         po::value(&sa_metropolis_bond_flips),         "use bond flips for update proposal")
+    ("sampler.metropolis.bond_flips",         po::value(&sa_metropolis_bond_flips),         "probability for bond flips for update proposal")
     // Optimizer
     ("optimizer.type",                        po::value(&opt_type),                         "set optimizer type")
     ("optimizer.learning_rate,l",             po::value(&opt_lr)->multitoken(),             "set learning rate optionally with decay factor")

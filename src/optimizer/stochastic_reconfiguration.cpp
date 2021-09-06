@@ -78,6 +78,8 @@ Eigen::VectorXcd& stochastic_reconfiguration::gradient(bool log) {
     auto& d = a_d_.get_result();
     auto& dh = a_dh_.get_result();
     a_dd_.finalize_diag(d);
+    double x = a_dd_.get_diag().minCoeff();
+    if (x < 0) mpi::cout << x << mpi::endl;
 
     if (log) {
         // Log energy, energy variance and sampler properties.

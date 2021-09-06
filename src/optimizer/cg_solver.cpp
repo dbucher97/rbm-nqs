@@ -213,6 +213,8 @@ void cg_solver::solve(const Eigen::MatrixXcd& mat, const Eigen::VectorXcd& d,
             minres(Aprod, b, x);
             break;
     }
+    // mpi::cout << "rnorm: " << rs_ << " \tn_iter: " << itn_
+    //           << " \tmaxdiag: " << max_diag << " \tr2:" << r2 << mpi::endl;
     // if (mpi::master) std::cout << std::endl << rs_ << ", " << itn_ <<
     // std::endl;
 }

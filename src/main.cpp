@@ -168,7 +168,7 @@ void debug() {
     size_t step_size = 5;
     size_t warmup_steps = 100;
     size_t n_samples = 1000;
-    bool bond_flips = true;
+    double bond_flips = 0.5;
 
     std::mt19937 rng{static_cast<std::mt19937::result_type>(ini::seed)};
     std::cout.precision(17);
@@ -656,8 +656,8 @@ int main(int argc, char* argv[]) {
 
     if (mpi::master) {
         logger::init();
-        std::cout << "Starting '" << ini::name << "'!" << std::endl;
     }
+    mpi::cout << "Starting '" << ini::name << "'!" << mpi::endl;
 
     std::unique_ptr<std::mt19937> rng;
     std::unique_ptr<model::abstract_model> model;
@@ -683,7 +683,7 @@ int main(int argc, char* argv[]) {
         for (int i = 0; i < ini::seed_search; i++) {
             init_seed(seed, rng);
             seed = udist(*rng);
-            if (mpi::master) std::cout << "Seed: " << seed << std::endl;
+            mpi::cout << "Seed: " << seed << " \t" << mpi::flush;
             init_machine(rbm, pfaff, model);
             // Init Weights
             init_weights(rbm, pfaff, true, *rng);
@@ -691,13 +691,18 @@ int main(int argc, char* argv[]) {
             rc |= init_sampler(sampler, rbm, *rng);
             rc |= init_optimizer(optimizer, model, rbm, sampler);
 
+            double energy = 0;
+
             for (size_t e = 0; e < ini::seed_search_epochs; e++) {
                 sampler->sample();
                 optimizer->optimize();
                 logger::newline();
+                energy = 0.9 * energy + optimizer->get_current_energy();
+                if (std::isnan(optimizer->get_current_energy())) break;
             }
-            if (optimizer->get_current_energy() < best_energy) {
-                best_energy = optimizer->get_current_energy();
+            mpi::cout << energy * 0.1 / rbm->n_visible << mpi::endl;
+            if (energy < best_energy) {
+                best_energy = energy;
                 best_rng = std::move(rng);
                 best_rbm = std::move(rbm);
                 best_sampler = std::move(sampler);
@@ -710,10 +715,14 @@ int main(int argc, char* argv[]) {
             sampler.reset(0);
             optimizer.reset(0);
         }
-        if (mpi::master)
-            std::cout << "Best Seed: " << best_seed
-                      << " at E=" << best_energy / best_rbm->n_visible
-                      << std::endl;
+        if (best_energy == DBL_MAX) {
+            rc = 65;
+        } else {
+            mpi::cout << "Best Seed: " << best_seed << " at E="
+                      << best_optimizer->get_current_energy() /
+                             best_rbm->n_visible
+                      << mpi::endl;
+        }
         seed = best_seed;
         rng = std::move(best_rng);
         rbm = std::move(best_rbm);
@@ -721,7 +730,7 @@ int main(int argc, char* argv[]) {
         optimizer = std::move(best_optimizer);
     } else {
         init_seed(seed, rng);
-        if (mpi::master) std::cout << "Seed: " << ini::seed << std::endl;
+        mpi::cout << "Seed: " << ini::seed << mpi::endl;
         // Init Weights
         init_weights(rbm, pfaff, ini::rbm_force, *rng);
         // Init Sampler
@@ -731,12 +740,9 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if (mpi::master) {
-        std::cout << "Number of parameters: " << rbm->get_n_params()
-                  << std::endl;
-    }
-
-    if (ini::train) {
+    if (ini::train && rc == 0) {
+        mpi::cout << "Number of parameters: " << rbm->get_n_params()
+                  << mpi::endl;
         struct termios oldt, newt;
         int oldf;
         if (!ini::noprogress && mpi::master) {
@@ -759,8 +765,7 @@ int main(int argc, char* argv[]) {
         }
 
         int ch = 0;
-        size_t i = 0;
-        if (ini::seed_search) i = ini::seed_search_epochs;
+        size_t i = rbm->get_n_updates();
         for (; i < ini::n_epochs && ch != ''; i++) {
             if (i > 0 && i % 100 == 0) rbm->save(ini::name, true);
             time_keeper::start("Sampling");
@@ -774,7 +779,8 @@ int main(int argc, char* argv[]) {
             optimizer->optimize();
             time_keeper::end("Optimization");
             if (std::isnan(optimizer->get_current_energy())) {
-                std::cerr << "\nEnergy went NaN." << std::endl;
+                if (mpi::master)
+                    std::cerr << "\nFATAL: NaN Energy." << std::endl;
                 rc = 55;
                 break;
             }
@@ -802,7 +808,7 @@ int main(int argc, char* argv[]) {
 
         rbm->save(ini::name);
     }
-    if (ini::evaluate) {
+    if (ini::evaluate && rc == 0) {
         sampler->clear_ops();
         sampler->clear_aggs();
         if (ini::sa_eval_samples != 0)

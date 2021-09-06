@@ -31,7 +31,7 @@ using namespace sampler;
 metropolis_sampler::metropolis_sampler(machine::abstract_machine& rbm,
                                        size_t n_samples, std::mt19937& rng,
                                        size_t n_chains, size_t step_size,
-                                       size_t warmup_steps, bool bond_flips)
+                                       size_t warmup_steps, double bond_flips)
     : Base{rbm, n_samples},
       rng_{rng},
       n_chains_{n_chains},
@@ -101,7 +101,8 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
 
         flips.clear();
         // With probability 1/2 flip a second site.
-        if (bond_flips_ && u_dist_(rng_) < 0.75) {
+        double x = u_dist_(rng_);
+        if (x < bond_flips_) {
             auto& b = bonds[b_dist(rng_)];
             flips = {b.a, b.b};
         } else {
