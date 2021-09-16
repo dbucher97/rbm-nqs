@@ -23,6 +23,7 @@
 #include <fstream>
 //
 #include <sampler/full_sampler.hpp>
+#include <tools/eigen_fstream.hpp>
 #include <tools/ini.hpp>
 #include <tools/mpi.hpp>
 #include <tools/state.hpp>
@@ -43,16 +44,14 @@ void full_sampler::sample(bool keep_state) {
     // Number of total pit flips
     size_t max = (size_t)std::pow(2, rbm_.n_visible - bits_parallel_);
 
-    double p_local = 0;
-    double p_total = 0;
+    double p_tot = 0;
 
     // The state vector if state should be kept
     Eigen::MatrixXcd vec;
-    if (mpi::master && keep_state) {
-    }
     Eigen::MatrixXcd local_vec;
     Eigen::MatrixXi local_vec_idx;
     if (keep_state) {
+        if (mpi::master) vec = Eigen::MatrixXcd((int)(1 << rbm_.n_visible), 1);
         local_vec = Eigen::MatrixXcd(max, 1);
         local_vec_idx = Eigen::MatrixXi(max, 1);
     }
@@ -86,11 +85,25 @@ void full_sampler::sample(bool keep_state) {
 
         // Do the spin flips according to gray codes and evalueate
         // observables
+        std::complex<double> psi;
         for (size_t i = 1; i <= max; i++) {
             // Get the \psi of the current state and calculate probability
 
-            auto psi = rbm_.psi(state, context);
+            // context = rbm_.get_context(state);
+            psi = rbm_.psi(state, context);
+            // if (std::isnan(std::real(psi)) || std::isnan(std::imag(psi))) {
+            //     psi = rbm_.psi(state, context);
+            // }
             double p = std::pow(std::abs(psi), 2);
+            if (!std::isnan(p)) {
+                // std::cout << psi << ", " << tools::state_to_num(state)
+                //           << std::endl;
+                // std::vector<size_t> ones;
+                // for (size_t i = 0; i < rbm_.n_visible; i++) {
+                //     if (std::real(state(i)) > 0) ones.push_back(i);
+                // }
+                // rbm_.get_lattice().print_lattice(ones);
+            }
 
             // If keep state store \psi into the state vector
             if (keep_state) {
@@ -99,7 +112,7 @@ void full_sampler::sample(bool keep_state) {
             }
 
             // Cumulate probability for normalization
-            p_local += p;
+            p_tot += p;
 
             // Evaluate operators
             for (auto op : ops_) {
@@ -124,38 +137,45 @@ void full_sampler::sample(bool keep_state) {
                 state(flip) *= -1;
             }
         }
-    }
-    MPI_Allreduce(&p_local, &p_total, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-    // Print the state vector if `keep_state`
-    if (keep_state) {
-        if (mpi::master) {
-            vec = Eigen::MatrixXcd(static_cast<size_t>(1 << rbm_.n_visible), 1);
-            std::ofstream statefile{ini::name + ".state"};
-            for (size_t i = 0; i < max; i++) {
-                vec(local_vec_idx(i)) = local_vec(i);
-            }
-
-            for (int p = 1; p < mpi::n_proc; p++) {
-                MPI_Recv(local_vec_idx.data(), local_vec_idx.size(), MPI_INT, p,
-                         0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                MPI_Recv(local_vec.data(), local_vec.size(), MPI_DOUBLE_COMPLEX,
-                         p, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        if (keep_state) {
+            if (mpi::master) {
                 for (size_t i = 0; i < max; i++) {
                     vec(local_vec_idx(i)) = local_vec(i);
                 }
+
+                int pi = 1;
+                for (size_t p = b + 1; p < b + mpi::n_proc && p < b_len; p++) {
+                    MPI_Recv(local_vec_idx.data(), local_vec_idx.size(),
+                             MPI_INT, pi, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    MPI_Recv(local_vec.data(), local_vec.size(),
+                             MPI_DOUBLE_COMPLEX, pi, 1, MPI_COMM_WORLD,
+                             MPI_STATUS_IGNORE);
+                    for (size_t i = 0; i < max; i++) {
+                        vec(local_vec_idx(i)) = local_vec(i);
+                    }
+                    pi++;
+                }
+            } else {
+                MPI_Send(local_vec_idx.data(), local_vec_idx.size(), MPI_INT, 0,
+                         0, MPI_COMM_WORLD);
+                MPI_Send(local_vec.data(), local_vec.size(), MPI_DOUBLE_COMPLEX,
+                         0, 1, MPI_COMM_WORLD);
             }
-            statefile << vec;
-            statefile.close();
-        } else {
-            MPI_Send(local_vec_idx.data(), local_vec_idx.size(), MPI_INT, 0, 0,
-                     MPI_COMM_WORLD);
-            MPI_Send(local_vec.data(), local_vec.size(), MPI_DOUBLE_COMPLEX, 0,
-                     1, MPI_COMM_WORLD);
         }
     }
+    MPI_Allreduce(MPI_IN_PLACE, &p_tot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+    // Print the state vector if `keep_state`
+    if (keep_state && mpi::master) {
+        vec /= std::sqrt(p_tot);
+        std::ofstream statefile{ini::name + ".state", std::ios::binary};
+        statefile << vec;
+        statefile.close();
+        std::cout << "State stored to '" << ini::name + ".state"
+                  << "'" << std::endl;
+    }
     for (auto agg : aggs_) {
-        agg->finalize(p_total);
+        agg->finalize(p_tot);
     }
 }
 

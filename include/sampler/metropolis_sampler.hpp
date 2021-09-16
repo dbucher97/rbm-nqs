@@ -42,7 +42,7 @@ class metropolis_sampler : public abstract_sampler {
     size_t step_size_;     ///< The steps taken between two samples
     size_t warmup_steps_;  ///< The number of steps in the beginning before
                            ///< sampling.
-    bool bond_flips_;      ///< use bond flip for update proposal.
+    double bond_flips_;    ///< use bond flip for update proposal.
 
     double acceptance_rate_ = 0;  ///< The acceptance rate of all chains
 
@@ -76,7 +76,7 @@ class metropolis_sampler : public abstract_sampler {
     metropolis_sampler(machine::abstract_machine& rbm, size_t n_samples,
                        std::mt19937& rng, size_t n_chains = 1,
                        size_t step_size = 5, size_t warmup_steps = 100,
-                       bool bond_flips = true);
+                       double bond_flips = 0.5);
 
     virtual void sample() override;
 

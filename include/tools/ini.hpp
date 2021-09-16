@@ -146,6 +146,7 @@ extern std::string name;
 extern std::string ini_file;
 extern bool train;
 extern bool evaluate;
+extern bool store_state;
 extern bool print_bonds;
 extern bool noprogress;
 extern int seed_search;
@@ -183,10 +184,11 @@ extern size_t sa_metropolis_n_chains;
 extern size_t sa_metropolis_n_steps_per_sample;
 extern size_t sa_metropolis_n_warmup_steps;
 extern size_t sa_n_samples;
+extern size_t sa_metropolis_samples_per_chain;
 extern size_t sa_eval_samples;
 extern size_t sa_full_n_parallel_bits;
 extern std::string sa_exact_gs_file;
-extern bool sa_metropolis_bond_flips;
+extern double sa_metropolis_bond_flips;
 
 // Optimizer
 extern optimizer_t opt_type;

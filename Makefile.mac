@@ -79,6 +79,7 @@ MPI = $(shell mpic++ -show | cut -d' ' -f2-)
 
 install: all
 	cp $(BUILD_DIR)/$(TARGET_EXEC) $(DESTDIR)/$(TARGET_EXEC)
+	cp $(BUILD_DIR)/$(TARGET_EXEC) $(DESTDIR)/$(TARGET_EXEC)p
 	cp tools/* $(DESTDIR)/
 
 all: $(BUILD_DIR)/$(TARGET_EXEC)

@@ -44,9 +44,18 @@ void aggregator::finalize(double num) {
     // Normalize result
 
     result_ /= num;
+    // std::complex<double> r1 = result_(0);
 
     MPI_Allreduce(MPI_IN_PLACE, result_.data(), result_.size(),
                   MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
+
+    // if (result_.size() == 1) {
+    //     // mpi::cout << mpi::endl;
+    //     MPI_Barrier(MPI_COMM_WORLD);
+    //     if (std::abs((double)mpi::n_proc * r1 - result_(0)) > 1) {
+    //         throw std::runtime_error("XXXXX");
+    //     }
+    // }
 
     if (track_variance_) {
         variance_ /= num;
@@ -69,6 +78,8 @@ Eigen::MatrixXcd aggregator::aggregate_() {
 void aggregator::aggregate(double weight) {
     // Calculate the weight * observable
     Eigen::MatrixXcd x = aggregate_();
+    // if (result_.size() == 1 && std::real(x(0)) > 0)
+    //     std::cout << x << ", " << mpi::rank << std::endl;
     result_.noalias() += weight * x;
     // Safly aggeregte the result
 

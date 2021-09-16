@@ -39,6 +39,7 @@ std::string name = "";
 std::string ini_file = "";
 bool train = false;
 bool evaluate = false;
+bool store_state = false;
 bool noprogress = false;
 bool print_bonds = false;
 int seed_search = 0;
@@ -74,19 +75,20 @@ std::string rbm_pfaffian_load = "";
 sampler_t sa_type = METROPOLIS;
 size_t sa_n_samples = 1000;
 size_t sa_eval_samples = 0;
+size_t sa_metropolis_samples_per_chain = 0;
 size_t sa_metropolis_n_chains = 16;
 size_t sa_metropolis_n_warmup_steps = 100;
 size_t sa_metropolis_n_steps_per_sample = 10;
 size_t sa_full_n_parallel_bits = 3;
 std::string sa_exact_gs_file = "";
-bool sa_metropolis_bond_flips = true;
+double sa_metropolis_bond_flips = 0.5;
 
 // Optimizer
 optimizer_t opt_type = SR;
 std::string opt_plugin = "";
 decay_t opt_lr = {0.001, 0.001, 1.};
-decay_t opt_sr_reg1 = {1e-4, 1e-5, 0.98};
-decay_t opt_sr_reg2 = {1e-3, 1e-7, 0.9};
+decay_t opt_sr_reg1 = {1e-4};
+decay_t opt_sr_reg2 = {1e-3, 1e-6, 0.9};
 decay_t opt_sr_deltareg1 = {1e-2};
 double opt_sgd_real_factor = 1.;
 double opt_adam_beta1 = 0.9;
@@ -98,9 +100,9 @@ size_t opt_sr_max_iterations = 0;
 double opt_sr_rtol = 0.;
 double opt_heun_eps = 1e-3;
 bool opt_resample = false;
-double opt_resample_alpha1 = 2;
+double opt_resample_alpha1 = 0.1;
 double opt_resample_alpha2 = 5;
-double opt_resample_alpha3 = 6;
+double opt_resample_alpha3 = 10;
 
 // Train
 size_t n_epochs = 600;
@@ -142,6 +144,7 @@ int ini::load(int argc, char* argv[]) {
     ("help,h",                                "produce help message")
     ("train",                                 po::bool_switch(&train),                      "train the RBM")
     ("evaluate",                              po::bool_switch(&evaluate),                   "evaluate results of the RBM")
+    ("store_state",                           po::bool_switch(&store_state),                "stores the state into a plain text file 'name.state'")
     ("print_bonds",                           po::bool_switch(&print_bonds),                "print the bonds of the current model and exit")
     ("seed",                                  po::value(&seed),                             "seed of the rng")
     ("infile,i",                              po::value<std::string>(),                     "ini file for params")
@@ -177,13 +180,14 @@ int ini::load(int argc, char* argv[]) {
     // Sampler
     ("sampler.type",                          po::value(&sa_type),                          "set sampler type")
     ("sampler.n_samples",                     po::value(&sa_n_samples),                     "set sampler n sampler (metropolis only)")
+    ("sampler.n_samples_per_chain",             po::value(&sa_metropolis_samples_per_chain),  "set n samples per chain (overrides sampler.n_samples)")
     ("sampler.eval_samples",                  po::value(&sa_eval_samples),                  "set sampler n sampler (metropolis only) for evaluation")
     ("sampler.full.n_parallel_bits",          po::value(&sa_full_n_parallel_bits),          "set number of bits executed in parallel in full sampling")
     ("sampler.metropolis.n_chains",           po::value(&sa_metropolis_n_chains),           "set number of MCMC chains in Metropolis sampling")
     ("sampler.metropolis.n_warmup_steps",     po::value(&sa_metropolis_n_warmup_steps),     "set number of MCMC warmup steps")
     ("sampler.metropolis.n_steps_per_sample", po::value(&sa_metropolis_n_steps_per_sample), "set number of MCMC steps between a sample")
     ("sampler.exact.gs_file",                 po::value(&sa_exact_gs_file),                 "set file of ground state for exact sampling")
-    ("sampler.metropolis.bond_flips",         po::value(&sa_metropolis_bond_flips),         "use bond flips for update proposal")
+    ("sampler.metropolis.bond_flips",         po::value(&sa_metropolis_bond_flips),         "probability for bond flips for update proposal")
     // Optimizer
     ("optimizer.type",                        po::value(&opt_type),                         "set optimizer type")
     ("optimizer.learning_rate,l",             po::value(&opt_lr)->multitoken(),             "set learning rate optionally with decay factor")
@@ -228,6 +232,11 @@ int ini::load(int argc, char* argv[]) {
             std::ostringstream oss;
             oss << "n" << n_cells << "_a" << alpha;
             name = oss.str();
+        }
+
+        if (sa_metropolis_samples_per_chain) {
+            sa_n_samples =
+                sa_metropolis_n_chains * sa_metropolis_samples_per_chain;
         }
 
     } catch (const po::unknown_option& e) {

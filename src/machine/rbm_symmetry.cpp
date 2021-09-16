@@ -98,12 +98,14 @@ Eigen::MatrixXcd rbm_symmetry::derivative(const Eigen::MatrixXcd& state,
                                        .sum();
     // Same as baseclass
     // Eigen::MatrixXcd tanh = thetas.array().tanh();
-    Eigen::MatrixXcd tanh = (*tanh_)(context.thetas);
+    Eigen::ArrayXXcd tanh(context.thetas.rows(), context.thetas.cols());
+    (*tanh_)(context.thetas, tanh);
     result.block(n_vb_, 0, n_alpha_, 1) = tanh.rowwise().sum();
     size_t n_tot = n_visible * n_alpha_;
     // Symmetries involved
     for (size_t s = 0; s < symmetry_.size(); s++) {
-        Eigen::MatrixXcd x = (symmetry_[s] * state) * tanh.col(s).transpose();
+        Eigen::MatrixXcd x =
+            (symmetry_[s] * state) * tanh.col(s).matrix().transpose();
         result.block(n_vb_ + n_alpha_, 0, n_tot, 1) +=
             Eigen::Map<Eigen::MatrixXcd>(x.data(), n_tot, 1);
     }

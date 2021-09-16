@@ -15,8 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
+#pragma once
 
 #include <mpi.h>
+
+#include <iostream>
 
 namespace mpi {
 extern int rank;
@@ -25,4 +28,25 @@ extern bool master;
 
 extern void init(int argc, char* argv[]);
 extern void end();
+
+struct ostream {};
+enum streamflag { ENDL, FLUSH };
+extern mpi::ostream cout;
+extern mpi::streamflag flush, endl;
+
+inline ostream& operator<<(ostream& os, const streamflag& t) {
+    if (mpi::master) switch (t) {
+            case ENDL:
+                std::cout << std::endl;
+            case FLUSH:
+                std::cout << std::flush;
+        }
+    return os;
+}
+template <typename T>
+inline ostream& operator<<(ostream& os, const T& t) {
+    if (mpi::master) std::cout << t;
+    return os;
+}
+
 }  // namespace mpi

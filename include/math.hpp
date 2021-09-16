@@ -17,17 +17,21 @@
  */
 #pragma once
 
-#define LNCOSH_CUTOFF 16.7
+#define M_2PI 6.283185307179586
+#define M_PI2 0.1591549430918953
 
+#define LNCOSH_CUTOFF 3
+
+#include <omp.h>
 #include <pfapack.h>
 
 #include <Eigen/Dense>
 #include <cmath>
 #include <complex>
 
-namespace math {
+const std::complex<double> jc(0.0, 1.0);
 
-static const double ln2 = std::log(2);  ///< log(2) stored.
+namespace math {
 
 /**
  * @brief Calculates lncosh for a real value.
@@ -77,38 +81,24 @@ static const double ln2 = std::log(2);  ///< log(2) stored.
  * @return MatrixXcd result.
  */
 
-extern inline Eigen::ArrayXXcd lncosh(const Eigen::MatrixXcd& x) {
-    Eigen::ArrayXXd xr = x.real().array();
-    Eigen::ArrayXXd xi = x.imag().array();
-    Eigen::ArrayXXcd ret;
+extern void lncosh(const Eigen::MatrixXcd& x, Eigen::ArrayXXcd& res);
 
-    ret = (xr.abs() < LNCOSH_CUTOFF).select(xr.cosh().log(), xr - ln2);
-
-    ret +=
-        (xi.cos() + std::complex<double>(0, 1.) * xr.tanh() * xi.sin()).log();
-    return ret;
+extern inline void cosh2(const Eigen::MatrixXcd& x, Eigen::ArrayXXcd& res) {
+    res = x.array().pow(2.);
 }
 
-extern inline Eigen::ArrayXXcd cosh2(const Eigen::MatrixXcd& x) {
-    return (1 + x.real().array().pow(2) / 2) * x.imag().array().cos() +
-           std::complex<double>(0, 1) * x.real().array() *
-               x.imag().array().sin();
+extern inline void tanh2(const Eigen::MatrixXcd& x, Eigen::ArrayXXcd& res) {
+    cosh2(x, res);
+    res = x.array() / res;
 }
 
-extern inline Eigen::ArrayXXcd tanh2(const Eigen::MatrixXcd& x) {
-    return (x.real().array() * x.imag().array().cos() +
-            std::complex<double>(0, 1) * (1 + x.real().array().pow(2) / 2) *
-                x.imag().array().sin()) /
-           cosh2(x).array();
+extern inline void cosh1(const Eigen::MatrixXcd& x, Eigen::ArrayXXcd& res) {
+    res = x.array().cosh();
 }
 
-extern inline Eigen::ArrayXXcd cosh1(const Eigen::MatrixXcd& x) {
-    return x.array().cosh();
-}
-
-extern inline Eigen::ArrayXXcd tanh1(const Eigen::MatrixXcd& x) {
-    Eigen::MatrixXcd r = x.array().tanh();
-    return r.array().isFinite().select(r, 0.);
+extern inline void tanh1(const Eigen::MatrixXcd& x, Eigen::ArrayXXcd& res) {
+    res = x.array().tanh();
+    // return r.array().isFinite().select(r, 0.);
 }
 
 extern inline std::complex<double> pfaffian(Eigen::MatrixXcd& x) {
