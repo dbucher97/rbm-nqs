@@ -31,34 +31,19 @@
 using namespace math;
 
 void math::lncosh(const Eigen::MatrixXcd& x, Eigen::ArrayXXcd& res) {
+    double reabs, lncoshre, sinim, cosim;
     const std::complex<double>* xd = x.data();
     std::complex<double>* rd = res.data();
 
-    int n_chunks = 1; //omp_get_max_threads();
+    /*int n_chunks = 1; //omp_get_max_threads();
     int chunk_size = x.size(); // / n_chunks;
-//    std::cout << x.real().cwiseAbs().maxCoeff() << std::endl;
 
-/*    Eigen::ArrayXXd reabs = x.array().real().abs();
-    Eigen::ArrayXXd lncoshre = reabs - M_LN2;
-    Eigen::ArrayXXd sinim = x.array().imag().sin();
-    Eigen::ArrayXXd cosim = x.array().imag().cos();
-    reabs = (-2. * reabs).exp();
-    lncoshre += (1. + reabs).log();
-    sinim *= (1 - reabs) / (1 + reabs);
-
-    res.real() = lncoshre + 0.5 * (sinim.pow(2) + cosim.pow(2)).log(); */
-    /* for(size_t i = 0; i < x.size(); i++) {
-        res.imag()(i) = std::atan2(sinim(i), cosim(i));
-    } */
-//    res = res.log();
-//
 // #pragma omp parallel for
     for (int j = 0; j < n_chunks; j++) {
-        double reabs, lncoshre, sinim, cosim;
         int end = (j + 1) * chunk_size;
         if(j == n_chunks - 1)
-            end = x.size();
-        for (int i = j * chunk_size; i < end; i++) {
+            end = x.size(); */
+        for (int i = 0; i < x.size(); i++) {
             reabs = std::abs(std::real(xd[i]));
 
             lncoshre = reabs - M_LN2;
@@ -69,14 +54,9 @@ void math::lncosh(const Eigen::MatrixXcd& x, Eigen::ArrayXXcd& res) {
             cosim = std::cos(std::imag(xd[i]));
             sinim *= std::copysign((1. - reabs) / (1. + reabs), std::real(xd[i]));
 
-            // rd[i].imag(std::atan2(sinim, cosim));
            
             lncoshre += 0.5 * std::log(std::pow(sinim, 2.) + std::pow(cosim, 2.));
             rd[i] = std::complex<double>(lncoshre, std::atan2(sinim, cosim));
-            //rd[i] = std::complex<double>(
-            //    lncoshre +
-            //        0.5 * std::log(std::pow(cosim, 2.) + std::pow(sinim, 2.)),
-            //    std::atan2(sinim, cosim));*/
         }
-    }
+    //}
 }
