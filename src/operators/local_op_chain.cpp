@@ -16,6 +16,8 @@
  *
  */
 
+#include <omp.h>
+
 #include <Eigen/Dense>
 #include <vector>
 //
@@ -32,10 +34,12 @@ void local_op_chain::evaluate(machine::abstract_machine& rbm,
                               machine::rbm_context& context) {
     auto& result = get_result_();
     result.setZero();
-    for (auto& op : ops_) {
-        op.evaluate(rbm, state, context);
+#pragma omp parallel for
+    for (int i = 0; i < ops_.size(); i++) {
+        ops_[i].evaluate(rbm, state, context);
         // sum up local operator results.
-        result += op.get_result();
+#pragma omp critical
+        result += ops_[i].get_result();
     }
 }
 

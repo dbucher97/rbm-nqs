@@ -17,9 +17,10 @@
  */
 
 #include <cmath>
-#include <machine/context.hpp>
 //
+#include <machine/context.hpp>
 #include <math.hpp>
+#include <tools/time_keeper.hpp>
 #include <tools/mpi.hpp>
 
 using namespace machine;
@@ -154,7 +155,9 @@ Eigen::ArrayXXcd& rbm_context::coshthetas() {
 
 Eigen::ArrayXXcd& rbm_context::lncoshthetas() {
     if (!did_lncoshthetas_) {
+        time_keeper::start("lncosh");
         lncosh_(thetas, lncoshthetas_);
+        time_keeper::end("lncosh");
         did_lncoshthetas_ = true;
     }
     return lncoshthetas_;
