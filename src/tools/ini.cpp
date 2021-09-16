@@ -39,6 +39,7 @@ std::string name = "";
 std::string ini_file = "";
 bool train = false;
 bool evaluate = false;
+bool store_state = false;
 bool noprogress = false;
 bool print_bonds = false;
 int seed_search = 0;
@@ -74,6 +75,7 @@ std::string rbm_pfaffian_load = "";
 sampler_t sa_type = METROPOLIS;
 size_t sa_n_samples = 1000;
 size_t sa_eval_samples = 0;
+size_t sa_metropolis_samples_per_chain = 0;
 size_t sa_metropolis_n_chains = 16;
 size_t sa_metropolis_n_warmup_steps = 100;
 size_t sa_metropolis_n_steps_per_sample = 10;
@@ -142,6 +144,7 @@ int ini::load(int argc, char* argv[]) {
     ("help,h",                                "produce help message")
     ("train",                                 po::bool_switch(&train),                      "train the RBM")
     ("evaluate",                              po::bool_switch(&evaluate),                   "evaluate results of the RBM")
+    ("store_state",                           po::bool_switch(&store_state),                "stores the state into a plain text file 'name.state'")
     ("print_bonds",                           po::bool_switch(&print_bonds),                "print the bonds of the current model and exit")
     ("seed",                                  po::value(&seed),                             "seed of the rng")
     ("infile,i",                              po::value<std::string>(),                     "ini file for params")
@@ -177,6 +180,7 @@ int ini::load(int argc, char* argv[]) {
     // Sampler
     ("sampler.type",                          po::value(&sa_type),                          "set sampler type")
     ("sampler.n_samples",                     po::value(&sa_n_samples),                     "set sampler n sampler (metropolis only)")
+    ("sampler.n_samples_per_chain",             po::value(&sa_metropolis_samples_per_chain),  "set n samples per chain (overrides sampler.n_samples)")
     ("sampler.eval_samples",                  po::value(&sa_eval_samples),                  "set sampler n sampler (metropolis only) for evaluation")
     ("sampler.full.n_parallel_bits",          po::value(&sa_full_n_parallel_bits),          "set number of bits executed in parallel in full sampling")
     ("sampler.metropolis.n_chains",           po::value(&sa_metropolis_n_chains),           "set number of MCMC chains in Metropolis sampling")
@@ -228,6 +232,11 @@ int ini::load(int argc, char* argv[]) {
             std::ostringstream oss;
             oss << "n" << n_cells << "_a" << alpha;
             name = oss.str();
+        }
+
+        if (sa_metropolis_samples_per_chain) {
+            sa_n_samples =
+                sa_metropolis_n_chains * sa_metropolis_samples_per_chain;
         }
 
     } catch (const po::unknown_option& e) {

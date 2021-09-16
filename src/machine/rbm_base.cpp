@@ -165,13 +165,14 @@ Eigen::MatrixXcd rbm_base::derivative(const Eigen::MatrixXcd& state,
     Eigen::MatrixXcd result = Eigen::MatrixXcd::Zero(get_n_params(), 1);
     result.block(0, 0, n_vb_, 1) = state;
     // Eigen::MatrixXcd tanh = thetas.array().tanh();
-    Eigen::MatrixXcd tanh = (*tanh_)(context.thetas);
+    Eigen::ArrayXXcd tanh(context.thetas.rows(), context.thetas.cols());
+    (*tanh_)(context.thetas, tanh);
 
     result.block(n_vb_, 0, n_alpha_, 1) = tanh;
-    Eigen::MatrixXcd x = state * tanh.transpose();
+    Eigen::ArrayXXcd x = state * tanh.matrix().transpose();
     // Transform weights matrix into a vector.
     result.block(n_vb_ + n_alpha_, 0, n_alpha_ * n_visible, 1) =
-        Eigen::Map<Eigen::MatrixXcd>(x.data(), n_alpha_ * n_visible, 1);
+        Eigen::Map<Eigen::ArrayXXcd>(x.data(), n_alpha_ * n_visible, 1);
 
     size_t offset = n_params_;
     for (auto& c : correlators_) c->derivative(state, tanh, result, offset);

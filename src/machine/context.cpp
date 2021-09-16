@@ -16,8 +16,11 @@
  *
  */
 
+#include <cmath>
 #include <machine/context.hpp>
+//
 #include <math.hpp>
+#include <tools/mpi.hpp>
 
 using namespace machine;
 
@@ -50,7 +53,10 @@ pfaff_context& pfaff_context::operator=(pfaff_context&& other) {
 }
 
 rbm_context::rbm_context(const Eigen::MatrixXcd& thetas, size_t cosh_mode)
-    : thetas{thetas}, cosh_mode_{cosh_mode} {
+    : thetas{thetas},
+      coshthetas_(thetas.rows(), thetas.cols()),
+      lncoshthetas_(thetas.rows(), thetas.cols()),
+      cosh_mode_{cosh_mode} {
     init_cosh_funcs();
 };
 
@@ -91,6 +97,18 @@ rbm_context& rbm_context::operator=(rbm_context& other) {
     return *this;
 }
 
+rbm_context& rbm_context::operator=(const rbm_context& other) {
+    thetas = other.thetas;
+    if (other.pfaff_) pfaff_ = std::make_unique<pfaff_context>(*other.pfaff_);
+    lncoshthetas_ = other.lncoshthetas_;
+    coshthetas_ = other.coshthetas_;
+    did_lncoshthetas_ = other.did_lncoshthetas_;
+    did_coshthetas_ = other.did_coshthetas_;
+    cosh_mode_ = other.cosh_mode_;
+    init_cosh_funcs();
+    return *this;
+}
+
 void rbm_context::init_cosh_funcs() {
     cosh_ = (cosh_mode_ == 1) ? math::cosh2 : math::cosh1;
     if (cosh_mode_ == 2)
@@ -112,16 +130,31 @@ Eigen::ArrayXXcd& rbm_context::coshthetas() {
         if (did_lncoshthetas_) {
             coshthetas_ = lncoshthetas_.exp();
         } else {
-            coshthetas_ = cosh_(thetas);
+            cosh_(thetas, coshthetas_);
         }
         did_coshthetas_ = true;
+    }
+    if (mpi::master) {
+        // int c = 0;
+        // for (int i = 0; i < coshthetas_.size(); i++) {
+        //     if (std::isnan(std::real(coshthetas_(i))) ||
+        //         std::isnan(std::imag(coshthetas_(i))) ||
+        //         std::isinf(std::real(coshthetas_(i))) ||
+        //         std::isinf(std::imag(coshthetas_(i))) ||
+        //         std::abs(std::real(coshthetas_(i))) < 1e-5) {
+        //         // std::abs(std::imag(coshthetas_(i))) < 1e-12) {
+        //         std::cout << coshthetas_(i) << ", " << thetas(i) << "; ";
+        //         c++;
+        //     }
+        // }
+        // if (c > 0) std::cout << std::endl;
     }
     return coshthetas_;
 }
 
 Eigen::ArrayXXcd& rbm_context::lncoshthetas() {
     if (!did_lncoshthetas_) {
-        lncoshthetas_ = lncosh_(thetas);
+        lncosh_(thetas, lncoshthetas_);
         did_lncoshthetas_ = true;
     }
     return lncoshthetas_;

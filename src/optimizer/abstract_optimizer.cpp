@@ -123,8 +123,16 @@ void abstract_optimizer::optimize() {
         last_energy_std_ = d;
         total_resamples_ += rcount;
     }
-    //
+
     gradient(true);
+
+    std::complex<double> e = a_h_.get_result()(0) / (double)rbm_.n_visible;
+    if (std::real(e - last_energy_) > 0.05) {
+        mpi::cout << "whee" << mpi::endl;
+        sampler_.sample();
+        // gradient(false);
+    }
+    last_energy_ = e;
 
     // Apply plugin if set
     if (plug_) {
@@ -132,6 +140,7 @@ void abstract_optimizer::optimize() {
     } else {
         dw_ *= lr;
     }
+
     // Update the weights.
     rbm_.update_weights(dw_);
     if (resample_) last_update_ = dw_;

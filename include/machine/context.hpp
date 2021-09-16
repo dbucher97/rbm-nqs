@@ -50,8 +50,8 @@ struct rbm_context {
     bool did_lncoshthetas_ = false;
     Eigen::ArrayXXcd lncoshthetas_;
 
-    std::function<Eigen::ArrayXXcd(const Eigen::MatrixXcd&)> cosh_;
-    std::function<Eigen::ArrayXXcd(const Eigen::MatrixXcd&)> lncosh_;
+    std::function<void(const Eigen::MatrixXcd&, Eigen::ArrayXXcd&)> cosh_;
+    std::function<void(const Eigen::MatrixXcd&, Eigen::ArrayXXcd&)> lncosh_;
 
     size_t cosh_mode_;
 
@@ -69,6 +69,7 @@ struct rbm_context {
     rbm_context(const rbm_context& other);
 
     rbm_context& operator=(rbm_context& other);
+    rbm_context& operator=(const rbm_context& other);
 
     pfaff_context& pfaff();
 
