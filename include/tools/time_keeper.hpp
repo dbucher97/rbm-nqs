@@ -32,6 +32,7 @@ extern int iteration_count;
 extern void start(const std::string& name);
 extern void end(const std::string& name);
 extern void itn();
+extern void clear();
 extern void resumee();
 
 }  // namespace time_keeper

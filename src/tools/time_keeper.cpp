@@ -49,6 +49,14 @@ void time_keeper::end(const std::string& name) {
     }
 }
 
+void time_keeper::clear() {
+    iteration_count = 0;
+    start_times.clear();
+    counters.clear();
+    elapsed_times.clear();
+    tracked.clear();
+}
+
 void time_keeper::itn() { iteration_count++; }
 
 void time_keeper::resumee() {

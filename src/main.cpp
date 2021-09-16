@@ -715,6 +715,7 @@ int main(int argc, char* argv[]) {
         rbm = std::move(best_rbm);
         sampler = std::move(best_sampler);
         optimizer = std::move(best_optimizer);
+        time_keeper::clear();
     } else {
         init_seed(seed, rng);
         if (mpi::master) std::cout << "Seed: " << ini::seed << std::endl;
