@@ -26,6 +26,8 @@
 #include <machine/abstract_machine.hpp>
 #include <operators/aggregator.hpp>
 #include <operators/base_op.hpp>
+#include <operators/bond_op.hpp>
+#include <operators/local_op_chain.hpp>
 
 /**
  * @brief namespace machine hosts the classes related to the restricted
@@ -43,6 +45,8 @@ class abstract_sampler {
 
     std::vector<operators::base_op*> ops_;      ///< The vector of operators
     std::vector<operators::aggregator*> aggs_;  ///< The vector of aggregators
+    std::vector<operators::local_op_chain*>
+        chains_;  ///< The vector of aggregators
 
     size_t n_samples_;  ///< Number of samples
 
@@ -83,6 +87,21 @@ class abstract_sampler {
      * @param op A pointer to an operator.
      */
     void register_op(operators::base_op* op);
+
+    /**
+     * @brief Register one operator.
+     *
+     * @param op A pointer to an operator.
+     */
+    void register_op(operators::local_op_chain* op);
+    /**
+     * @brief Register one operator.
+     *
+     * @param op A pointer to an operator.
+     */
+    void register_op(operators::bond_op* op) {
+        register_op(dynamic_cast<operators::local_op_chain*>(op));
+    }
 
     /**
      * @brief Clear the registered operators.
@@ -128,6 +147,10 @@ class abstract_sampler {
      * @param Number of samples
      */
     void set_n_samples(size_t samples);
+
+    void evaluate_and_aggregate(const Eigen::MatrixXcd& state,
+                                machine::rbm_context& context,
+                                double p = 1.) const;
 };
 
 }  // namespace sampler

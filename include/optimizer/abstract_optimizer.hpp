@@ -78,9 +78,10 @@ class decay_t {
  */
 class abstract_optimizer {
    protected:
-    machine::abstract_machine& rbm_;       ///< RBM reference
-    sampler::abstract_sampler& sampler_;   ///< Sampler reference
-    operators::base_op& hamiltonian_;      ///< Hamiltonian operator reference
+    machine::abstract_machine& rbm_;      ///< RBM reference
+    sampler::abstract_sampler& sampler_;  ///< Sampler reference
+    operators::local_op_chain&
+        hamiltonian_;                      ///< Hamiltonian operator reference
     operators::derivative_op derivative_;  ///< Derivative oprator
 
     operators::aggregator a_h_;  ///< Energy aggregator
@@ -108,7 +109,7 @@ class abstract_optimizer {
      */
     abstract_optimizer(machine::abstract_machine& rbm,
                        sampler::abstract_sampler& sampler,
-                       operators::base_op& hamiltonian,
+                       operators::local_op_chain& hamiltonian,
                        const ini::decay_t& learning_rate, bool resample = false,
                        double alpha1 = 2, double alpha2 = 5, double alpha3 = 6);
 

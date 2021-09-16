@@ -114,14 +114,7 @@ void full_sampler::sample(bool keep_state) {
             // Cumulate probability for normalization
             p_tot += p;
 
-            // Evaluate operators
-            for (auto op : ops_) {
-                op->evaluate(rbm_, state, context);
-            }
-            // Evaluate aggregators
-            for (auto agg : aggs_) {
-                agg->aggregate(p);
-            }
+            evaluate_and_aggregate(state, context, p);
 
             // Do the gray code update
             if (i != max) {

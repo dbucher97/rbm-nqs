@@ -33,9 +33,9 @@ namespace operators {
  * each thread for parallelization.
  */
 class base_op {
-    size_t r_,                              ///< Number of rows
-        c_;                                 ///< Number of cols
-    std::vector<Eigen::MatrixXcd> result_;  ///< Vector of result matrices
+    size_t r_,                 ///< Number of rows
+        c_;                    ///< Number of cols
+    Eigen::MatrixXcd result_;  ///< Vector of result matrices
 
    protected:
     /**
@@ -43,9 +43,7 @@ class base_op {
      *
      * @return Reference to the result matrix of the current thread.
      */
-    inline Eigen::MatrixXcd& get_result_() {
-        return result_[omp_get_thread_num()];
-    }
+    inline Eigen::MatrixXcd& get_result_() { return result_; }
 
    public:
     /**
@@ -54,13 +52,9 @@ class base_op {
      * @param r Number of rows
      * @param c Number of cols
      */
-    base_op(size_t r = 1, size_t c = 1)
-        : r_{r}, c_{c}, result_(omp_get_max_threads()) {
+    base_op(size_t r = 1, size_t c = 1) : r_{r}, c_{c}, result_(r_, c_) {
         // Initialize all result matrices.
-        for (size_t i = 0; i < result_.size(); i++) {
-            result_[i] = Eigen::MatrixXcd(r_, c_);
-            result_[i].setZero();
-        }
+        result_.setZero();
     }
     /**
      * @brief Default virtual destructor.
@@ -110,8 +104,6 @@ class base_op {
      *
      * @return Reference to the result matrix of the current thread.
      */
-    const Eigen::MatrixXcd& get_result() const {
-        return result_[omp_get_thread_num()];
-    }
+    virtual const Eigen::MatrixXcd& get_result() const { return result_; }
 };
 }  // namespace operators

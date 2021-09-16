@@ -186,17 +186,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
         if ((step >= warmup_steps_) &&
             ((step - warmup_steps_) % step_size_ == 0)) {
             // Evaluate oprators
-            time_keeper::start("Evaluate");
-            for (auto op : ops_) {
-                op->evaluate(rbm_, state, context);
-            }
-            time_keeper::end("Evaluate");
-            // Evaluate aggregators
-            time_keeper::start("Aggregate");
-            for (auto agg : aggs_) {
-                agg->aggregate();
-            }
-            time_keeper::end("Aggregate");
+            evaluate_and_aggregate(state, context);
             // thetas = rbm_.get_thetas(state);
         }
     }

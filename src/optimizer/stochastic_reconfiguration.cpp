@@ -35,7 +35,7 @@ using namespace optimizer;
 
 stochastic_reconfiguration::stochastic_reconfiguration(
     machine::abstract_machine& rbm, sampler::abstract_sampler& sampler,
-    operators::base_op& hamiltonian, const ini::decay_t& lr,
+    operators::local_op_chain& hamiltonian, const ini::decay_t& lr,
     const ini::decay_t& kp1, const ini::decay_t& kp2, const ini::decay_t& kp1d,
     std::string method, size_t max_iterations, double rtol, bool resample,
     double alpha1, double alpha2, double alpha3)

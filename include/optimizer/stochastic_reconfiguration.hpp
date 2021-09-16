@@ -56,7 +56,7 @@ class stochastic_reconfiguration : public abstract_optimizer {
      */
     stochastic_reconfiguration(machine::abstract_machine& rbm,
                                sampler::abstract_sampler& sampler,
-                               operators::base_op& hamiltonian,
+                               operators::local_op_chain& hamiltonian,
                                const ini::decay_t& learning_rate,
                                const ini::decay_t& regularization1,
                                const ini::decay_t& regularization2,

@@ -50,7 +50,7 @@ class abstract_model {
      *
      * @return Reference to the `bond_op` Hamiltonian.
      */
-    operators::base_op& get_hamiltonian() { return *hamiltonian_; }
+    operators::local_op_chain& get_hamiltonian() { return *hamiltonian_; }
     /**
      * @brief Lattice getter
      *

@@ -20,6 +20,7 @@
 //
 #include <operators/base_op.hpp>
 #include <sampler/abstract_sampler.hpp>
+#include <tools/time_keeper.hpp>
 
 using namespace sampler;
 
@@ -30,17 +31,24 @@ abstract_sampler::abstract_sampler(machine::abstract_machine& rbm,
 void abstract_sampler::register_ops(
     const std::vector<operators::base_op*>& ops) {
     // Push the ops into local vector
-    ops_.reserve(ops.size());
     for (auto op : ops) {
-        ops_.push_back(op);
+        register_op(op);
     }
 }
 
 void abstract_sampler::register_op(operators::base_op* op_ptr) {
-    register_ops({op_ptr});
+    ops_.push_back(op_ptr);
 }
 
-void abstract_sampler::clear_ops() { ops_.clear(); }
+void abstract_sampler::register_op(operators::local_op_chain* op_ptr) {
+    chains_.push_back(op_ptr);
+    register_ops(op_ptr->get_ops());
+}
+
+void abstract_sampler::clear_ops() {
+    ops_.clear();
+    chains_.clear();
+}
 
 void abstract_sampler::register_aggs(
     const std::vector<operators::aggregator*>& aggs) {
@@ -59,3 +67,24 @@ void abstract_sampler::clear_aggs() { aggs_.clear(); }
 
 size_t abstract_sampler::get_n_samples() const { return n_samples_; }
 void abstract_sampler::set_n_samples(size_t samples) { n_samples_ = samples; }
+
+void abstract_sampler::evaluate_and_aggregate(const Eigen::MatrixXcd& state,
+                                              machine::rbm_context& context,
+                                              double p) const {
+    time_keeper::start("Evaluate");
+    // Evaluate operators
+    for (auto& op : ops_) {
+        op->evaluate(rbm_, state, context);
+    }
+
+    for (auto& chain : chains_) {
+        chain->finailize();
+    }
+    time_keeper::end("Evaluate");
+    // Evaluate aggregators
+    time_keeper::start("Aggregate");
+    for (auto& agg : aggs_) {
+        agg->aggregate(p);
+    }
+    time_keeper::end("Aggregate");
+}

@@ -51,7 +51,7 @@ void decay_t::reset() {
 
 abstract_optimizer::abstract_optimizer(machine::abstract_machine& rbm,
                                        sampler::abstract_sampler& sampler,
-                                       operators::base_op& hamiltonian,
+                                       operators::local_op_chain& hamiltonian,
                                        const ini::decay_t& learning_rate,
                                        bool resample, double alpha1,
                                        double alpha2, double alpha3)
@@ -152,7 +152,8 @@ double abstract_optimizer::get_current_energy() {
 
 void abstract_optimizer::register_observables() {
     // Register operators and aggregators
-    sampler_.register_ops({&hamiltonian_, &derivative_});
+    sampler_.register_op(&hamiltonian_);
+    sampler_.register_op(&derivative_);
     a_h_.track_variance();
     sampler_.register_aggs({&a_h_, &a_d_});
 }

@@ -24,7 +24,7 @@ using namespace optimizer;
 
 gradient_descent::gradient_descent(machine::abstract_machine& rbm,
                                    sampler::abstract_sampler& sampler,
-                                   operators::base_op& hamiltonian,
+                                   operators::local_op_chain& hamiltonian,
                                    const ini::decay_t& lr, double real_factor,
                                    bool resample, double alpha1, double alpha2,
                                    double alpha3)

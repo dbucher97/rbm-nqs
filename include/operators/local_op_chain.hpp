@@ -31,7 +31,6 @@ namespace operators {
 class local_op_chain : public base_op {
     using Base = base_op;
     std::vector<local_op> ops_;  ///< The list of local opertors
-
    public:
     /**
      * @brief Local Operator Chain constructor
@@ -54,5 +53,9 @@ class local_op_chain : public base_op {
      * @brief Pop last local operator.
      */
     void pop_back();
+
+    std::vector<base_op*> get_ops();
+
+    void finailize();
 };
 }  // namespace operators

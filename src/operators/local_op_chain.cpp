@@ -31,17 +31,7 @@ local_op_chain::local_op_chain(const std::vector<local_op>& ops)
 
 void local_op_chain::evaluate(machine::abstract_machine& rbm,
                               const Eigen::MatrixXcd& state,
-                              machine::rbm_context& context) {
-    auto& result = get_result_();
-    result.setZero();
-#pragma omp parallel for
-    for (int i = 0; i < ops_.size(); i++) {
-        ops_[i].evaluate(rbm, state, context);
-        // sum up local operator results.
-#pragma omp critical
-        result += ops_[i].get_result();
-    }
-}
+                              machine::rbm_context& context) {}
 
 void local_op_chain::push_back(local_op op) {
     // Push baack wrapper
@@ -51,4 +41,20 @@ void local_op_chain::push_back(local_op op) {
 void local_op_chain::pop_back() {
     // Push baack wrapper
     ops_.pop_back();
+}
+
+std::vector<base_op*> local_op_chain::get_ops() {
+    std::vector<base_op*> ret;
+    for (auto& op : ops_) {
+        ret.push_back(&op);
+    }
+    return ret;
+}
+
+void local_op_chain::finailize() {
+    auto& result = get_result_();
+    result.setZero();
+    for (auto& op : ops_) {
+        result += op.get_result();
+    }
 }
