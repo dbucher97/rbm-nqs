@@ -81,19 +81,22 @@ class pfaffian {
         return (std::real(state(i)) < 0) ^ flip;
     }
 
-    inline size_t idx(size_t i, size_t j, const Eigen::MatrixXcd& state,
+    inline bool spidx(size_t i, size_t j, const Eigen::MatrixXcd& state,
                       bool flipi = false, bool flipj = false) const {
-        size_t ret =
-            (ns_ - 1) * (2 * spidx(i, state, flipi) + spidx(j, state, flipj));
-        return ret + bs_(i, j);
+        return 2 * spidx(i, state, flipi) + spidx(j, state, flipj);
     }
+
+    inline size_t idx(size_t i, size_t j) const { return i * (i - 1) / 2 + j; }
 
     inline std::complex<double> a(size_t i, size_t j,
                                   const Eigen::MatrixXcd& state,
                                   bool flipi = false,
                                   bool flipj = false) const {
-        return fs_(idx(i, j, state, flipi, flipj), ss_(i)) -
-               fs_(idx(j, i, state, flipj, flipi), ss_(j));
+        if (i > j) {
+            return fs_(idx(i, j), spidx(i, j, state, flipi, flipj));
+        } else {
+            return -fs_(idx(j, i), spidx(j, i, state, flipj, flipi));
+        }
     }
 
     Eigen::MatrixXcd get_mat(const Eigen::MatrixXcd& state) const;

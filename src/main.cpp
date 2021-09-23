@@ -301,6 +301,8 @@ int main(int argc, char* argv[]) {
         mpi::end();
         return 0;
     }
+
+    mpi::cout << rbm->get_n_neural_params() << mpi::endl;
     /* auto x = model->get_lattice().construct_symmetry();
     if (mpi::master) {
         std::cout << "[";

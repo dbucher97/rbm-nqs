@@ -85,9 +85,12 @@ void pfaffian::init_weights(std::mt19937& rng, double std, bool normalize) {
 Eigen::MatrixXcd pfaffian::get_mat(const Eigen::MatrixXcd& state) const {
     Eigen::MatrixXcd mat(ns_, ns_);
     mat.setZero();
+    size_t idx = 0;
     for (size_t i = 0; i < ns_; i++) {
         for (size_t j = 0; j < i; j++) {
-            mat(i, j) = a(i, j, state);
+            mat(i, j) = fs_(idx, 0);
+            idx++;
+
         }
     }
     mat.triangularView<Eigen::StrictlyUpper>() =
@@ -181,7 +184,9 @@ void pfaffian::derivative(const Eigen::MatrixXcd& state,
     for (size_t i = 0; i < ns_; i++) {
         for (size_t j = 0; j < i; j++) {
             x = context.inv(i, j);
-            d(idx(i, j), spidx(i, j, state)) = -x;
+            // if (state(i) != state(j)) x /= 2;
+            d(idx(i, j, state), ss_(i)) = -x;
+            d(idx(j, i, state), ss_(j)) = x;
         }
     }
     result.block(offset, 0, get_n_params(), 1) =
