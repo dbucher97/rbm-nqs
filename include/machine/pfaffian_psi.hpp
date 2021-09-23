@@ -74,6 +74,8 @@ class pfaffian_psi : public abstract_machine {
     }
 
     virtual bool save(const std::string& name, bool silent = false) override {
+        if (!mpi::master) return true;
+
         std::ofstream output{name + ".rbm", std::ios::binary};
         if (output.is_open()) {
             // Write the matrices into the outputstream. (<eigen_fstream.h>)

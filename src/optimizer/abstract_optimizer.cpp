@@ -15,7 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <cstdio>
+//
+#include <machine/rbm_base.hpp>
 #include <optimizer/abstract_optimizer.hpp>
+#include <sampler/full_sampler.hpp>
 #include <tools/mpi.hpp>
 
 using namespace optimizer;
@@ -129,7 +133,21 @@ void abstract_optimizer::optimize() {
     std::complex<double> e = a_h_.get_result()(0) / (double)rbm_.n_visible;
     if (std::real(e - last_energy_) > 0.05) {
         mpi::cout << "whee" << mpi::endl;
-        sampler_.sample();
+        /* sampler::full_sampler sa{rbm_, 2};
+        // sa.register_op(&hamiltonian_);
+        // sa.register_agg(&a_h_);
+        sa.sample(true);
+        mpi::cout << a_h_.get_result() / rbm_.n_visible << mpi::endl;
+        if (mpi::master) {
+            std::rename((ini::name + ".state").c_str(),
+                        (ini::name + ".new.state").c_str());
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
+        rbm_.update_weights_nc(-last_update_);
+        sa.sample(true);
+        mpi::cout << a_h_.get_result() / rbm_.n_visible << mpi::endl;
+        rbm_.update_weights_nc(last_update_); */
+        // sampler_.sample();
         // gradient(false);
     }
     last_energy_ = e;
@@ -143,7 +161,8 @@ void abstract_optimizer::optimize() {
 
     // Update the weights.
     rbm_.update_weights(dw_);
-    if (resample_) last_update_ = dw_;
+    // if (resample_)
+    last_update_ = dw_;
 }
 
 double abstract_optimizer::get_current_energy() {

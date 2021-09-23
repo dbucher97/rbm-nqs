@@ -133,7 +133,7 @@ int init_model(std::unique_ptr<model::abstract_model>& model) {
 }
 
 int init_machine(std::unique_ptr<machine::abstract_machine>& rbm,
-                 machine::pfaffian* pfaff,
+                 machine::pfaffian*& pfaff,
                  const std::unique_ptr<model::abstract_model>& model) {
     switch (ini::rbm) {
         case ini::rbm_t::BASIC:
@@ -301,6 +301,20 @@ int main(int argc, char* argv[]) {
         mpi::end();
         return 0;
     }
+    /* auto x = model->get_lattice().construct_symmetry();
+    if (mpi::master) {
+        std::cout << "[";
+        for (auto& s : x) {
+            std::cout << "[";
+            for (int i = 0; i < s.size(); i++) {
+                std::cout << s.indices()(i) << ", ";
+            }
+            std::cout << "]," << std::endl;
+        }
+        std::cout << "]" << std::endl;
+    }
+    mpi::end();
+    return 0; */
 
     if (ini::train && ini::seed_search && ini::rbm_force) {
         size_t best_seed;

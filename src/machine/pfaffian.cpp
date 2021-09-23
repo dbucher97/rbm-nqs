@@ -22,6 +22,7 @@
 #include <math.hpp>
 #include <tools/eigen_fstream.hpp>
 #include <tools/mpi.hpp>
+#include <tools/time_keeper.hpp>
 
 using namespace machine;
 
@@ -116,6 +117,7 @@ pfaff_context pfaffian::get_context(const Eigen::MatrixXcd& state) const {
 void pfaffian::update_context(const Eigen::MatrixXcd& state,
                               const std::vector<size_t>& flips,
                               pfaff_context& context) const {
+    time_keeper::start("Pfaff Context");
     if (flips.size() == 0) return;
 
     size_t m = flips.size();
@@ -171,6 +173,7 @@ void pfaffian::update_context(const Eigen::MatrixXcd& state,
     context.pfaff *= c2;
     // context.exp += exp;
     context.update_factor = c2;
+    time_keeper::end("Pfaff Context");
 }
 
 void pfaffian::derivative(const Eigen::MatrixXcd& state,
@@ -208,23 +211,31 @@ void pfaffian::save(std::ofstream& output) {
 }
 
 bool pfaffian::load_from_pfaffian_psi(const std::string& filename) {
-    std::ifstream input{filename + ".rbm", std::ios::binary};
-    if (input.good()) {
-        // Read the n_updates_ from the inputstream.
-        int n_updates;
-        input.read((char*)&n_updates, sizeof(size_t));
+    bool rc = false;
+    if (mpi::master) {
+        std::ifstream input{filename + ".rbm", std::ios::binary};
+        if (input.good()) {
+            // Read the n_updates_ from the inputstream.
+            int n_updates;
+            input.read((char*)&n_updates, sizeof(size_t));
 
-        load(input);
+            load(input);
 
-        input.close();
+            input.close();
 
-        // Give a status update.
-        std::cout << "Loaded Pfaffian from '" << filename << ".rbm'!"
-                  << std::endl;
-        return true;
-    } else {
-        return false;
+            // Give a status update.
+            std::cout << "Loaded Pfaffian from '" << filename << ".rbm'!"
+                      << std::endl;
+            rc = true;
+        } else {
+            rc = false;
+        }
     }
+    MPI_Bcast(&rc, 1, MPI_CXX_BOOL, 0, MPI_COMM_WORLD);
+    if (rc) {
+        bcast(0);
+    }
+    return rc;
 }
 
 void pfaffian::bcast(int rank) {

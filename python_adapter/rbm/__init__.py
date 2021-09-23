@@ -44,14 +44,14 @@ def get_bonds_ops(model : str = "kitaev") -> List[Tuple]:
 def get_hex_ops() -> List[Tuple]:
     return [(SX, SY, SZ, SX, SY, SZ)]
 
-
-def get_hamiltonian(n : int, model : str = "kitaev", log : bool = False, args : List = []) -> sp.csr_matrix:
+def get_bonds(n : int, model : str = "kitaev", args : List = []) -> Tuple[List, int]:
     prstr = ''
     if platform.system() == 'Darwin':
         prstr = 'env DYLD_LIBRARY_PATH=$HOME/boost-gcc/lib: '
     
     process = os.popen(f'{prstr}rbm --model.n_cells={n} --model.type={model} ' +
             '--print_bonds ' + ' '.join(args))
+
     out = process.read()
     if process.close() is not None:
         print(out)
@@ -67,12 +67,17 @@ def get_hamiltonian(n : int, model : str = "kitaev", log : bool = False, args : 
         if b > midx:
             midx = b
         bonds.append(([a, b], int(typ)))
+    return bonds, midx + 1
+
+
+def get_hamiltonian(n : int, model : str = "kitaev", log : bool = False, args : List = []) -> sp.csr_matrix:
+    bonds, N = get_bonds(n, model, args)
     bond_ops = get_bonds_ops(model)
 
     if log:
         print(f'Building Kitaev Hamiltonian ({n})')
 
-    return construct_op(bonds, bond_ops, N=midx+1, J=[-1], log=log)
+    return construct_op(bonds, bond_ops, N=N, J=[-1], log=log)
 
 def get_hex(n : int, log : bool = False, args : List = []) -> List[sp.csr_matrix]:
     prstr = ''
