@@ -30,7 +30,7 @@ pfaffian::pfaffian(const lattice::bravais& lattice, size_t n_sy)
     : lattice_{lattice},
       ns_{lattice.n_total},
       n_symm_{n_sy ? n_sy * n_sy * lattice.n_basis : ns_},
-      fs_(lattice.n_total * (lattice.n_total - 1) / 2, 4) {
+      fs_(lattice.n_total * lattice.n_total, 4) {
     // size_t n_uc = lattice_.n_uc;
     // size_t n_tuc = lattice_.n_total_uc;
     // size_t n_b = lattice_.n_basis;
@@ -66,8 +66,8 @@ void pfaffian::init_weights(std::mt19937& rng, double std, bool normalize) {
         std::normal_distribution<double> dist{0, std};
         std::complex<double> val;
         for (size_t j = 0; j < (size_t)fs_.rows(); j++) {
-            val = std::complex<double>(dist(rng), dist(rng));
             for (size_t m = 0; m < 4; m++) {
+                val = std::complex<double>(dist(rng), dist(rng));
                 fs_(j, m) = val;
             }
         }
@@ -181,7 +181,8 @@ void pfaffian::derivative(const Eigen::MatrixXcd& state,
     for (size_t i = 0; i < ns_; i++) {
         for (size_t j = 0; j < i; j++) {
             x = context.inv(i, j);
-            d(idx(i, j), spidx(i, j, state)) = -x;
+            d(idx(i, j), spidx(i, j, state)) = -x / 2.;
+            d(idx(j, i), spidx(j, i, state)) = x / 2.;
         }
     }
     result.block(offset, 0, get_n_params(), 1) =
@@ -192,6 +193,17 @@ void pfaffian::derivative(const Eigen::MatrixXcd& state,
 void pfaffian::update_weights(const Eigen::MatrixXcd& dw, size_t& offset) {
     fs_ -= Eigen::Map<const Eigen::MatrixXcd>(
         dw.block(offset, 0, get_n_params(), 1).data(), fs_.rows(), fs_.cols());
+    auto x = Eigen::Map<const Eigen::MatrixXcd>(
+        dw.block(offset, 0, get_n_params(), 1).data(), fs_.rows(), fs_.cols());
+    if (mpi::master) {
+        for (size_t i = 0; i < 4; i++) {
+            std::cout << "\n"
+                      << Eigen::Map<const Eigen::MatrixXcd>(x.col(i).data(),
+                                                            ns_, ns_)
+                      << "\n"
+                      << std::endl;
+        }
+    }
     offset += get_n_params();
 }
 
@@ -241,16 +253,16 @@ bool pfaffian::spidx(size_t i, const Eigen::MatrixXcd& state, bool flip) const {
 }
 int pfaffian::spidx(size_t i, size_t j, const Eigen::MatrixXcd& state,
                     bool flipi, bool flipj) const {
-    return 2 * spidx(i, state, flipi) + spidx(j, state, flipj);
+    return (spidx(i, state, flipi) << 1) + spidx(j, state, flipj);
 }
-size_t pfaffian::idx(size_t i, size_t j) const { return i * (i - 1) / 2 + j; }
+size_t pfaffian::idx(size_t i, size_t j) const { return i * ns_ + j; }
 
 std::complex<double> pfaffian::a(size_t i, size_t j,
                                  const Eigen::MatrixXcd& state, bool flipi,
                                  bool flipj) const {
-    if (i > j) {
-        return fs_(idx(i, j), spidx(i, j, state, flipi, flipj));
-    } else {
-        return -fs_(idx(j, i), spidx(j, i, state, flipj, flipi));
+    if (i == j) {
+        return 0;
     }
+    return fs_(idx(i, j), spidx(i, j, state, flipi, flipj)) -
+           fs_(idx(j, i), spidx(j, i, state, flipj, flipi));
 }
