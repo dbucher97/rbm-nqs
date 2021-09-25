@@ -235,3 +235,22 @@ bool pfaffian::load_from_pfaffian_psi(const std::string& filename) {
 void pfaffian::bcast(int rank) {
     MPI_Bcast(fs_.data(), fs_.size(), MPI_DOUBLE_COMPLEX, rank, MPI_COMM_WORLD);
 }
+
+bool pfaffian::spidx(size_t i, const Eigen::MatrixXcd& state, bool flip) const {
+    return (std::real(state(i)) < 0) ^ flip;
+}
+int pfaffian::spidx(size_t i, size_t j, const Eigen::MatrixXcd& state,
+                    bool flipi, bool flipj) const {
+    return 2 * spidx(i, state, flipi) + spidx(j, state, flipj);
+}
+size_t pfaffian::idx(size_t i, size_t j) const { return i * (i - 1) / 2 + j; }
+
+std::complex<double> pfaffian::a(size_t i, size_t j,
+                                 const Eigen::MatrixXcd& state, bool flipi,
+                                 bool flipj) const {
+    if (i > j) {
+        return fs_(idx(i, j), spidx(i, j, state, flipi, flipj));
+    } else {
+        return -fs_(idx(j, i), spidx(j, i, state, flipj, flipi));
+    }
+}

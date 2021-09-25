@@ -76,28 +76,15 @@ class pfaffian {
     void bcast(int rank);
 
    private:
-    inline bool spidx(size_t i, const Eigen::MatrixXcd& state,
-                      bool flip) const {
-        return (std::real(state(i)) < 0) ^ flip;
-    }
+    bool spidx(size_t i, const Eigen::MatrixXcd& state, bool flip) const;
+    int spidx(size_t i, size_t j, const Eigen::MatrixXcd& state,
+              bool flipi = false, bool flipj = false) const;
 
-    inline bool spidx(size_t i, size_t j, const Eigen::MatrixXcd& state,
-                      bool flipi = false, bool flipj = false) const {
-        return 2 * spidx(i, state, flipi) + spidx(j, state, flipj);
-    }
-
-    inline size_t idx(size_t i, size_t j) const { return i * (i - 1) / 2 + j; }
+    size_t idx(size_t i, size_t j) const;
 
     inline std::complex<double> a(size_t i, size_t j,
                                   const Eigen::MatrixXcd& state,
-                                  bool flipi = false,
-                                  bool flipj = false) const {
-        if (i > j) {
-            return fs_(idx(i, j), spidx(i, j, state, flipi, flipj));
-        } else {
-            return -fs_(idx(j, i), spidx(j, i, state, flipj, flipi));
-        }
-    }
+                                  bool flipi = false, bool flipj = false) const;
 
     Eigen::MatrixXcd get_mat(const Eigen::MatrixXcd& state) const;
 };
