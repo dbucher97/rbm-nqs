@@ -253,7 +253,7 @@ void rbm_base::add_correlator(const std::vector<std::vector<size_t>>& corr) {
 
 std::complex<double> rbm_base::psi_notheta(
     const Eigen::MatrixXcd& state) const {
-    return (v_bias_.array() * state.array()).exp().prod();
+    return std::exp((v_bias_.array() * state.array()).sum());
 }
 
 std::complex<double> rbm_base::psi_default(const Eigen::MatrixXcd& state,

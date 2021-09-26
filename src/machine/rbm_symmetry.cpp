@@ -124,12 +124,12 @@ void rbm_symmetry::add_correlator(
 std::complex<double> rbm_symmetry::psi_notheta(
     const Eigen::MatrixXcd& state) const {
     auto vbias_part =
-        v_bias_.array() * Eigen::Map<const Eigen::MatrixXcd>(
-                              state.data(), n_vb_, lattice_.n_total_uc)
-                              .rowwise()
-                              .sum()
-                              .array();
-    return vbias_part.array().exp().prod();
+        v_bias_.array() *
+        Eigen::Map<const Eigen::MatrixXcd>(state.data(), n_vb_, symmetry_size())
+            .rowwise()
+            .sum()
+            .array();
+    return std::exp(vbias_part.sum());
 }
 
 std::complex<double> rbm_symmetry::log_psi_over_psi(
