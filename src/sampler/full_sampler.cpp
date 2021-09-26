@@ -24,6 +24,7 @@
 #include <fstream>
 //
 #include <sampler/full_sampler.hpp>
+#include <tools/eigen_fstream.hpp>
 #include <tools/ini.hpp>
 #include <tools/state.hpp>
 
@@ -123,9 +124,11 @@ void full_sampler::sample(bool keep_state) {
     }
     // Print the state vector if `keep_state`
     if (keep_state) {
-        std::ofstream statefile{ini::name + ".state"};
+        std::ofstream statefile{ini::name + ".state", std::ios::binary};
+        vec.normalize();
         statefile << vec;
         statefile.close();
+        std::cout << "Stored state to " << ini::name + ".state" << std::endl;
     }
     for (auto agg : aggs_) {
         agg->finalize(p_total);

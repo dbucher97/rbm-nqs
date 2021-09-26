@@ -628,6 +628,12 @@ int main(int argc, char* argv[]) {
         optimizer->set_plugin(p.get());
     }
 
+    if (ini::store_state) {
+        sampler::full_sampler sampler{*rbm, ini::sa_full_n_parallel_bits};
+        std::cout << "Storing State..." << std::endl;
+        sampler.sample(true);
+        return 0;
+    }
     std::cout << "Number of parameters: " << rbm->get_n_params() << std::endl;
 
     if (ini::train) {

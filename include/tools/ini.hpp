@@ -149,6 +149,7 @@ extern bool evaluate;
 extern bool print_bonds;
 extern bool print_hex;
 extern bool noprogress;
+extern bool store_state;
 
 // Model
 extern model_t model;
