@@ -54,7 +54,8 @@ class full_sampler : public abstract_sampler {
      * @param rbm_base Reference to the RBM.
      * @param bits_parallel Number of parallel bits.
      */
-    full_sampler(machine::abstract_machine&, size_t bits_parallel);
+    full_sampler(machine::abstract_machine&, size_t bits_parallel,
+                 int pfaff_refresh = 0);
 
     virtual void sample() override { sample(false); };
 

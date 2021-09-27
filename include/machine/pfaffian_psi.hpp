@@ -70,7 +70,8 @@ class pfaffian_psi : public abstract_machine {
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
         rbm_context& context, rbm_context& updated_context) const override {
         update_context(state, flips, updated_context);
-        return pfaffian_->psi_over_psi(state, flips, updated_context.pfaff());
+        return pfaffian_->psi_over_psi(state, flips, context.pfaff(),
+                                       updated_context.pfaff());
     }
 
     virtual bool save(const std::string& name, bool silent = false) override {

@@ -189,6 +189,7 @@ extern size_t sa_eval_samples;
 extern size_t sa_full_n_parallel_bits;
 extern std::string sa_exact_gs_file;
 extern double sa_metropolis_bond_flips;
+extern int sa_pfaffian_refresh;
 
 // Optimizer
 extern optimizer_t opt_type;

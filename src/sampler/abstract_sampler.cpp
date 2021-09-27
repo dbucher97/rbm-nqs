@@ -25,8 +25,8 @@
 using namespace sampler;
 
 abstract_sampler::abstract_sampler(machine::abstract_machine& rbm,
-                                   size_t n_samples)
-    : rbm_{rbm}, n_samples_{n_samples} {}
+                                   size_t n_samples, int pfaff_refresh)
+    : rbm_{rbm}, n_samples_{n_samples}, pfaff_refresh_(pfaff_refresh) {}
 
 void abstract_sampler::register_ops(
     const std::vector<operators::base_op*>& ops) {
@@ -87,4 +87,16 @@ void abstract_sampler::evaluate_and_aggregate(const Eigen::MatrixXcd& state,
         agg->aggregate(p);
     }
     time_keeper::end("Aggregate");
+}
+
+bool abstract_sampler::pfaffian_refresh(
+    const Eigen::MatrixXcd& state, machine::pfaff_context& context, int i,
+    const std::vector<size_t>& flips) const {
+    if (rbm_.has_pfaffian() && pfaff_refresh_ && i % pfaff_refresh_ == 0) {
+        Eigen::MatrixXcd state2 = state;
+        for (const auto& f : flips) state2(f) *= -1.;
+        context = rbm_.get_pfaffian().get_context(state2);
+        return true;
+    }
+    return false;
 }

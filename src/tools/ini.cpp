@@ -82,6 +82,7 @@ size_t sa_metropolis_n_steps_per_sample = 10;
 size_t sa_full_n_parallel_bits = 3;
 std::string sa_exact_gs_file = "";
 double sa_metropolis_bond_flips = 0.5;
+int sa_pfaffian_refresh = 0;
 
 // Optimizer
 optimizer_t opt_type = SR;
@@ -188,6 +189,7 @@ int ini::load(int argc, char* argv[]) {
     ("sampler.metropolis.n_steps_per_sample", po::value(&sa_metropolis_n_steps_per_sample), "set number of MCMC steps between a sample")
     ("sampler.exact.gs_file",                 po::value(&sa_exact_gs_file),                 "set file of ground state for exact sampling")
     ("sampler.metropolis.bond_flips",         po::value(&sa_metropolis_bond_flips),         "probability for bond flips for update proposal")
+    ("sampler.pfaffian_refresh",              po::value(&sa_pfaffian_refresh),          "set number of bits executed in parallel in full sampling")
     // Optimizer
     ("optimizer.type",                        po::value(&opt_type),                         "set optimizer type")
     ("optimizer.learning_rate,l",             po::value(&opt_lr)->multitoken(),             "set learning rate optionally with decay factor")

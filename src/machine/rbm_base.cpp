@@ -118,7 +118,8 @@ std::complex<double> rbm_base::psi_over_psi(
     std::complex<double> ret =
         (this->*psi_over_psi_)(state, flips, context, updated_context);
     if (pfaffian_) {
-        ret *= pfaffian_->psi_over_psi(state, flips, updated_context.pfaff());
+        ret *= pfaffian_->psi_over_psi(state, flips, context.pfaff(),
+                                       updated_context.pfaff());
     }
     time_keeper::end("PoP");
     return ret;

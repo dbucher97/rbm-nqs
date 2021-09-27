@@ -30,8 +30,10 @@
 
 using namespace sampler;
 
-full_sampler::full_sampler(machine::abstract_machine& rbm_, size_t bp)
-    : Base{rbm_, (size_t)(1 << rbm_.n_visible)}, bits_parallel_{bp} {}
+full_sampler::full_sampler(machine::abstract_machine& rbm_, size_t bp,
+                           int pfaff_refresh)
+    : Base{rbm_, (size_t)(1 << rbm_.n_visible), pfaff_refresh},
+      bits_parallel_{bp} {}
 
 void full_sampler::sample(bool keep_state) {
     // Initialize aggregators
@@ -56,8 +58,6 @@ void full_sampler::sample(bool keep_state) {
         local_vec_idx = Eigen::MatrixXi(max, 1);
     }
 
-    int pfaff_exp = 0;
-
     // Start the parallel runs
     for (size_t b = mpi::rank; b < b_len; b += mpi::n_proc) {
         size_t x = 0;
@@ -73,15 +73,15 @@ void full_sampler::sample(bool keep_state) {
 
         // Equalize pfaffian exponents, since total scaling is irrelevant, but
         // relative scaling between thread contexts make a diffrerence.
-        if (rbm_.has_pfaffian()) {
-            auto& pfaff_context = context.pfaff();
-            if (mpi::master) {
-                pfaff_exp = pfaff_context.exp;
-            }
-            MPI_Bcast(&pfaff_exp, 1, MPI_INT, 0, MPI_COMM_WORLD);
+        // if (rbm_.has_pfaffian()) {
+        //     auto& pfaff_context = context.pfaff();
+        //     if (mpi::master) {
+        //         pfaff_exp = pfaff_context.exp;
+        //     }
+        //     MPI_Bcast(&pfaff_exp, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-            pfaff_context.exp -= pfaff_exp;
-        }
+        //     pfaff_context.exp -= pfaff_exp;
+        // }
 
         // Do the spin flips according to gray codes and evalueate
         // observables
@@ -126,9 +126,14 @@ void full_sampler::sample(bool keep_state) {
                 x_last = x;
 
                 // Update \thetas and state
+
                 rbm_.update_context(state, {flip}, context);
+                pfaffian_refresh(state, context.pfaff(), i, {flip});
                 state(flip) *= -1;
             }
+            // std::cout <<
+            // "==================================================="
+            //           << std::endl;
         }
         if (keep_state) {
             if (mpi::master) {

@@ -188,14 +188,14 @@ int init_sampler(std::unique_ptr<sampler::abstract_sampler>& sampler,
     switch (ini::sa_type) {
         case ini::sampler_t::FULL:
             sampler = std::make_unique<sampler::full_sampler>(
-                *rbm, ini::sa_full_n_parallel_bits);
+                *rbm, ini::sa_full_n_parallel_bits, ini::sa_pfaffian_refresh);
             break;
         case ini::sampler_t::METROPOLIS:
             sampler = std::make_unique<sampler::metropolis_sampler>(
                 *rbm, ini::sa_n_samples, rng, ini::sa_metropolis_n_chains,
                 ini::sa_metropolis_n_steps_per_sample,
                 ini::sa_metropolis_n_warmup_steps,
-                ini::sa_metropolis_bond_flips);
+                ini::sa_metropolis_bond_flips, ini::sa_pfaffian_refresh);
             break;
         default:
             return 4;
@@ -493,8 +493,8 @@ int main(int argc, char* argv[]) {
             aggs.push_back(agg);
         }
 
-        sampler->register_ops(ops);
-        sampler->register_aggs(aggs);
+        // sampler->register_ops(ops);
+        // sampler->register_aggs(aggs);
 
         model->remove_helper_hamiltoian();
         auto& h = model->get_hamiltonian();
@@ -508,9 +508,9 @@ int main(int argc, char* argv[]) {
         if (mpi::master) {
             std::cout << "BEGIN OUTPUT" << std::endl;
             std::cout.precision(16);
-            for (size_t i = 0; i < hex.size(); i++) {
-                std::cout << aggs[i]->get_result() << std::endl;
-            }
+            // for (size_t i = 0; i < hex.size(); i++) {
+            //     std::cout << aggs[i]->get_result() << std::endl;
+            // }
 
             std::cout << ah.get_result() / rbm->n_visible << std::endl;
             std::cout << std::sqrt(ah.get_variance()(0)) / rbm->n_visible

@@ -250,5 +250,12 @@ class abstract_machine {
     }
 
     inline bool has_pfaffian() const { return pfaffian_ != 0; }
+    inline pfaffian& get_pfaffian() const {
+        if (!has_pfaffian()) {
+            throw std::runtime_error("There is no Pfaffian to get");
+        } else {
+            return *pfaffian_;
+        }
+    }
 };
 }  // namespace machine

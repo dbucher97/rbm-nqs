@@ -52,13 +52,23 @@ class pfaffian {
 
     inline std::complex<double> psi(const Eigen::MatrixXcd& state,
                                     const pfaff_context& context) const {
+        // auto context2 = get_context(state);
         return context.pfaff * std::pow(10, context.exp);
     }
 
     inline std::complex<double> psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        pfaff_context& updated_context) const {
+        const pfaff_context& context, pfaff_context& updated_context) const {
+        // Eigen::MatrixXcd state2 = state;
+        // for (auto& f : flips) state2(f) *= -1;
+        // std::cout << std::abs(psi(state2, updated_context) /
+        //                           psi(state, context) -
+        //                       updated_context.update_factor)
+        //           << ", ";
+        // for (auto& f : flips) std::cout << f << ", ";
+        // std::cout << std::endl;
         return updated_context.update_factor;
+        // return updated_context.update_factor;
     }
 
     void update_weights(const Eigen::MatrixXcd& dw, size_t& offset);

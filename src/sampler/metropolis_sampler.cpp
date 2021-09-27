@@ -36,8 +36,9 @@ int g_chain = 0;
 metropolis_sampler::metropolis_sampler(machine::abstract_machine& rbm,
                                        size_t n_samples, std::mt19937& rng,
                                        size_t n_chains, size_t step_size,
-                                       size_t warmup_steps, double bond_flips)
-    : Base{rbm, n_samples},
+                                       size_t warmup_steps, double bond_flips,
+                                       int refresh)
+    : Base{rbm, n_samples, refresh},
       rng_{rng},
       n_chains_{n_chains},
       step_size_{step_size},
@@ -177,6 +178,9 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
             // }
             context = new_context;
             ar++;
+
+            pfaffian_refresh(state, context.pfaff(), ar, flips);
+
             for (auto& flip : flips) state(flip) *= -1;
         }
 

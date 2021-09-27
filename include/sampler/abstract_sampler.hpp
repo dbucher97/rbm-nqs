@@ -50,12 +50,15 @@ class abstract_sampler {
 
     size_t n_samples_;  ///< Number of samples
 
+    int pfaff_refresh_;  ///< refresh pfaffian context every n loops
+
     /**
      * @brief Abstract sampler constructor.
      *
      * @param rbm The RBM object reference.
      */
-    abstract_sampler(machine::abstract_machine& rbm, size_t n_samples);
+    abstract_sampler(machine::abstract_machine& rbm, size_t n_samples,
+                     int pfaff_refresh_ = 0);
 
    public:
     /**
@@ -151,6 +154,10 @@ class abstract_sampler {
     void evaluate_and_aggregate(const Eigen::MatrixXcd& state,
                                 machine::rbm_context& context,
                                 double p = 1.) const;
+
+    bool pfaffian_refresh(const Eigen::MatrixXcd& state,
+                          machine::pfaff_context& context, int i,
+                          const std::vector<size_t>& flips) const;
 };
 
 }  // namespace sampler

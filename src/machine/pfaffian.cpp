@@ -16,7 +16,9 @@
  *
  */
 
+#include <Eigen/IterativeLinearSolvers>
 #include <iostream>
+#include <unsupported/Eigen/IterativeSolvers>
 //
 #include <machine/pfaffian.hpp>
 #include <math.hpp>
@@ -102,8 +104,8 @@ pfaff_context pfaffian::get_context(const Eigen::MatrixXcd& state) const {
     Eigen::MatrixXcd mat = get_mat(state);
 
     ret.inv = mat.inverse();
-    ret.inv -= ret.inv.transpose().eval();
-    ret.inv /= 2;
+    ret.inv.noalias() -= ret.inv.transpose().eval();
+    ret.inv *= 0.5;
 
     ret.pfaff = math::pfaffian10(mat, ret.exp);
 
@@ -152,23 +154,37 @@ void pfaffian::update_context(const Eigen::MatrixXcd& state,
 
     Eigen::MatrixXcd invB = context.inv * B;
 
-    Eigen::MatrixXcd tmp = (B.transpose() * invB) / 2;
+    // Eigen::BiCGSTAB<Eigen::MatrixXcd> solver(mat);
+    // solver.setMaxIterations(5);
+    // Eigen::MatrixXcd invB3 = solver.solveWithGuess(B, invB);
+
+    Eigen::MatrixXcd tmp = (B.transpose() * invB) * 0.5;
     Cinv.noalias() += tmp;
     Cinv.noalias() -= tmp.transpose();
 
-    Eigen::MatrixXcd C = Cinv.inverse() / 2;
+    Eigen::MatrixXcd C = 0.5 * Cinv.inverse();
     C -= C.transpose().eval();
-    tmp = invB * C / 2;
-    tmp *= invB.transpose();
+    tmp = invB * C;
+    tmp = 0.5 * tmp * invB.transpose();
     context.inv.noalias() += tmp;
     context.inv.noalias() -= tmp.transpose();
 
-    std::complex<double> c2 = math::pfaffian(Cinv);
+    int exp;
+    std::complex<double> c2 = math::pfaffian10(Cinv, exp);
 
     c2 *= sign;  // * std::pow(10, p);
+
     context.pfaff *= c2;
-    // context.exp += exp;
-    context.update_factor = c2;
+    context.exp += exp;
+    context.update_factor = c2 * std::pow(10, exp);
+
+    int s = std::log10(std::abs(context.pfaff));
+
+    if (std::abs(s) > 1) {
+        context.pfaff *= std::pow(10, -s);
+        context.exp += s;
+    }
+
     time_keeper::end("Pfaff Context");
 }
 
@@ -193,16 +209,17 @@ void pfaffian::derivative(const Eigen::MatrixXcd& state,
 void pfaffian::update_weights(const Eigen::MatrixXcd& dw, size_t& offset) {
     fs_ -= Eigen::Map<const Eigen::MatrixXcd>(
         dw.block(offset, 0, get_n_params(), 1).data(), fs_.rows(), fs_.cols());
-    auto x = Eigen::Map<const Eigen::MatrixXcd>(
-        dw.block(offset, 0, get_n_params(), 1).data(), fs_.rows(), fs_.cols());
+    // auto x = Eigen::Map<const Eigen::MatrixXcd>(
+    //     dw.block(offset, 0, get_n_params(), 1).data(), fs_.rows(),
+    //     fs_.cols());
     if (mpi::master) {
-        for (size_t i = 0; i < 4; i++) {
-            std::cout << "\n"
-                      << Eigen::Map<const Eigen::MatrixXcd>(x.col(i).data(),
-                                                            ns_, ns_)
-                      << "\n"
-                      << std::endl;
-        }
+        // for (size_t i = 0; i < 4; i++) {
+        //     std::cout << "\n"
+        //               << Eigen::Map<const Eigen::MatrixXcd>(x.col(i).data(),
+        //                                                     ns_, ns_)
+        //               << "\n"
+        //               << std::endl;
+        // }
     }
     offset += get_n_params();
 }
