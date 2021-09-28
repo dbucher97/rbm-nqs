@@ -46,6 +46,9 @@ class local_op : public base_op {
 
     void evaluate(machine::abstract_machine&, const Eigen::MatrixXcd&,
                   machine::rbm_context&) final;
+
+    const SparseXcd& get_op() { return op_; }
+    const std::vector<size_t>& get_acts_on() { return acts_on_; }
 };
 
 }  // namespace operators

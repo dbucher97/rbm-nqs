@@ -17,6 +17,7 @@
  */
 #pragma once
 
+#include <Eigen/Sparse>
 #include <complex>
 #include <fstream>
 #include <random>
@@ -40,6 +41,9 @@ class pfaffian {
     pfaffian(const lattice::bravais&, size_t n_uc = 0);
 
     void init_weights(std::mt19937& rng, double std, bool normalize = false);
+    void init_weights_hf(
+        const std::vector<Eigen::SparseMatrix<std::complex<double>>>& mats,
+        const std::vector<std::vector<size_t>>& acts_on);
 
     pfaff_context get_context(const Eigen::MatrixXcd& state) const;
 

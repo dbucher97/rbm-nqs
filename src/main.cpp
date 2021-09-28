@@ -168,7 +168,9 @@ int init_machine(std::unique_ptr<machine::abstract_machine>& rbm,
 }
 
 void init_weights(std::unique_ptr<machine::abstract_machine>& rbm,
-                  machine::pfaffian* pfaff, bool force, std::mt19937& rng) {
+                  machine::pfaffian* pfaff,
+                  const std::unique_ptr<model::abstract_model>& model,
+                  bool force, std::mt19937& rng) {
     if (force || !rbm->load(ini::name)) {
         rbm->initialize_weights(rng, ini::rbm_weights, ini::rbm_weights_imag,
                                 ini::rbm_weights_init_type);
@@ -178,6 +180,17 @@ void init_weights(std::unique_ptr<machine::abstract_machine>& rbm,
                 pfaff->init_weights(rng, ini::rbm_pfaffian_weights,
                                     ini::rbm_pfaffian_normalize);
             }
+            // std::vector<Eigen::SparseMatrix<std::complex<double>>> mats;
+            // std::vector<std::vector<size_t>> acts_on;
+
+            // for (auto& op : model->get_hamiltonian().get_ops()) {
+            //     mats.push_back(
+            //         dynamic_cast<operators::local_op*>(op)->get_op());
+            //     acts_on.push_back(
+            //         dynamic_cast<operators::local_op*>(op)->get_acts_on());
+            // }
+
+            // pfaff->init_weights_hf(mats, acts_on);
         }
     }
 }
@@ -254,7 +267,7 @@ int init_optimizer(std::unique_ptr<optimizer::abstract_optimizer>& optimizer,
 void store_state(std::unique_ptr<model::abstract_model>& model,
                  std::unique_ptr<machine::abstract_machine>& rbm,
                  machine::pfaffian* pfaff, std::mt19937& rng) {
-    init_weights(rbm, pfaff, false, rng);
+    init_weights(rbm, pfaff, NULL, false, rng);
     sampler::full_sampler sampler{*rbm, ini::sa_full_n_parallel_bits};
     mpi::cout << "Storing State..." << mpi::endl;
     sampler.sample(true);
@@ -332,7 +345,7 @@ int main(int argc, char* argv[]) {
             mpi::cout << "Seed: " << seed << " \t" << mpi::flush;
             init_machine(rbm, pfaff, model);
             // Init Weights
-            init_weights(rbm, pfaff, true, *rng);
+            init_weights(rbm, pfaff, model, true, *rng);
             // Init Sampler
             rc |= init_sampler(sampler, rbm, *rng);
             rc |= init_optimizer(optimizer, model, rbm, sampler);
@@ -379,7 +392,7 @@ int main(int argc, char* argv[]) {
         init_seed(seed, rng);
         mpi::cout << "Seed: " << ini::seed << mpi::endl;
         // Init Weights
-        init_weights(rbm, pfaff, ini::rbm_force, *rng);
+        init_weights(rbm, pfaff, model, ini::rbm_force, *rng);
         // Init Sampler
         rc |= init_sampler(sampler, rbm, *rng);
         if (ini::train) {
@@ -521,6 +534,8 @@ int main(int argc, char* argv[]) {
                                  ->get_acceptance_rate()
                           << std::endl;
             }
+
+            // std::cout << rbm->get_pfaffian().get_weights() << std::endl;
             std::cout << "END OUTPUT" << std::endl;
         }
     }

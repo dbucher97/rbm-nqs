@@ -84,6 +84,119 @@ void pfaffian::init_weights(std::mt19937& rng, double std, bool normalize) {
     MPI_Bcast(fs_.data(), fs_.size(), MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 }
 
+void pfaffian::init_weights_hf(
+    const std::vector<Eigen::SparseMatrix<std::complex<double>>>& mats,
+    const std::vector<std::vector<size_t>>& acts_on) {
+    if (mpi::master) {
+        auto bonds = lattice_.get_bonds();
+        Eigen::MatrixXcd phi(ns_, 2 * ns_);
+        Eigen::VectorXd eps(ns_);
+        std::vector<std::vector<size_t>> nns(ns_);
+        std::vector<std::vector<Eigen::SparseMatrix<std::complex<double>>>> h(
+            ns_);
+        phi.setRandom();
+
+        phi = phi.rowwise().normalized();
+
+        auto cidx = [&](size_t iidx, size_t sidx) { return sidx * ns_ + iidx; };
+        // auto phi2 = [&](size_t m, size_t i, size_t sigma) {
+        //     phi(m, cidx(i, sigma));
+        // };
+
+        for (size_t i = 0; i < ns_; i++) {
+            nns[i] = lattice_.nns(i);
+            h[i] = std::vector<Eigen::SparseMatrix<std::complex<double>>>(
+                lattice_.n_coordination);
+        }
+
+        for (size_t i = 0; i < acts_on.size(); i++) {
+            size_t a = acts_on[i][0], b = acts_on[i][1];
+            int n = std::find(nns[a].begin(), nns[a].end(), b) - nns[a].begin();
+            h[a][n] = mats[i];
+            n = std::find(nns[b].begin(), nns[b].end(), a) - nns[b].begin();
+            h[b][n] = mats[i].transpose();
+        }
+        Eigen::MatrixXcd F = Eigen::MatrixXcd(2 * ns_, 2 * ns_);
+
+        auto gen_mat = [&]() {
+            F.setZero();
+            for (size_t i = 0; i < ns_; i++) {
+                for (size_t g = 0; g < lattice_.n_coordination; g++) {
+                    for (int k = 0; k < h[i][g].outerSize(); k++) {
+                        for (auto it = Eigen::SparseMatrix<
+                                 std::complex<double>>::InnerIterator(h[i][g],
+                                                                      k);
+                             it; ++it) {
+                            int r = it.row(), c = it.col();
+                            size_t ra = (r >> 1) & 1;
+                            size_t rb = r & 1;
+                            size_t ca = (c >> 1) & 1;
+                            size_t cb = c & 1;
+
+                            F(cidx(i, rb), cidx(i, cb)) +=
+                                it.value() *
+                                (phi.col(cidx(nns[i][g], ra))
+                                     .array()
+                                     .conjugate() *
+                                 phi.col(cidx(nns[i][g], ca)).array())
+                                    .sum();
+                            std::complex<double> x =
+                                it.value() * (phi.col(cidx(nns[i][g], ra))
+                                                  .array()
+                                                  .conjugate() *
+                                              phi.col(cidx(i, cb)).array())
+                                                 .sum();
+                            F(cidx(i, rb), cidx(nns[i][g], ca)) -= std::conj(x);
+                            F(cidx(nns[i][g], ca), cidx(i, rb)) -= x;
+                        }
+                    }
+                }
+            }
+        };
+
+        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd> solver;
+
+        for (size_t i = 0; i < 10000; i++) {
+            gen_mat();
+            solver.compute(F);
+            phi = solver.eigenvectors()
+                      .block(0, 0, phi.cols(), phi.rows())
+                      .transpose();
+        }
+
+        Eigen::MatrixXcd Fb(2 * ns_, 2 * ns_);
+
+        for (size_t i = 0; i < 2 * ns_; i++)
+            for (size_t j = 0; j < 2 * ns_; j++) {
+                Fb(i, j) = 0;
+                for (size_t n = 0; n < ns_ / 2; n++) {
+                    Fb(i, j) += phi(2 * n, i) * phi(2 * n + 1, j) -
+                                phi(2 * n, j) * phi(2 * n + 1, i);
+                }
+            }
+
+        for (size_t i = 0; i < ns_; i++) {
+            for (size_t j = 0; j < ns_; j++) {
+                for (size_t si = 0; si < 2; si++) {
+                    for (size_t sj = 0; sj < 2; sj++) {
+                        fs_(j * ns_ + i, 2 * si + sj) =
+                            Fb(cidx(i, si), cidx(j, sj));
+                        -Fb(cidx(j, sj), cidx(i, si));
+                    }
+                }
+            }
+        }
+        std::cout << fs_ << std::endl;
+
+        // Eigen::MatrixXcd mat = Fb.block(0, 0, ns_, ns_);
+        // mat -= mat.transpose().eval();
+
+        // std::cout << mat << std::endl;
+        // std::cout << get_mat(-Eigen::MatrixXcd::Ones(8, 1)) << std::endl;
+    }
+    bcast(0);
+}
+
 Eigen::MatrixXcd pfaffian::get_mat(const Eigen::MatrixXcd& state) const {
     Eigen::MatrixXcd mat(ns_, ns_);
     mat.setZero();
@@ -197,8 +310,8 @@ void pfaffian::derivative(const Eigen::MatrixXcd& state,
     for (size_t i = 0; i < ns_; i++) {
         for (size_t j = 0; j < i; j++) {
             x = context.inv(i, j);
-            d(idx(i, j), spidx(i, j, state)) = -x / 2.;
-            d(idx(j, i), spidx(j, i, state)) = x / 2.;
+            d(idx(i, j), spidx(i, j, state)) = -x;
+            d(idx(j, i), spidx(j, i, state)) = x;
         }
     }
     result.block(offset, 0, get_n_params(), 1) =
@@ -215,7 +328,8 @@ void pfaffian::update_weights(const Eigen::MatrixXcd& dw, size_t& offset) {
     if (mpi::master) {
         // for (size_t i = 0; i < 4; i++) {
         //     std::cout << "\n"
-        //               << Eigen::Map<const Eigen::MatrixXcd>(x.col(i).data(),
+        //               << Eigen::Map<const
+        //               Eigen::MatrixXcd>(x.col(i).data(),
         //                                                     ns_, ns_)
         //               << "\n"
         //               << std::endl;
