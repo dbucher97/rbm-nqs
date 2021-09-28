@@ -37,8 +37,11 @@ class pfaffian {
     Eigen::MatrixXi bs_;
     Eigen::MatrixXi ss_;
 
+    const bool no_updating_;
+
    public:
-    pfaffian(const lattice::bravais&, size_t n_uc = 0);
+    pfaffian(const lattice::bravais&, size_t n_uc = 0,
+             bool no_updating = false);
 
     void init_weights(std::mt19937& rng, double std, bool normalize = false);
     void init_weights_hf(

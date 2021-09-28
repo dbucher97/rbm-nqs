@@ -162,7 +162,9 @@ int init_machine(std::unique_ptr<machine::abstract_machine>& rbm,
         rbm->add_correlators(c);
     }
     if (ini::rbm_pfaffian || ini::rbm == ini::rbm_t::PFAFFIAN) {
-        pfaff = rbm->add_pfaffian(ini::rbm_pfaffian_symmetry).get();
+        pfaff = rbm->add_pfaffian(ini::rbm_pfaffian_symmetry,
+                                  ini::rbm_pfaffian_no_updating)
+                    .get();
     }
     return 0;
 }
@@ -469,7 +471,7 @@ int main(int argc, char* argv[]) {
             }
             time_keeper::itn();
         }
-        if (mpi::master) time_keeper::resumee();
+        time_keeper::resumee();
 
         if (!ini::noprogress && mpi::master) {
             // Start getchar non-block

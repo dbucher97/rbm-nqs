@@ -25,6 +25,7 @@
 #include <optimizer/minres_adapter.hpp>
 #include <tools/ini.hpp>
 #include <tools/mpi.hpp>
+#include <tools/time_keeper.hpp>
 
 using namespace optimizer;
 
@@ -67,10 +68,12 @@ void cg_solver::cg1(const std::function<void(const Eigen::VectorXcd&,
         if (mpi::master) {
             MPI_Reduce(MPI_IN_PLACE, Ap_.data(), Ap_.size(), MPI_DOUBLE_COMPLEX,
                        MPI_SUM, 0, MPI_COMM_WORLD);
-            r_ -= Ap_;
         } else {
             MPI_Reduce(Ap_.data(), Ap_.data(), Ap_.size(), MPI_DOUBLE_COMPLEX,
                        MPI_SUM, 0, MPI_COMM_WORLD);
+        }
+        if (mpi::master) {
+            r_ -= Ap_;
         }
     }
 
@@ -79,10 +82,15 @@ void cg_solver::cg1(const std::function<void(const Eigen::VectorXcd&,
         rsold = r_.squaredNorm();
     }
 
-    int omp_prev = omp_get_max_threads();
+    // int omp_prev = omp_get_max_threads();
     for (itn_ = 0; itn_ < max_iterations_; itn_++) {
+        time_keeper::start("Opt MPI");
         MPI_Bcast(p_.data(), p_.size(), MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+        time_keeper::end("Opt MPI");
+        if (itn_ > 0) time_keeper::end("CG step");
         Aprod(p_, Ap_);
+        time_keeper::start("CG step");
+        time_keeper::start("Opt MPI");
         if (mpi::master) {
             MPI_Reduce(MPI_IN_PLACE, Ap_.data(), Ap_.size(), MPI_DOUBLE_COMPLEX,
                        MPI_SUM, 0, MPI_COMM_WORLD);
@@ -90,8 +98,9 @@ void cg_solver::cg1(const std::function<void(const Eigen::VectorXcd&,
             MPI_Reduce(Ap_.data(), Ap_.data(), Ap_.size(), MPI_DOUBLE_COMPLEX,
                        MPI_SUM, 0, MPI_COMM_WORLD);
         }
+        time_keeper::end("Opt MPI");
         if (mpi::master) {
-            omp_set_num_threads(ini::n_threads);
+            // omp_set_num_threads(ini::n_threads);
             alpha = p_.dot(Ap_);
 
             alpha = rsold / alpha;
@@ -100,21 +109,24 @@ void cg_solver::cg1(const std::function<void(const Eigen::VectorXcd&,
             rs_ = r_.squaredNorm();
             abort = rs_ < rtol_;
         }
+        time_keeper::start("Opt MPI");
         MPI_Bcast(&abort, 1, MPI_CXX_BOOL, 0, MPI_COMM_WORLD);
+        time_keeper::end("Opt MPI");
         // if (mpi_rank == 0)
         //     std::cout << i << ", " << std::sqrt(rsnew) << std::endl;
         if (abort) break;
         if (mpi::master) {
             p_ = r_ + (rs_ / rsold) * p_;
             rsold = rs_;
-            omp_set_num_threads(omp_prev);
+            // omp_set_num_threads(omp_prev);
         }
     }
+    time_keeper::end("CG step");
     MPI_Bcast(x.data(), x.size(), MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
-    if (mpi::master) {
-        omp_set_num_threads(omp_prev);
-    }
+    // if (mpi::master) {
+    //     omp_set_num_threads(omp_prev);
+    // }
 }
 
 void cg_solver::minres(const std::function<void(const Eigen::VectorXcd&,
@@ -193,6 +205,7 @@ void cg_solver::solve(const Eigen::MatrixXcd& mat, const Eigen::VectorXcd& d,
     auto Aprod = [&](const Eigen::VectorXcd& b, Eigen::VectorXcd& x) {
         // Use last process, since the front processes are linkely to be more
         // busy, since they are assinged more samples.
+        time_keeper::start("Matmul");
         if (mpi::rank == mpi::n_proc - 1) {
             x = diag.array() * b.array();
             x.topRows(n_neural_) *= r1;
@@ -204,15 +217,9 @@ void cg_solver::solve(const Eigen::MatrixXcd& mat, const Eigen::VectorXcd& d,
         } else {
             x = mat.conjugate() * (mat.transpose() * b) / norm;
         }
+        time_keeper::end("Matmul");
     };
-    switch (method_) {
-        case CG:
-            cg1(Aprod, b, x);
-            break;
-        case MINRES:
-            minres(Aprod, b, x);
-            break;
-    }
+    cg1(Aprod, b, x);
     // mpi::cout << "rnorm: " << rs_ << " \tn_iter: " << itn_
     //           << " \tmaxdiag: " << max_diag << " \tr2:" << r2 << mpi::endl;
     // if (mpi::master) std::cout << std::endl << rs_ << ", " << itn_ <<

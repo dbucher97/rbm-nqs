@@ -22,6 +22,8 @@
 #include <tools/mpi.hpp>
 #include <tools/time_keeper.hpp>
 
+#ifdef KEEP_TIME
+
 namespace time_keeper {
 std::map<std::string, std::chrono::time_point<clock>> start_times = {};
 std::map<std::string, int> counters = {};
@@ -60,15 +62,25 @@ void time_keeper::clear() {
 void time_keeper::itn() { iteration_count++; }
 
 void time_keeper::resumee() {
-    std::printf("\n%-20s | %-10s | %-10s | %-10s\n", "NAME", "T / E", "T / C",
-                "C / E");
-    std::printf(
-        "-------------------- | ---------- | ---------- | ----------\n");
-    for (const auto& name : tracked) {
-        double time_per_epoch = elapsed_times[name] / iteration_count;
-        double calls_per_epoch = ((double)counters[name]) / iteration_count;
-        double time_per_call = elapsed_times[name] / counters[name];
-        std::printf("%-20s | %10.2f | %10.5f | %10.1f\n", name.c_str(),
-                    time_per_epoch, time_per_call, calls_per_epoch);
+    for (int i = 0; i < mpi::n_proc; i++) {
+        if (i == mpi::rank) {
+            std::printf("\nTime Keeper Rank %d\n", i);
+            std::printf("%-20s | %-10s | %-10s | %-10s\n", "name", "T / E",
+                        "T / C", "C / E");
+            std::printf(
+                "-------------------- | ---------- | ---------- | "
+                "----------\n");
+            for (const auto& name : tracked) {
+                double time_per_epoch = elapsed_times[name] / iteration_count;
+                double calls_per_epoch =
+                    ((double)counters[name]) / iteration_count;
+                double time_per_call = elapsed_times[name] / counters[name];
+                std::printf("%-20s | %10.2f | %10.5f | %10.1f\n", name.c_str(),
+                            time_per_epoch, time_per_call, calls_per_epoch);
+            }
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
     }
 }
+
+#endif

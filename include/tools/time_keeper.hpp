@@ -21,7 +21,11 @@
 #include <string>
 #include <vector>
 
+#define KEEP_TIME
+
 namespace time_keeper {
+#ifdef KEEP_TIME
+
 using clock = std::chrono::steady_clock;
 extern std::map<std::string, std::chrono::time_point<clock>> start_times;
 extern std::map<std::string, int> counters;
@@ -35,4 +39,13 @@ extern void itn();
 extern void clear();
 extern void resumee();
 
+#else
+
+inline void start(const std::string& name) {}
+inline void end(const std::string& name) {}
+inline void itn() {}
+inline void clear() {}
+inline void resumee() {}
+
+#endif
 }  // namespace time_keeper

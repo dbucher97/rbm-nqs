@@ -175,6 +175,7 @@ extern bool rbm_pfaffian;
 extern size_t rbm_pfaffian_symmetry;
 extern bool rbm_pfaffian_normalize;
 extern double rbm_pfaffian_weights;
+extern bool rbm_pfaffian_no_updating;
 extern std::string rbm_file_name;
 extern std::string rbm_pfaffian_load;
 

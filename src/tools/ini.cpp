@@ -28,6 +28,8 @@
 //
 #include <tools/ini.hpp>
 
+#include "boost/program_options/value_semantic.hpp"
+
 namespace ini {
 
 // Program variables
@@ -68,6 +70,7 @@ bool rbm_pfaffian = false;
 size_t rbm_pfaffian_symmetry = 0;
 bool rbm_pfaffian_normalize = false;
 double rbm_pfaffian_weights = 0.1;
+bool rbm_pfaffian_no_updating = false;
 std::string rbm_file_name = "";
 std::string rbm_pfaffian_load = "";
 
@@ -178,6 +181,7 @@ int ini::load(int argc, char* argv[]) {
     ("rbm.pfaffian.normalize",                po::value(&rbm_pfaffian_normalize),           "normalize pfaffian parameters to pfaffian prop to 1")
     ("rbm.file.name",                         po::value(&rbm_file_name),                    "specify the filename of the quantum state")
     ("rbm.pfaffian.load",                     po::value(&rbm_pfaffian_load),                "specify name of a already trained rbm file of type pfaffian to load into this")
+    ("rbm.pfaffian.no_updating",              po::bool_switch(&rbm_pfaffian_no_updating),   "dont update the pfaffian context each iteration but calculate from scratch")
     // Sampler
     ("sampler.type",                          po::value(&sa_type),                          "set sampler type")
     ("sampler.n_samples",                     po::value(&sa_n_samples),                     "set sampler n sampler (metropolis only)")
