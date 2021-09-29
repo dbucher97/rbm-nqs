@@ -68,6 +68,8 @@ class honeycomb : public bravais {
         Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
     construct_symmetry() const override;
 
+    virtual std::vector<size_t> construct_symm_basis() const override;
+
     virtual size_t symmetry_size() const override {
         if (full_symm_) {
             return n_total;

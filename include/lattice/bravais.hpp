@@ -183,6 +183,8 @@ class bravais {
     virtual std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>>
     construct_symmetry() const;
 
+    virtual std::vector<size_t> construct_symm_basis() const;
+
     /**
      * @brief Constructs the uc indices for all symmetry indices.
      *

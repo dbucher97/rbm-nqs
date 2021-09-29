@@ -152,3 +152,9 @@ bravais::construct_symmetry() const {
     }
     return ret;
 }
+
+std::vector<size_t> bravais::construct_symm_basis() const {
+    std::vector<size_t> ret(n_basis);
+    for (size_t i = 0; i < n_basis; i++) ret[i] = i;
+    return ret;
+}

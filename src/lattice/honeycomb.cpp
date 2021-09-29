@@ -108,6 +108,14 @@ honeycomb::construct_symmetry() const {
     }
 }
 
+std::vector<size_t> honeycomb::construct_symm_basis() const {
+    if (full_symm_) {
+        return {0};
+    } else {
+        return Base::construct_symm_basis();
+    }
+}
+
 void honeycomb::print_lattice(const std::vector<size_t>& el) const {
     // Print the lattice with zero spin in the bottom left, therefore begin
     // with the last row

@@ -39,6 +39,9 @@ class pfaffian {
 
     const bool no_updating_;
 
+    const std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>> symmetry_;
+    const std::vector<size_t> symm_basis_;
+
    public:
     pfaffian(const lattice::bravais&, size_t n_uc = 0,
              bool no_updating = false);

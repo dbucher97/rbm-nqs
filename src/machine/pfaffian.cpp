@@ -34,7 +34,35 @@ pfaffian::pfaffian(const lattice::bravais& lattice, size_t n_sy,
       ns_{lattice.n_total},
       n_symm_{n_sy ? n_sy * n_sy * lattice.n_basis : ns_},
       fs_(lattice.n_total * (lattice.n_total - 1) / 2, 4),
-      no_updating_{no_updating} {
+      bs_(ns_, ns_),
+      no_updating_{no_updating},
+      symmetry_{lattice_.construct_symmetry()},
+      symm_basis_{lattice_.construct_symm_basis()} {
+    bs_.setZero();
+    std::cout << n_symm_ << std::endl;
+    if (n_symm_ > 0) {
+        for (auto& s : symmetry_) {
+            auto& idcs = s.indices();
+            int a, b;
+            for (size_t j = 1; j < ns_; j++) {
+                a = idcs(0);
+                b = idcs(j);
+                if (a < b) {
+                    bs_(a, b) = -idx(0, j);
+                } else {
+                    bs_(a, b) = idx(0, j);
+                }
+            }
+        }
+    } else {
+        for (int i = 0; i < ns_; i++) {
+            for (int j = 0; j < i; j++) {
+                bs_(i, j) = idx(i, j);
+                bs_(j, i) = -idx(i, j);
+            }
+        }
+    }
+    std::cout << bs_ << std::endl;
     // size_t n_uc = lattice_.n_uc;
     // size_t n_tuc = lattice_.n_total_uc;
     // size_t n_b = lattice_.n_basis;
@@ -68,18 +96,11 @@ pfaffian::pfaffian(const lattice::bravais& lattice, size_t n_sy,
 void pfaffian::init_weights(std::mt19937& rng, double std, bool normalize) {
     if (mpi::master) {
         std::normal_distribution<double> dist{0, std};
-        std::complex<double> val;
         fs_.setZero();
-        for (size_t i = 0; i < ns_; i++) {
-            for (size_t j = 0; j < ns_; j++) {
-                if (j < i) {
-                    for (size_t m = 0; m < 4; m++) {
-                        val = std::complex<double>(dist(rng), dist(rng));
-                        fs_(idx(i, j), m) = val;
-                    }
-                }
-            }
+        for (int i = 0; i < fs_.size(); i++) {
+            fs_(i) = std::complex<double>(dist(rng), dist(rng));
         }
+        fs_.block(ns_, 0, fs_.rows() - ns_, 4).setZero();
 
         if (normalize) {
             Eigen::MatrixXcd mat = get_mat(Eigen::MatrixXcd::Ones(ns_, 1));
@@ -313,12 +334,14 @@ void pfaffian::update_context(const Eigen::MatrixXcd& state,
         // Eigen::MatrixXcd mat = get_mat(state2);
         // Eigen::JacobiSVD<Eigen::MatrixXcd> svd(mat);
         // double cond = svd.singularValues()(0) /
-        //               svd.singularValues()(svd.singularValues().size() - 1);
+        //               svd.singularValues()(svd.singularValues().size() -
+        //               1);
         // std::cout << "\t cond " << cond;
 
         // Eigen::MatrixXcd mati = mat.inverse();
         // std::cout << "\t vanilla norm"
-        //           << (mati - context.inv).norm() / mati.norm() << std::endl;
+        //           << (mati - context.inv).norm() / mati.norm() <<
+        //           std::endl;
 
         int s = std::log10(std::abs(context.pfaff));
 
@@ -340,7 +363,7 @@ void pfaffian::derivative(const Eigen::MatrixXcd& state,
     for (size_t i = 0; i < ns_; i++) {
         for (size_t j = 0; j < i; j++) {
             x = context.inv(i, j);
-            d(idx(i, j), spidx(i, j, state)) = -x;
+            d(bs_(i, j), spidx(i, j, state)) += -x;
             // d(idx(j, i), spidx(j, i, state)) = x;
         }
     }
@@ -352,13 +375,13 @@ void pfaffian::derivative(const Eigen::MatrixXcd& state,
 void pfaffian::update_weights(const Eigen::MatrixXcd& dw, size_t& offset) {
     fs_ -= Eigen::Map<const Eigen::MatrixXcd>(
         dw.block(offset, 0, get_n_params(), 1).data(), fs_.rows(), fs_.cols());
-    // auto x = Eigen::Map<const Eigen::MatrixXcd>(
-    //     dw.block(offset, 0, get_n_params(), 1).data(), fs_.rows(),
-    //     fs_.cols());
+    auto x = Eigen::Map<const Eigen::MatrixXcd>(
+        dw.block(offset, 0, get_n_params(), 1).data(), fs_.rows(), fs_.cols());
     // if (mpi::master) {
     //     for (size_t i = 0; i < 4; i++) {
     //         std::cout << "\n"
-    //                   << Eigen::Map<const Eigen::MatrixXcd>(x.col(i).data(),
+    //                   << Eigen::Map<const
+    //                   Eigen::MatrixXcd>(x.col(i).data(),
     //                                                         ns_, ns_)
     //                          .transpose()
     //                   << "\n"
@@ -416,7 +439,14 @@ int pfaffian::spidx(size_t i, size_t j, const Eigen::MatrixXcd& state,
                     bool flipi, bool flipj) const {
     return (spidx(i, state, flipi) << 1) + spidx(j, state, flipj);
 }
-size_t pfaffian::idx(size_t i, size_t j) const { return i * (i - 1) / 2 + j; }
+size_t pfaffian::idx(size_t i, size_t j) const {
+    if (i == j)
+        return 0;
+    else if (i < j)
+        return idx(j, i);
+    else
+        return fs_.rows() - (ns_ - j) * (ns_ - j - 1) / 2 + i - j - 1;
+}
 
 std::complex<double> pfaffian::a(size_t i, size_t j,
                                  const Eigen::MatrixXcd& state, bool flipi,
@@ -424,7 +454,7 @@ std::complex<double> pfaffian::a(size_t i, size_t j,
     if (i == j) {
         return 0;
     } else if (i > j)
-        return fs_(idx(i, j), spidx(i, j, state, flipi, flipj));
+        return fs_(bs_(i, j), spidx(i, j, state, flipi, flipj));
     else
-        return -fs_(idx(j, i), spidx(j, i, state, flipj, flipi));
+        return -fs_(bs_(j, i), spidx(j, i, state, flipj, flipi));
 }
