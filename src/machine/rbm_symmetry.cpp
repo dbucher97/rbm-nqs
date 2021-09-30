@@ -32,6 +32,7 @@ rbm_symmetry::rbm_symmetry(size_t n_alpha, lattice::bravais& l, size_t pop_mode,
     : Base{n_alpha, l.n_total / l.symmetry_size(), l, pop_mode, cosh_mode},
       symmetry_{lattice_.construct_symmetry()},
       reverse_symm_(n_visible) {
+    // std::cout << l.symmetry_size() << std::endl;
     for (size_t f = 0; f < n_visible; f++) {
         reverse_symm_[f] =
             Eigen::PermutationMatrix<Eigen::Dynamic>(symmetry_.size());
@@ -92,10 +93,10 @@ void rbm_symmetry::update_context(const Eigen::MatrixXcd& state,
 Eigen::MatrixXcd rbm_symmetry::derivative(const Eigen::MatrixXcd& state,
                                           const rbm_context& context) const {
     Eigen::MatrixXcd result = Eigen::MatrixXcd::Zero(get_n_params(), 1);
-    result.block(0, 0, n_vb_, 1) = Eigen::Map<const Eigen::MatrixXcd>(
-                                       state.data(), n_vb_, lattice_.n_total_uc)
-                                       .rowwise()
-                                       .sum();
+    result.block(0, 0, n_vb_, 1) =
+        Eigen::Map<const Eigen::MatrixXcd>(state.data(), n_vb_, symmetry_size())
+            .rowwise()
+            .sum();
     // Same as baseclass
     // Eigen::MatrixXcd tanh = thetas.array().tanh();
     Eigen::ArrayXXcd tanh(context.thetas.rows(), context.thetas.cols());

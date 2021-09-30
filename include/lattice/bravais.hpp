@@ -62,6 +62,7 @@ class bravais {
     using correlator_group = std::vector<correlator>;
 
     std::vector<bond> bonds_;
+    std::vector<double> default_symmetry_;
 
     /**
      * @brief Bravais constructor.
@@ -75,7 +76,8 @@ class bravais {
      * boundary
      */
     bravais(size_t n_uc, size_t n_dim, size_t n_basis, size_t n_coordination,
-            size_t n_uc_b = 0, size_t h_shift = 0);
+            size_t n_uc_b = 0, size_t h_shift = 0,
+            const std::vector<double>& default_symmetry = {1});
 
     /**
      * @brief Constructs the nearest neighbouring bonds of the lattice
@@ -83,6 +85,9 @@ class bravais {
      * @return vector of bonds
      */
     virtual void construct_bonds() = 0;
+
+    virtual std::vector<size_t> clean_symms(
+        const std::vector<double>& symm) const;
 
    public:
     /**
@@ -181,23 +186,36 @@ class bravais {
      * @return vector of permutation matrices corresponding to the symmetries.
      */
     virtual std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>>
-    construct_symmetry() const;
+    construct_symmetry(const std::vector<double>& symm) const;
+    std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>> construct_symmetry()
+        const {
+        return construct_symmetry(default_symmetry_);
+    }
 
-    virtual std::vector<size_t> construct_symm_basis() const;
+    virtual std::vector<size_t> construct_symm_basis(
+        const std::vector<double>& symm) const;
+    std::vector<size_t> construct_symm_basis() const {
+        return construct_symm_basis(default_symmetry_);
+    }
 
     /**
      * @brief Constructs the uc indices for all symmetry indices.
      *
      * @return Vector of uc indices vectors.
      */
-    virtual std::vector<std::vector<size_t>> construct_uc_symmetry() const;
+    virtual std::vector<std::vector<size_t>> construct_uc_symmetry(
+        const std::vector<double>& symm) const;
+    std::vector<std::vector<size_t>> construct_uc_symmetry() const {
+        return construct_uc_symmetry(default_symmetry_);
+    }
 
     /**
      * @brief Returns the size of the symmetry.
      *
      * @return size_t number of symmetry permutations
      */
-    virtual size_t symmetry_size() const { return n_total_uc; }
+    virtual size_t symmetry_size(const std::vector<double>& symm) const;
+    size_t symmetry_size() const { return symmetry_size(default_symmetry_); };
 
     /**
      * @brief Check if lattice has correlators.

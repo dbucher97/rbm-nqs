@@ -53,6 +53,7 @@ class pfaffian_psi : public abstract_machine {
     virtual inline void update_weights(const Eigen::MatrixXcd& dw) override {
         size_t offset = 0;
         pfaffian_->update_weights(dw, offset);
+        n_updates_++;
     }
 
     virtual inline void update_context(const Eigen::MatrixXcd& state,

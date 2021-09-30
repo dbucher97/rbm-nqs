@@ -32,6 +32,9 @@ class pfaffian {
     const lattice::bravais& lattice_;
     const size_t ns_;
     const size_t n_symm_;
+    const std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>> symmetry_;
+    const std::vector<size_t> symm_basis_;
+
     Eigen::MatrixXcd fs_;
 
     Eigen::MatrixXi bs_;
@@ -39,11 +42,11 @@ class pfaffian {
 
     const bool no_updating_;
 
-    const std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>> symmetry_;
-    const std::vector<size_t> symm_basis_;
+    static size_t calc_n_params(size_t ns,
+                                const std::vector<size_t>& symm_basis);
 
    public:
-    pfaffian(const lattice::bravais&, size_t n_uc = 0,
+    pfaffian(const lattice::bravais&, const std::vector<double>& symmetry = {},
              bool no_updating = false);
 
     void init_weights(std::mt19937& rng, double std, bool normalize = false);

@@ -68,37 +68,6 @@ std::vector<plaq> toric_lattice::construct_plaqs() const {
     return ret;
 }
 
-std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
-toric_lattice::construct_symmetry() const {
-    // Define `p_mat`
-    typedef Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> p_mat;
-    std::vector<p_mat> ret(n_total_uc);
-
-    // Permutation function, permutes the indices of a
-    // `Eigen::PermutationMatrix` by a respective amount.
-    //
-    auto permute = [this](const std::vector<size_t>& ucs, p_mat& p) {
-        auto& indices = p.indices();
-
-        // Iterate over all indices
-        for (size_t i = 0; i < n_total; i++) {
-            size_t uc = ucs[uc_idx(i)];
-
-            indices(i) = idx(uc, b_idx(i));
-        }
-    };
-
-    // Iterate over all unitcell positions, i.e. all the symmetry points
-    auto uc_symm = construct_uc_symmetry();
-    for (size_t i = 0; i < n_total_uc; i++) {
-        // Initialize the permutation matrix and get the permutation for
-        // the 0th basis.
-        ret[i] = p_mat(n_total);
-        permute(uc_symm[i], ret[i]);
-    }
-    return ret;
-}
-
 void toric_lattice::print_lattice(const std::vector<size_t>& el) const {
     // Print the lattice with zero spin in the bottom left, therefore begin
     // with the last row

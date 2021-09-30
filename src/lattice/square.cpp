@@ -53,9 +53,3 @@ void square::construct_bonds() {
         bonds_.push_back({i, up(i, 1), 0});
     }
 }
-
-std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>>
-square::construct_symmetry() const {
-    std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>> ret;
-    return ret;
-}

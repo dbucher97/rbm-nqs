@@ -52,10 +52,6 @@ class honeycombS3 : public bravais {
 
     virtual void construct_bonds() override;
 
-    virtual std::vector<
-        Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
-    construct_symmetry() const override;
-
     virtual bool has_correlators() const override { return true; }
 
     virtual std::vector<correlator_group> get_correlators() const override;

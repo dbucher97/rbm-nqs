@@ -27,12 +27,11 @@
 using namespace model;
 
 kitaev::kitaev(size_t size, const std::array<double, 3>& J, int size_b,
-               bool full_symm, bool hex_base) {
+               const std::vector<double>& symm, bool hex_base) {
     if (hex_base) {
-        lattice_ = std::make_unique<lattice::honeycomb_hex>(size, full_symm);
+        lattice_ = std::make_unique<lattice::honeycomb_hex>(size, symm);
     } else {
-        lattice_ =
-            std::make_unique<lattice::honeycomb>(size, size_b, full_symm);
+        lattice_ = std::make_unique<lattice::honeycomb>(size, size_b, symm);
     }
     std::vector<SparseXcd> bond_ops = {
         J[0] * kron({sx(), sx()}),

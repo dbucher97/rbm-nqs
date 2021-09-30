@@ -45,8 +45,6 @@ class honeycomb : public bravais {
     size_t count_occurances_(size_t site_idx,
                              const std::vector<size_t>& highlights) const;
 
-    bool full_symm_;
-
     virtual size_t rot180(size_t idx) const;
 
    public:
@@ -58,7 +56,8 @@ class honeycomb : public bravais {
      * @param n_uc Number of unitcells in one direction.
      * @param n_uc_b Number of unitcells in another direction.
      */
-    honeycomb(size_t n_uc, int n_uc_b = -1, bool full_symmetry = true);
+    honeycomb(size_t n_uc, int n_uc_b = -1,
+              const std::vector<double>& symmetry = {1});
 
     virtual std::vector<size_t> nns(size_t) const override;
 
@@ -66,15 +65,17 @@ class honeycomb : public bravais {
 
     virtual std::vector<
         Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
-    construct_symmetry() const override;
+    construct_symmetry(const std::vector<double>& symm) const override;
 
-    virtual std::vector<size_t> construct_symm_basis() const override;
+    virtual std::vector<size_t> construct_symm_basis(
+        const std::vector<double>& symm) const override;
 
-    virtual size_t symmetry_size() const override {
-        if (full_symm_) {
+    virtual size_t symmetry_size(
+        const std::vector<double>& symm) const override {
+        if (symm.size() == 1 && symm[0] == 0.5) {
             return n_total;
         } else {
-            return Base::symmetry_size();
+            return Base::symmetry_size(symm);
         }
     }
 
@@ -87,7 +88,9 @@ class honeycomb : public bravais {
     virtual void initialize_vb(const std::string& type,
                                Eigen::MatrixXcd& v_bias) const override;
 
-    virtual bool has_correlators() const override { return !full_symm_; }
+    virtual bool has_correlators() const override {
+        return !(default_symmetry_.size() == 1 && default_symmetry_[0] == 0.5);
+    }
 
     virtual std::vector<correlator_group> get_correlators() const override;
 

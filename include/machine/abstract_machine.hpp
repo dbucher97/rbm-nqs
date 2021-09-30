@@ -244,8 +244,8 @@ class abstract_machine {
         }
     }
 
-    inline std::unique_ptr<pfaffian>& add_pfaffian(size_t symm,
-                                                   bool no_updating = false) {
+    inline std::unique_ptr<pfaffian>& add_pfaffian(
+        const std::vector<double>& symm, bool no_updating = false) {
         pfaffian_ = std::make_unique<pfaffian>(lattice_, symm, no_updating);
         return pfaffian_;
     }

@@ -71,36 +71,6 @@ void honeycombS3::construct_bonds() {
     }
 }
 
-std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
-honeycombS3::construct_symmetry() const {
-    // Define `p_mat`
-    typedef Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> p_mat;
-    std::vector<p_mat> ret(n_total_uc);
-
-    // Permutation function, permutes the indices of a
-    // `Eigen::PermutationMatrix` by a respective amount.
-    //
-    // The Honeycomb lattice is translationally symmetry by translations
-    auto permute = [this](const std::vector<size_t>& ucs, p_mat& p) {
-        auto& indices = p.indices();
-
-        // Iterate over all indices
-        for (size_t i = 0; i < n_total; i++) {
-            indices(i) = idx(ucs[uc_idx(i)], b_idx(i));
-        }
-    };
-
-    // Iterate over all unitcell positions, i.e. all the symmetry points
-    auto uc_symm = construct_uc_symmetry();
-    for (size_t i = 0; i < n_total_uc; i++) {
-        // Initialize the permutation matrix and get the permutation for
-        // the 0th basis.
-        ret[i] = p_mat(n_total);
-        permute(uc_symm[i], ret[i]);
-    }
-    return ret;
-}
-
 void honeycombS3::print_lattice(const std::vector<size_t>& el) const {
     for (size_t i = n_uc - 1; i < n_uc; i--) {
         for (size_t j = 0; j < n_uc_b; j++) {
@@ -132,4 +102,3 @@ std::vector<honeycombS3::correlator_group> honeycombS3::get_correlators()
 
     return {plaq, xbonds, ybonds, zbonds};
 }
-

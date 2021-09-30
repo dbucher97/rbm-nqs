@@ -63,10 +63,6 @@ class toric_lattice : public bravais {
 
     std::vector<plaq> construct_plaqs() const;
 
-    virtual std::vector<
-        Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
-    construct_symmetry() const override;
-
     using Base::print_lattice;
     virtual void print_lattice(const std::vector<size_t>&) const override;
 

@@ -27,9 +27,9 @@ using namespace lattice;
 
 // The Honeycomb lattice is a 2 dimensional bravais lattice with 2 basis sites
 // and a coordination of three.
-honeycomb::honeycomb(size_t n_uc, int n_uc_b, bool full_symmetry)
-    : Base{n_uc, 2, 2, 3, n_uc_b == -1 ? n_uc : n_uc_b},
-      full_symm_{full_symmetry} {
+honeycomb::honeycomb(size_t n_uc, int n_uc_b,
+                     const std::vector<double>& symmetry)
+    : Base{n_uc, 2, 2, 3, n_uc_b == -1 ? n_uc : n_uc_b, 0, symmetry} {
     construct_bonds();
 }
 
@@ -57,8 +57,8 @@ void honeycomb::construct_bonds() {
 size_t honeycomb::rot180(size_t idx) const { return n_total - 1 - idx; }
 
 std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
-honeycomb::construct_symmetry() const {
-    if (full_symm_) {
+honeycomb::construct_symmetry(const std::vector<double>& symm) const {
+    if (symm.size() == 1 && symm[0] == 0.5) {
         // Define `p_mat`
         typedef Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> p_mat;
         std::vector<p_mat> ret(n_total);
@@ -88,7 +88,7 @@ honeycomb::construct_symmetry() const {
         };
 
         // Iterate over all unitcell positions, i.e. all the symmetry points
-        auto uc_symm = construct_uc_symmetry();
+        auto uc_symm = construct_uc_symmetry(symm);
         for (size_t i = 0; i < n_total_uc; i++) {
             size_t id = 2 * i;
 
@@ -104,15 +104,16 @@ honeycomb::construct_symmetry() const {
         }
         return ret;
     } else {
-        return Base::construct_symmetry();
+        return Base::construct_symmetry(symm);
     }
 }
 
-std::vector<size_t> honeycomb::construct_symm_basis() const {
-    if (full_symm_) {
+std::vector<size_t> honeycomb::construct_symm_basis(
+    const std::vector<double>& symm) const {
+    if (symm.size() == 1 && symm[0] == 0.5) {
         return {0};
     } else {
-        return Base::construct_symm_basis();
+        return Base::construct_symm_basis(symm);
     }
 }
 
@@ -124,7 +125,7 @@ void honeycomb::print_lattice(const std::vector<size_t>& el) const {
             // Print shift with spaces.
             std::cout << std::string(2 * (row + i), ' ');
 
-            for (size_t col = 0; col < n_uc; col++) {
+            for (size_t col = 0; col < n_uc_b; col++) {
                 size_t oc = count_occurances_(idx({row, col}, i), el);
 
                 // Print the site, `.` if no highlight, number of occurances

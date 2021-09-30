@@ -32,19 +32,24 @@ class honeycomb_hex : public honeycomb {
     size_t rot180(size_t idx) const override;
 
    public:
-    honeycomb_hex(size_t n_max, bool full_symm = true);
+    honeycomb_hex(size_t n_max, const std::vector<double>& symmetry = {1});
 
     using Base::uc_idx;
     virtual size_t uc_idx(std::vector<size_t>&& idxs) const override;
 
-    virtual size_t up(size_t uc, size_t dir, size_t step = 1) const override;
-    virtual size_t down(size_t uc, size_t dir, size_t step = 1) const override;
+    virtual size_t up(size_t uc, size_t dir = 0,
+                      size_t step = 1) const override;
+    virtual size_t down(size_t uc, size_t dir = 0,
+                        size_t step = 1) const override;
 
     virtual void print_lattice(
         const std::vector<size_t>& highlights) const override;
 
-    virtual std::vector<std::vector<size_t>> construct_uc_symmetry()
-        const override;
+    virtual std::vector<std::vector<size_t>> construct_uc_symmetry(
+        const std::vector<double>& symm = {1}) const override;
+
+    virtual std::vector<size_t> construct_symm_basis(
+        const std::vector<double>& symm = {1}) const override;
 };
 
 }  // namespace lattice

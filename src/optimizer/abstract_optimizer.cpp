@@ -131,13 +131,15 @@ void abstract_optimizer::optimize() {
     gradient(true);
 
     std::complex<double> e = a_h_.get_result()(0) / (double)rbm_.n_visible;
-    if (std::real(e - last_energy_) > 0.05) {
+    if (std::real(e - last_energy_) > 0.05 && rbm_.get_n_updates() > 10) {
         mpi::cout << "whee" << mpi::endl;
-        /* sampler::full_sampler sa{rbm_, 2};
+        // sampler::full_sampler sa{rbm_, 2};
         // sa.register_op(&hamiltonian_);
         // sa.register_agg(&a_h_);
-        sa.sample(true);
-        mpi::cout << a_h_.get_result() / rbm_.n_visible << mpi::endl;
+        // sa.sample(true);
+        // mpi::cout << a_h_.get_result() << mpi::endl;
+        // MPI_Barrier(MPI_COMM_WORLD);
+        /*mpi::cout << a_h_.get_result() / rbm_.n_visible << mpi::endl;
         if (mpi::master) {
             std::rename((ini::name + ".state").c_str(),
                         (ini::name + ".new.state").c_str());

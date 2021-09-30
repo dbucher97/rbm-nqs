@@ -53,7 +53,7 @@ size_t n_cells = 2;
 int n_cells_b = -1;
 coupling_t J = {{-1.}};
 double helper_strength = 0.;
-bool full_symm = true;
+symmetry_t symmetry = {{0.5}};
 std::string lattice_type = "";
 
 // RBM
@@ -67,7 +67,7 @@ double rbm_weights_imag = -1;
 std::string rbm_weights_init_type = "";
 size_t rbm_correlators = 0;
 bool rbm_pfaffian = false;
-size_t rbm_pfaffian_symmetry = 0;
+symmetry_t rbm_pfaffian_symmetry = {};
 bool rbm_pfaffian_normalize = false;
 double rbm_pfaffian_weights = 0.1;
 bool rbm_pfaffian_no_updating = false;
@@ -163,7 +163,7 @@ int ini::load(int argc, char* argv[]) {
     ("model.n_cells_b",                       po::value(&n_cells_b),                        "set number of unit cells in another dimension (if set to -1, use n_cells)")
     ("model.J",                               po::value(&J)->multitoken(),                                "Interaction strength")
     ("model.helper_strength",                 po::value(&helper_strength),                  "Helper Hamiltonian strength")
-    ("model.full_symmetry",                   po::value(&full_symm),                        "Use Honeycomb full symmetry")
+    ("model.symmetry",                        po::value(&symmetry)->multitoken(),           "Set translational symmetry")
     ("model.lattice_type",                    po::value(&lattice_type),                     "Set lattice type if special type is available (honeycomb -> hex base)")
     // RBM
     ("rbm.type",                              po::value(&rbm),                              "set rbm type")
@@ -176,7 +176,7 @@ int ini::load(int argc, char* argv[]) {
     ("rbm.pop_mode",                          po::value(&rbm_pop_mode),                     "switches between Psi calculation modes.")
     ("rbm.cosh_mode",                         po::value(&rbm_cosh_mode),                    "turns cosh approximation on")
     ("rbm.pfaffian",                          po::value(&rbm_pfaffian),                     "enables use of pfaffian wave function addition")
-    ("rbm.pfaffian.symmetry",                 po::value(&rbm_pfaffian_symmetry),            "number of unit cells for symmetry condition of pfaffian parameters")
+    ("rbm.pfaffian.symmetry",                 po::value(&rbm_pfaffian_symmetry)->multitoken(),"symmetry condition of pfaffian parameters")
     ("rbm.pfaffian.weights",                  po::value(&rbm_pfaffian_weights),             "stdev of pfaffian parameters")
     ("rbm.pfaffian.normalize",                po::value(&rbm_pfaffian_normalize),           "normalize pfaffian parameters to pfaffian prop to 1")
     ("rbm.file.name",                         po::value(&rbm_file_name),                    "specify the filename of the quantum state")
@@ -185,7 +185,7 @@ int ini::load(int argc, char* argv[]) {
     // Sampler
     ("sampler.type",                          po::value(&sa_type),                          "set sampler type")
     ("sampler.n_samples",                     po::value(&sa_n_samples),                     "set sampler n sampler (metropolis only)")
-    ("sampler.n_samples_per_chain",             po::value(&sa_metropolis_samples_per_chain),  "set n samples per chain (overrides sampler.n_samples)")
+    ("sampler.n_samples_per_chain",           po::value(&sa_metropolis_samples_per_chain),  "set n samples per chain (overrides sampler.n_samples)")
     ("sampler.eval_samples",                  po::value(&sa_eval_samples),                  "set sampler n sampler (metropolis only) for evaluation")
     ("sampler.full.n_parallel_bits",          po::value(&sa_full_n_parallel_bits),          "set number of bits executed in parallel in full sampling")
     ("sampler.metropolis.n_chains",           po::value(&sa_metropolis_n_chains),           "set number of MCMC chains in Metropolis sampling")
@@ -369,4 +369,29 @@ void ini::validate(boost::any& v, const std::vector<std::string>& values,
                    [](const std::string& x) { return std::stod(x); });
 
     v = x;
+}
+
+void ini::validate(boost::any& v, const std::vector<std::string>& values,
+                   ini::symmetry_t*, int) {
+    std::vector<std::string> vals;
+
+    // Split all strings by comma, for better support of ini loading.
+    for (std::string s : values) {
+        size_t pos = 0;
+        std::string token;
+        while ((pos = s.find(',')) != std::string::npos) {
+            token = s.substr(0, pos);
+            vals.push_back(token);
+            s.erase(0, pos + 1);
+        }
+        vals.push_back(s);
+    }
+
+    std::vector<double> vec(vals.size());
+
+    for (size_t i = 0; i < vec.size(); i++) {
+        vec[i] = std::stod(vals[i]);
+    }
+
+    v = symmetry_t{vec};
 }

@@ -108,8 +108,8 @@ int init_model(std::unique_ptr<model::abstract_model>& model) {
     switch (ini::model) {
         case ini::model_t::KITAEV:
             model = std::make_unique<model::kitaev>(
-                ini::n_cells, ini::J.strengths, ini::n_cells_b, ini::full_symm,
-                ini::lattice_type == "hex");
+                ini::n_cells, ini::J.strengths, ini::n_cells_b,
+                ini::symmetry.symm, ini::lattice_type == "hex");
             break;
         case ini::model_t::KITAEV_S3:
             model = std::make_unique<model::kitaevS3>(ini::n_cells,
@@ -162,7 +162,7 @@ int init_machine(std::unique_ptr<machine::abstract_machine>& rbm,
         rbm->add_correlators(c);
     }
     if (ini::rbm_pfaffian || ini::rbm == ini::rbm_t::PFAFFIAN) {
-        pfaff = rbm->add_pfaffian(ini::rbm_pfaffian_symmetry,
+        pfaff = rbm->add_pfaffian(ini::rbm_pfaffian_symmetry.symm,
                                   ini::rbm_pfaffian_no_updating)
                     .get();
     }
@@ -275,6 +275,27 @@ void store_state(std::unique_ptr<model::abstract_model>& model,
     sampler.sample(true);
 }
 
+void debug_() {
+    lattice::honeycomb_hex l(2);
+    std::vector<double> symm = {2};
+    auto sp = l.construct_symmetry(symm);
+    auto sb = l.construct_symm_basis(symm);
+
+    for (size_t i = 0; i < sp.size(); i++) {
+        Eigen::MatrixXcd state(l.n_total, 1);
+        state.setOnes();
+        for (auto& b : sb) state(b) = -1;
+
+        state = sp[i] * state;
+
+        std::vector<size_t> x;
+        for (int i = 0; i < state.size(); i++) {
+            if (std::real(state(i)) < 0) x.push_back(i);
+        }
+        l.print_lattice(x);
+    }
+}
+
 int main(int argc, char* argv[]) {
     mpi::init(argc, argv);
     int rc = ini::load(argc, argv);
@@ -308,8 +329,6 @@ int main(int argc, char* argv[]) {
     size_t seed = ini::seed;
     // Init Model
     rc |= init_model(model);
-    // Init RBM
-    rc |= init_machine(rbm, pfaff, model);
 
     if (ini::store_state) {
         store_state(model, rbm, pfaff, *rng);
@@ -317,7 +336,6 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    mpi::cout << rbm->get_n_neural_params() << mpi::endl;
     /* auto x = model->get_lattice().construct_symmetry();
     if (mpi::master) {
         std::cout << "[";
@@ -345,6 +363,7 @@ int main(int argc, char* argv[]) {
             init_seed(seed, rng);
             seed = udist(*rng);
             mpi::cout << "Seed: " << seed << " \t" << mpi::flush;
+            // Init RBM
             init_machine(rbm, pfaff, model);
             // Init Weights
             init_weights(rbm, pfaff, model, true, *rng);
@@ -393,6 +412,8 @@ int main(int argc, char* argv[]) {
     } else {
         init_seed(seed, rng);
         mpi::cout << "Seed: " << ini::seed << mpi::endl;
+        // Init RBM
+        init_machine(rbm, pfaff, model);
         // Init Weights
         init_weights(rbm, pfaff, model, ini::rbm_force, *rng);
         // Init Sampler

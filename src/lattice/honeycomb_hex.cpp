@@ -22,8 +22,8 @@
 
 using namespace lattice;
 
-honeycomb_hex::honeycomb_hex(size_t n_max, bool full_symmetry)
-    : Base{n_max, (int)n_max * 3, full_symmetry},
+honeycomb_hex::honeycomb_hex(size_t n_max, const std::vector<double>& symmetry)
+    : Base{n_max, (int)n_max * 3, symmetry},
       n_below_uc_{n_uc * (n_uc - 1) / 2},
       n_lower_uc_{n_uc * (2 * n_uc + 1) - n_below_uc_} {
     bonds_.clear();
@@ -155,24 +155,56 @@ void honeycomb_hex::print_lattice(const std::vector<size_t>& highlights) const {
     }
 }
 
-std::vector<std::vector<size_t>> honeycomb_hex::construct_uc_symmetry() const {
-    std::vector<std::vector<size_t>> ret(n_total_uc);
-    size_t offset = 0;
-    for (size_t y = 0; y < 2 * n_uc; y++) {
-        for (size_t x = 0; x < cols(y); x++) {
-            for (size_t uc = 0; uc < n_total_uc; uc++) {
-                size_t uc2 = up(up(uc, 0, x), 1, y);
-                if (y <= n_uc) {
-                    uc2 = down(uc2, 0, y);
-                } else {
-                    uc2 = down(uc2, 0, n_uc);
+std::vector<std::vector<size_t>> honeycomb_hex::construct_uc_symmetry(
+    const std::vector<double>& symm) const {
+    if (symm.size() == 1 && symm[0] == 2.) {
+        std::vector<std::vector<size_t>> ret(n_total_uc / 3);
+        size_t n = std::sqrt(n_total_uc / 3);
+        for (size_t y = 0; y < n; y++) {
+            for (size_t x = 0; x < n; x++) {
+                for (size_t uc = 0; uc < n_total_uc; uc++) {
+                    size_t u = uc;
+                    u = up(up(u, 1, x), 0, x);
+                    u = down(up(u, 1, 2 * y), 0, y);
+                    ret[x + n * y].push_back(u);
                 }
-                ret[x + offset].push_back(uc2);
             }
         }
-        offset += cols(y);
+        return ret;
+    } else {
+        std::vector<std::vector<size_t>> ret(n_total_uc);
+        size_t offset = 0;
+        for (size_t y = 0; y < 2 * n_uc; y++) {
+            for (size_t x = 0; x < cols(y); x++) {
+                for (size_t uc = 0; uc < n_total_uc; uc++) {
+                    size_t uc2 = up(up(uc, 0, x), 1, y);
+                    if (y <= n_uc) {
+                        uc2 = down(uc2, 0, y);
+                    } else {
+                        uc2 = down(uc2, 0, n_uc);
+                    }
+                    ret[x + offset].push_back(uc2);
+                }
+            }
+            offset += cols(y);
+        }
+        return ret;
     }
-    return ret;
+}
+
+std::vector<size_t> honeycomb_hex::construct_symm_basis(
+    const std::vector<double>& symm) const {
+    if (symm.size() == 1 && symm[0] == 2.) {
+        const size_t uc = 0;
+        return {idx(down(uc, 1), 1),
+                idx(uc, 0),
+                idx(uc, 1),
+                idx(up(uc), 0),
+                idx(down(up(uc), 1), 1),
+                idx(down(up(uc), 1), 0)};
+    } else {
+        return Base::construct_symm_basis(symm);
+    }
 }
 
 size_t honeycomb_hex::rot180(size_t i) const {

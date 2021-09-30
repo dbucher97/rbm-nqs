@@ -35,11 +35,8 @@ class square : public bravais {
 
     std::vector<size_t> nnns(size_t site_idx) const;
 
-    virtual std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>>
-    construct_symmetry() const override;
-
     virtual void print_lattice(
-        const std::vector<size_t> &highlights) const override;
+        const std::vector<size_t>& highlights) const override;
 };
 
 }  // namespace lattice

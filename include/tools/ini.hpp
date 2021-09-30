@@ -40,6 +40,9 @@ struct decay_t {
 struct coupling_t {
     std::vector<double> strengths;
 };
+struct symmetry_t {
+    std::vector<double> symm;
+};
 
 /**
  * @brief RBM Type enum
@@ -107,7 +110,7 @@ extern void validate(boost::any& f, const std::vector<std::string>& strs,
                      decay_t*, int);
 
 /**
- * @brief Loads an `std::vector<double>` with a string vector from
+ * @brief Loads an `coupling_t` with a string vector from
  * `boost_program_options`.
  *
  * @param f will be the decay_t object
@@ -118,6 +121,17 @@ extern void validate(boost::any& f, const std::vector<std::string>& strs,
 extern void validate(boost::any& v, const std::vector<std::string>& values,
                      coupling_t*, int);
 
+/**
+ * @brief Loads an `std::vector<double>` with a string vector from
+ * `boost_program_options`.
+ *
+ * @param f will be the decay_t object
+ * @param strs vector of strings to load from
+ * @param std::vector<double>* Don't know, copied from StackOverflow 🙃...
+ * @param int
+ */
+extern void validate(boost::any& v, const std::vector<std::string>& values,
+                     symmetry_t*, int);
 /**
  * @brief Checks if a ini file is specified in the command line options, if
  * this is the case `load` also reads the `ini` file.
@@ -158,7 +172,7 @@ extern size_t n_cells;
 extern int n_cells_b;
 extern coupling_t J;
 extern double helper_strength;
-extern bool full_symm;
+extern symmetry_t symmetry;
 extern std::string lattice_type;
 
 // RBM
@@ -172,7 +186,7 @@ extern size_t rbm_correlators;
 extern size_t rbm_pop_mode;
 extern size_t rbm_cosh_mode;
 extern bool rbm_pfaffian;
-extern size_t rbm_pfaffian_symmetry;
+extern symmetry_t rbm_pfaffian_symmetry;
 extern bool rbm_pfaffian_normalize;
 extern double rbm_pfaffian_weights;
 extern bool rbm_pfaffian_no_updating;

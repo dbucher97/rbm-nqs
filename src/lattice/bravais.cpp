@@ -24,7 +24,8 @@
 using namespace lattice;
 
 bravais::bravais(size_t n_uc, size_t n_dim, size_t n_basis,
-                 size_t n_coordination, size_t n_uc_b, size_t h_shift)
+                 size_t n_coordination, size_t n_uc_b, size_t h_shift,
+                 const std::vector<double>& default_symmetry)
     : n_uc{n_uc},
       n_dim{n_dim},
       n_basis{n_basis},
@@ -33,7 +34,8 @@ bravais::bravais(size_t n_uc, size_t n_dim, size_t n_basis,
                              : n_uc * n_uc_b},
       n_total{n_total_uc * n_basis},
       n_uc_b{n_uc_b == 0 ? n_uc : n_uc_b},
-      h_shift{h_shift} {}
+      h_shift{h_shift},
+      default_symmetry_{default_symmetry} {}
 
 size_t bravais::uc_idx(size_t idx) const { return idx / n_basis; }
 
@@ -62,6 +64,7 @@ size_t bravais::idx(std::vector<size_t>&& idxs, size_t b_idx) const {
 }
 
 size_t bravais::up(size_t uc_idx, size_t dir, size_t step) const {
+    if (step == 0) return uc_idx;
     // Calculate the total index shift.
     size_t shift = static_cast<size_t>(std::pow(n_uc, dir)) * n_uc_b;
     // Get the offset of the last samlle dimension.
@@ -81,6 +84,7 @@ size_t bravais::up(size_t uc_idx, size_t dir, size_t step) const {
     return ret;
 }
 size_t bravais::down(size_t uc_idx, size_t dir, size_t step) const {
+    if (step == 0) return uc_idx;
     // Calculate the total index shift.
     size_t shift = static_cast<size_t>(std::pow(n_uc, dir)) * n_uc_b;
     // Get the offset of the last samlle dimension.
@@ -100,52 +104,87 @@ size_t bravais::down(size_t uc_idx, size_t dir, size_t step) const {
     return ret;
 }
 
-std::vector<std::vector<size_t>> bravais::construct_uc_symmetry() const {
-    std::vector<std::vector<size_t>> ret(n_uc_b * n_uc);
-    for (size_t y = 0; y < n_uc; y++) {
-        for (size_t x = 0; x < n_uc_b; x++) {
-            for (size_t uc = 0; uc < n_total_uc; uc++) {
-                ret[x + y * n_uc_b].push_back(up(up(uc, 0, x), 1, y));
-            }
+std::vector<std::vector<size_t>> bravais::construct_uc_symmetry(
+    const std::vector<double>& symm) const {
+    if (symm.empty()) {
+        std::vector<size_t> ret(n_total_uc);
+        for (size_t i = 0; i < n_total_uc; i++) {
+            ret[i] = i;
         }
+        return {ret};
     }
+    auto x = clean_symms(symm);
+
+    std::vector<std::vector<size_t>> ret;
+
+    auto shift_uc = [&](const std::vector<size_t>& shifts) {
+        std::vector<size_t> r(n_total_uc);
+        for (size_t u = 0; u < n_total_uc; u++) {
+            size_t uc = u;
+            for (size_t i = 0; i < shifts.size(); i++) {
+                uc = up(uc, i, shifts[i]);
+            }
+            r[u] = uc;
+        }
+        ret.push_back(r);
+    };
+
+    std::function<void(size_t, std::vector<size_t>&)> all_dims =
+        [&](size_t d, std::vector<size_t>& shifts) {
+            if (d >= n_dim) {
+                shift_uc(shifts);
+            } else {
+                for (size_t i = 0; i < (d == 0 ? n_uc_b : n_uc); i += x[d]) {
+                    shifts[d] = i;
+                    all_dims(d - 1, shifts);
+                }
+            }
+        };
+
+    std::vector<size_t> shifts(n_dim);
+    all_dims(n_dim - 1, shifts);
+
     return ret;
 }
 
 std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>>
-bravais::construct_symmetry() const {
+bravais::construct_symmetry(const std::vector<double>& symm) const {
     using p_mat = Eigen::PermutationMatrix<Eigen::Dynamic>;
-    std::vector<p_mat> ret(n_total_uc);
+    if (symm.empty()) {
+        p_mat ret(n_total);
+        for (size_t i = 0; i < n_total; i++) {
+            ret.indices()(i) = i;
+        }
+        return {ret};
+    }
+    auto x = clean_symms(symm);
 
     // Permutation function, permutes the indices of a
     // `Eigen::PermutationMatrix` by a respective amount.
     //
-    auto permute = [this](const std::vector<size_t>& ucs, bool s, p_mat& p) {
+    auto permute = [this](const std::vector<size_t>& ucs, p_mat& p) {
         auto& indices = p.indices();
 
         // Iterate over all indices
         for (size_t i = 0; i < n_total; i++) {
             size_t uc = ucs[uc_idx(i)];
 
-            // If s == true do the 180° rotation. otherwise just return the new
-            // site_index
-            if (s) {
-                indices(i) = n_total - 1 - idx(uc, b_idx(i));
-            } else {
-                indices(i) = idx(uc, b_idx(i));
-            }
+            // If s == true do the 180° rotation. otherwise just return the 
+            // ew site_index
+            indices(i) = idx(uc, b_idx(i));
         }
     };
 
     // Iterate over all unitcell positions, i.e. all the symmetry points
-    auto uc_symm = construct_uc_symmetry();
-    for (size_t i = 0; i < n_total_uc; i++) {
+    auto uc_symm = construct_uc_symmetry(symm);
+    std::vector<p_mat> ret(uc_symm.size());
+    for (size_t i = 0; i < uc_symm.size(); i++) {
         size_t id = i;
 
         // Initialize the permutation matrix and get the permutation for
         // the 0th basis.
         ret[id] = p_mat(n_total);
-        permute(uc_symm[i], false, ret[id]);
+        permute(uc_symm[i], ret[id]);
 
         // Initialize the permutation matrix and get the permutation for
         // the 1st basis with the 180 degree rotation.
@@ -153,8 +192,81 @@ bravais::construct_symmetry() const {
     return ret;
 }
 
-std::vector<size_t> bravais::construct_symm_basis() const {
-    std::vector<size_t> ret(n_basis);
-    for (size_t i = 0; i < n_basis; i++) ret[i] = i;
+std::vector<size_t> bravais::construct_symm_basis(
+    const std::vector<double>& symm) const {
+    if (symm.empty()) {
+        std::vector<size_t> ret(n_total);
+        for (size_t i = 0; i < n_total; i++) {
+            ret[i] = i;
+        }
+        return ret;
+    }
+    auto x = clean_symms(symm);
+    std::vector<size_t> ucs;
+
+    std::function<void(size_t, size_t)> get_ucs = [&](size_t d, size_t uc) {
+        if (d >= n_uc) {
+            ucs.push_back(uc);
+        } else {
+            for (size_t i = 0; i < x[d]; i++) {
+                get_ucs(d - 1, up(uc, d, i));
+            }
+        }
+    };
+    get_ucs(n_dim - 1, 0);
+
+    std::vector<size_t> ret;
+    for (auto& uc : ucs) {
+        for (size_t i = 0; i < n_basis; i++) ret.push_back(idx(uc, i));
+    }
     return ret;
+}
+
+size_t bravais::symmetry_size(const std::vector<double>& symm) const {
+    if (symm.empty()) {
+        return 1;
+    }
+    auto x = clean_symms(symm);
+    size_t ret = n_uc_b / x[0];
+    for (size_t i = 1; i < n_dim; i++) {
+        ret *= n_uc / x[i];
+    }
+    return ret;
+}
+
+std::vector<size_t> bravais::clean_symms(
+    const std::vector<double>& symm) const {
+    int factor = 1;
+    for (const auto& s : symm) {
+        if (s < 0)
+            throw std::runtime_error(
+                "Negative Symmetry factors are not allowed!");
+        if (std::abs(factor * s - int(factor * s)) > 1e-14) {
+            double r = factor * s - std::floor(factor * s);
+            factor *= (int)(1 / r);
+        }
+    }
+    std::vector<size_t> x(n_dim);
+
+    if (symm.size() != 1 && symm.size() != n_dim) {
+        throw std::runtime_error(
+            "Symmetry factor sizes incompatible with lattice dimensions.");
+    }
+
+    for (size_t i = 0; i < symm.size(); i++) {
+        x[i] = int(factor * symm[i]);
+        if (x[i] == 0) x[i] = (i == 0 ? n_uc_b : n_uc);
+        if ((i == 0 && n_uc_b % x[i] != 0) || (i > 0 && n_uc % x[i] != 0)) {
+            throw std::runtime_error("Symmetry factor " + std::to_string(x[i]) +
+                                     " in direction " + std::to_string(i) +
+                                     " invalid!");
+        }
+    }
+
+    if (symm.size() == 1) {
+        for (size_t i = 1; i < n_dim; i++) {
+            x[i] = x[0];
+        }
+    }
+    return x;
 }
