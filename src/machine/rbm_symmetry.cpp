@@ -23,6 +23,7 @@
 //
 #include <machine/rbm_symmetry.hpp>
 #include <math.hpp>
+#include <tools/state.hpp>
 #include <tools/time_keeper.hpp>
 
 using namespace machine;
@@ -51,9 +52,9 @@ rbm_context rbm_symmetry::get_context(const Eigen::MatrixXcd& state) const {
         for (auto& c : correlators_) c->add_thetas(state, ret, s);
     }
     if (pfaffian_) {
-        return {ret, pfaffian_->get_context(state), cosh_mode_};
+        return {ret, pfaffian_->get_context(state)};
     } else {
-        return {ret, cosh_mode_};
+        return {ret};
     }
 }
 
@@ -87,7 +88,6 @@ void rbm_symmetry::update_context(const Eigen::MatrixXcd& state,
     if (pfaffian_) {
         pfaffian_->update_context(state, flips, context.pfaff());
     }
-    context.updated_thetas();
 }
 
 Eigen::MatrixXcd rbm_symmetry::derivative(const Eigen::MatrixXcd& state,
@@ -113,6 +113,8 @@ Eigen::MatrixXcd rbm_symmetry::derivative(const Eigen::MatrixXcd& state,
 
     size_t offset = n_params_;
     for (auto& c : correlators_) c->derivative(state, tanh, result, offset);
+    if (pfaffian_)
+        pfaffian_->derivative(state, context.pfaff(), result, offset);
     return result;
 }
 
@@ -135,7 +137,7 @@ std::complex<double> rbm_symmetry::psi_notheta(
 
 std::complex<double> rbm_symmetry::log_psi_over_psi(
     const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    rbm_context& context, rbm_context& updated_context) const {
+    rbm_context& context, rbm_context& updated_context) {
     if (flips.empty()) return 0.;
 
     // Just adjusted for the single v_bias
@@ -151,7 +153,10 @@ std::complex<double> rbm_symmetry::log_psi_over_psi(
     // Same as base class
     update_context(state, flips, updated_context);
 
-    ret += (updated_context.lncoshthetas() - context.lncoshthetas()).sum();
+    size_t num = tools::state_to_num(state);
+    size_t num2 = num;
+    for (auto& f : flips) num2 ^= (1 << f);
+    ret += lncosh(updated_context, num2) - lncosh(context, num);
     // ret += std::log(
     //     (updated_context.thetas.array().cosh() /
     //     context.thetas.array().cosh())
@@ -162,7 +167,7 @@ std::complex<double> rbm_symmetry::log_psi_over_psi(
 
 std::complex<double> rbm_symmetry::psi_over_psi_alt(
     const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    rbm_context& context, rbm_context& updated_context) const {
+    rbm_context& context, rbm_context& updated_context) {
     if (flips.empty()) return 1.;
 
     // Just adjusted for the single v_bias
@@ -178,9 +183,12 @@ std::complex<double> rbm_symmetry::psi_over_psi_alt(
     // Same as base class
     update_context(state, flips, updated_context);
 
+    size_t num = tools::state_to_num(state);
+    size_t num2 = num;
+    for (auto& f : flips) num2 ^= (1 << f);
+    ret *= cosh(updated_context, num2) / cosh(context, num);
     // ret *= (updated_context.thetas.array().cosh() /
     // context.thetas.array().cosh()).prod();
 
-    ret *= (updated_context.coshthetas() / context.coshthetas()).prod();
     return ret;
 }

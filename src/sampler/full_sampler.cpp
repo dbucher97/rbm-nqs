@@ -31,8 +31,8 @@
 using namespace sampler;
 
 full_sampler::full_sampler(machine::abstract_machine& rbm_, size_t bp,
-                           int pfaff_refresh)
-    : Base{rbm_, (size_t)(1 << rbm_.n_visible), pfaff_refresh},
+                           int pfaff_refresh, int lut_exchange)
+    : Base{rbm_, (size_t)(1 << rbm_.n_visible), pfaff_refresh, lut_exchange},
       bits_parallel_{bp} {}
 
 void full_sampler::sample(bool keep_state) {
@@ -130,6 +130,8 @@ void full_sampler::sample(bool keep_state) {
                 rbm_.update_context(state, {flip}, context);
                 pfaffian_refresh(state, context.pfaff(), i, {flip});
                 state(flip) *= -1;
+
+                exchange_luts(i);
             }
             // std::cout <<
             // "==================================================="

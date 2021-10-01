@@ -68,11 +68,11 @@ class rbm_symmetry : public rbm_base {
 
     virtual std::complex<double> log_psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        rbm_context& context, rbm_context& updated_context) const override;
+        rbm_context& context, rbm_context& updated_context) override;
 
     virtual std::complex<double> psi_over_psi_alt(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        rbm_context& context, rbm_context& updated_context) const override;
+        rbm_context& context, rbm_context& updated_context) override;
 };
 
 }  // namespace machine

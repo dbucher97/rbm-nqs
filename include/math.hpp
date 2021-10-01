@@ -81,19 +81,18 @@ namespace math {
  * @return MatrixXcd result.
  */
 
-extern void lncosh(const Eigen::MatrixXcd& x, Eigen::ArrayXXcd& res);
+extern std::complex<double> lncosh(const Eigen::MatrixXcd& x);
 
-extern inline void cosh2(const Eigen::MatrixXcd& x, Eigen::ArrayXXcd& res) {
-    res = x.array().pow(2.);
+extern inline std::complex<double> cosh2(const Eigen::MatrixXcd& x) {
+    return (x.array().pow(2.) * 0.5 + 1.).prod();
 }
 
 extern inline void tanh2(const Eigen::MatrixXcd& x, Eigen::ArrayXXcd& res) {
-    cosh2(x, res);
-    res = x.array() / res;
+    res = x.array() / (x.array().pow(2) * 0.5 + 1.);
 }
 
-extern inline void cosh1(const Eigen::MatrixXcd& x, Eigen::ArrayXXcd& res) {
-    res = x.array().cosh();
+extern inline std::complex<double> cosh1(const Eigen::MatrixXcd& x) {
+    return x.array().cosh().prod();
 }
 
 extern inline void tanh1(const Eigen::MatrixXcd& x, Eigen::ArrayXXcd& res) {

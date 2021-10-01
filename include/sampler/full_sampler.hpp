@@ -55,7 +55,7 @@ class full_sampler : public abstract_sampler {
      * @param bits_parallel Number of parallel bits.
      */
     full_sampler(machine::abstract_machine&, size_t bits_parallel,
-                 int pfaff_refresh = 0);
+                 int pfaff_refresh = 0, int lut_exchange = 0);
 
     virtual void sample() override { sample(false); };
 

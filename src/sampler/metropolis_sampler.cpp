@@ -37,8 +37,8 @@ metropolis_sampler::metropolis_sampler(machine::abstract_machine& rbm,
                                        size_t n_samples, std::mt19937& rng,
                                        size_t n_chains, size_t step_size,
                                        size_t warmup_steps, double bond_flips,
-                                       int refresh)
-    : Base{rbm, n_samples, refresh},
+                                       int refresh, int lut_exchange)
+    : Base{rbm, n_samples, refresh, lut_exchange},
       rng_{rng},
       n_chains_{n_chains},
       step_size_{step_size},
@@ -108,6 +108,25 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
         state(i) = u_dist_(rng_) < 0.5 ? 1. : -1.;
         ups += (state(i) == 1.);
     }
+
+    if (ini::lattice_type == "hex") {
+        if (u_dist_(rng_) < 0.5) {
+            std::complex<double> r = (u_dist_(rng_) < 0.5 ? -1. : 1.);
+            state.setConstant(-r);
+            auto& lat = rbm_.get_lattice();
+            size_t s = 0;
+            state(s) = r;
+            s = lat.nns(s)[0];
+            while (s != 0) {
+                state(s) = r;
+                if (lat.b_idx(s) == 0) {
+                    s = lat.nns(s)[0];
+                } else {
+                    s = lat.nns(s)[1];
+                }
+            }
+        }
+    }
     // if (ups % 2 == 1) {
     //     state(0) *= -1;
     // }
@@ -159,6 +178,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
         //     context)
         //               << ", " << rbm_.psi(state2, c2) << std::endl;
         // }
+        //
 
         // Accept new configuration with given probability
         if (u_dist_(rng_) < acc) {
@@ -185,6 +205,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
         }
 
         time_keeper::end("Metropolis step");
+        exchange_luts(step);
 
         // If a sample is required
         if ((step >= warmup_steps_) &&

@@ -203,14 +203,16 @@ int init_sampler(std::unique_ptr<sampler::abstract_sampler>& sampler,
     switch (ini::sa_type) {
         case ini::sampler_t::FULL:
             sampler = std::make_unique<sampler::full_sampler>(
-                *rbm, ini::sa_full_n_parallel_bits, ini::sa_pfaffian_refresh);
+                *rbm, ini::sa_full_n_parallel_bits, ini::sa_pfaffian_refresh,
+                ini::sa_lut_exchange);
             break;
         case ini::sampler_t::METROPOLIS:
             sampler = std::make_unique<sampler::metropolis_sampler>(
                 *rbm, ini::sa_n_samples, rng, ini::sa_metropolis_n_chains,
                 ini::sa_metropolis_n_steps_per_sample,
                 ini::sa_metropolis_n_warmup_steps,
-                ini::sa_metropolis_bond_flips, ini::sa_pfaffian_refresh);
+                ini::sa_metropolis_bond_flips, ini::sa_pfaffian_refresh,
+                ini::sa_lut_exchange);
             break;
         default:
             return 4;

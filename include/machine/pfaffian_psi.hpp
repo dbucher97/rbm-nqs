@@ -38,7 +38,7 @@ class pfaffian_psi : public abstract_machine {
 
     virtual inline rbm_context get_context(
         const Eigen::MatrixXcd& state) const override {
-        return {Eigen::MatrixXcd::Zero(1, 1), pfaffian_->get_context(state), 0};
+        return {Eigen::MatrixXcd::Zero(1, 1), pfaffian_->get_context(state)};
     }
 
     virtual inline Eigen::MatrixXcd derivative(
@@ -62,14 +62,14 @@ class pfaffian_psi : public abstract_machine {
         pfaffian_->update_context(state, flips, context.pfaff());
     }
 
-    virtual inline std::complex<double> psi(
-        const Eigen::MatrixXcd& state, rbm_context& context) const override {
+    virtual inline std::complex<double> psi(const Eigen::MatrixXcd& state,
+                                            rbm_context& context) override {
         return pfaffian_->psi(state, context.pfaff());
     }
 
     virtual inline std::complex<double> psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        rbm_context& context, rbm_context& updated_context) const override {
+        rbm_context& context, rbm_context& updated_context) override {
         update_context(state, flips, updated_context);
         return pfaffian_->psi_over_psi(state, flips, context.pfaff(),
                                        updated_context.pfaff());

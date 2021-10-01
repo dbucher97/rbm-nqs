@@ -15,6 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.  *
  */
 
+#include <limits.h>
+#include <mpi.h>
+
 #include <cmath>
 #include <complex>
 #include <fstream>
@@ -25,6 +28,7 @@
 #include <math.hpp>
 #include <tools/eigen_fstream.hpp>
 #include <tools/mpi.hpp>
+#include <tools/state.hpp>
 #include <tools/time_keeper.hpp>
 
 using namespace machine;
@@ -40,8 +44,9 @@ rbm_base::rbm_base(size_t n_alpha, size_t n_v_bias, lattice::bravais& l,
       psi_over_psi_{pop_mode == 0 ? &rbm_base::psi_over_psi_default
                                   : &rbm_base::psi_over_psi_alt},
       cosh_mode_{cosh_mode},
-      cosh_{(pop_mode == 0 || cosh_mode == 0) ? &math::cosh1 : &math::cosh2},
-      tanh_{(pop_mode == 0 || cosh_mode == 0) ? &math::tanh1 : &math::tanh2} {}
+      cosh_{(cosh_mode == 0) ? &math::cosh1 : &math::cosh2},
+      lncosh_{&math::lncosh},
+      tanh_{(cosh_mode != 0) ? &math::tanh1 : &math::tanh2} {}
 
 rbm_base::rbm_base(size_t n_alpha, lattice::bravais& l, size_t pop_mode,
                    size_t cosh_mode)
@@ -91,6 +96,8 @@ void rbm_base::initialize_weights(std::mt19937& rng, double std_dev,
         c->initialize_weights(rng, std_dev, std_dev_imag);
 }
 
+int g_lut = 0, g_tot = 0;
+
 void rbm_base::update_weights(const Eigen::MatrixXcd& dw) {
     // Update the weights with the `dw` of size `n_params`
     v_bias_ -= dw.block(0, 0, n_vb_, 1);
@@ -109,11 +116,18 @@ void rbm_base::update_weights(const Eigen::MatrixXcd& dw) {
 
     // Increment updates tracker.
     n_updates_++;
+    lut_.clear();
+    lut_update_nums_.clear();
+    lut_update_vals_.clear();
+    // mpi::cout << "\n" << (double)g_lut / (double)g_tot << mpi::endl;
+    g_lut = 0;
+    g_tot = 0;
 }
 
-std::complex<double> rbm_base::psi_over_psi(
-    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    rbm_context& context, rbm_context& updated_context) const {
+std::complex<double> rbm_base::psi_over_psi(const Eigen::MatrixXcd& state,
+                                            const std::vector<size_t>& flips,
+                                            rbm_context& context,
+                                            rbm_context& updated_context) {
     time_keeper::start("PoP");
     std::complex<double> ret =
         (this->*psi_over_psi_)(state, flips, context, updated_context);
@@ -131,9 +145,9 @@ rbm_context rbm_base::get_context(const Eigen::MatrixXcd& state) const {
         (state.transpose() * weights_).transpose() + h_bias_;
     for (auto& c : correlators_) c->add_thetas(state, thetas);
     if (pfaffian_) {
-        return {thetas, pfaffian_->get_context(state), cosh_mode_};
+        return {thetas, pfaffian_->get_context(state)};
     } else {
-        return {thetas, cosh_mode_};
+        return {thetas};
     }
 }
 
@@ -155,7 +169,6 @@ void rbm_base::update_context(const Eigen::MatrixXcd& state,
     if (pfaffian_) {
         pfaffian_->update_context(state, flips, context.pfaff());
     }
-    context.updated_thetas();
 }
 
 Eigen::MatrixXcd rbm_base::derivative(const Eigen::MatrixXcd& state,
@@ -258,16 +271,17 @@ std::complex<double> rbm_base::psi_notheta(
 }
 
 std::complex<double> rbm_base::psi_default(const Eigen::MatrixXcd& state,
-                                           rbm_context& context) const {
+                                           rbm_context& context) {
     // Calculate the \psi with `thetas`
-    std::complex<double> cosh_part = context.coshthetas().prod();
+    size_t num = tools::state_to_num(state);
+    std::complex<double> cosh_part = cosh(context, num);
     for (auto& c : correlators_) c->psi(state, cosh_part);
     return psi_notheta(state) * cosh_part;
 }
 
 std::complex<double> rbm_base::log_psi_over_psi(
     const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    rbm_context& context, rbm_context& updated_context) const {
+    rbm_context& context, rbm_context& updated_context) {
     if (flips.empty()) return 0.;
 
     std::complex<double> ret = 0;
@@ -286,14 +300,19 @@ std::complex<double> rbm_base::log_psi_over_psi(
     // Caclulate the diffrenece of the lncoshs, which is the same as the log
     // of the ratio of coshes.
     // ret += math::lncoshdiff(updated_context.thetas, context.thetas);
-    ret += (updated_context.lncoshthetas() - context.lncoshthetas()).sum();
+
+    size_t num = tools::state_to_num(state);
+    size_t num2 = num;
+    for (auto& f : flips) num2 ^= (1 << f);
+
+    ret *= lncosh(updated_context, num2) - lncosh(context, num);
 
     return ret;
 }
 
 std::complex<double> rbm_base::psi_over_psi_alt(
     const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    rbm_context& context, rbm_context& updated_context) const {
+    rbm_context& context, rbm_context& updated_context) {
     if (flips.empty()) return 1.;
 
     std::complex<double> ret = 1;
@@ -308,7 +327,67 @@ std::complex<double> rbm_base::psi_over_psi_alt(
     // Update the thetas with the flips
     update_context(state, flips, updated_context);
 
-    ret *= (updated_context.coshthetas() / context.coshthetas()).prod();
+    size_t num = tools::state_to_num(state);
+    size_t num2 = num;
+    for (auto& f : flips) num2 ^= (1 << f);
+
+    ret *= cosh(updated_context, num2) / cosh(context, num);
 
     return ret;
+}
+
+#define COSH_LUT(func)                                   \
+    g_tot++;                                             \
+    if (lut_.find(statenum) != lut_.end()) {             \
+        g_lut++;                                         \
+        return lut_[statenum];                           \
+    } else {                                             \
+        std::complex<double> ret = func(context.thetas); \
+        /*lut_update_nums_.push_back(statenum);*/        \
+        /*lut_update_vals_.push_back(ret);       */      \
+        lut_[statenum] = ret;                            \
+        return ret;                                      \
+    }
+
+std::complex<double> rbm_base::cosh(rbm_context& context, size_t statenum) {
+    if (cosh_mode_ == 2) return std::exp(lncosh(context, statenum));
+    COSH_LUT(cosh_);
+}
+std::complex<double> rbm_base::lncosh(rbm_context& context, size_t statenum) {
+    if (cosh_mode_ != 2) return std::log(cosh(context, statenum));
+    COSH_LUT(lncosh_);
+}
+
+#undef COSH_LUT
+
+void rbm_base::exchange_luts() {
+    std::vector<int> update_sizes(mpi::n_proc);
+    std::vector<int> starts(mpi::n_proc);
+    int m_size = lut_update_nums_.size();
+    MPI_Allgather(&m_size, 1, MPI_INT, &update_sizes[0], 1, MPI_INT,
+                  MPI_COMM_WORLD);
+    int total = 0;
+    for (int i = 0; i < mpi::n_proc; i++) {
+        starts[i] = total;
+        total += update_sizes[i];
+    }
+    std::vector<size_t> all_update_nums(total);
+    std::vector<std::complex<double>> all_update_vals(total);
+    MPI_Allgatherv(&lut_update_nums_[0], m_size, MPI_UNSIGNED_LONG,
+                   &all_update_nums[0], &update_sizes[0], &starts[0],
+                   MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+    MPI_Allgatherv(&lut_update_vals_[0], m_size, MPI_DOUBLE_COMPLEX,
+                   &all_update_vals[0], &update_sizes[0], &starts[0],
+                   MPI_DOUBLE_COMPLEX, MPI_COMM_WORLD);
+    lut_update_nums_.clear();
+    lut_update_vals_.clear();
+
+    for (int i = 0; i < mpi::n_proc; i++) {
+        if (i != mpi::rank) {
+            int stop = (i == mpi::n_proc - 1) ? total : starts[i + 1];
+            for (int j = starts[i]; j < stop; j++) {
+                lut_[all_update_nums[j]] = all_update_vals[j];
+            }
+        }
+    }
 }

@@ -76,7 +76,8 @@ class metropolis_sampler : public abstract_sampler {
     metropolis_sampler(machine::abstract_machine& rbm, size_t n_samples,
                        std::mt19937& rng, size_t n_chains = 1,
                        size_t step_size = 5, size_t warmup_steps = 100,
-                       double bond_flips = 0.5, int refresh = 0);
+                       double bond_flips = 0.5, int refresh = 0,
+                       int lut_exchange = 0);
 
     virtual void sample() override;
 

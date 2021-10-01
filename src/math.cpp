@@ -24,16 +24,17 @@
 #endif
 
 #include <omp.h>
+
 #include <iostream>
 //
 #include <math.hpp>
 
 using namespace math;
 
-void math::lncosh(const Eigen::MatrixXcd& x, Eigen::ArrayXXcd& res) {
+std::complex<double> math::lncosh(const Eigen::MatrixXcd& x) {
     double reabs, lncoshre, sinim, cosim;
     const std::complex<double>* xd = x.data();
-    std::complex<double>* rd = res.data();
+    std::complex<double> ret = 0;
 
     /*int n_chunks = 1; //omp_get_max_threads();
     int chunk_size = x.size(); // / n_chunks;
@@ -43,20 +44,21 @@ void math::lncosh(const Eigen::MatrixXcd& x, Eigen::ArrayXXcd& res) {
         int end = (j + 1) * chunk_size;
         if(j == n_chunks - 1)
             end = x.size(); */
-        for (int i = 0; i < x.size(); i++) {
-            reabs = std::abs(std::real(xd[i]));
+    for (int i = 0; i < x.size(); i++) {
+        reabs = std::abs(std::real(xd[i]));
 
-            lncoshre = reabs - M_LN2;
-            reabs = std::exp(-2. * reabs);
+        lncoshre = reabs - M_LN2;
+        reabs = std::exp(-2. * reabs);
 
-            lncoshre += LOG1P(reabs);
-            sinim = std::sin(std::imag(xd[i]));
-            cosim = std::cos(std::imag(xd[i]));
-            sinim *= std::copysign((1. - reabs) / (1. + reabs), std::real(xd[i]));
+        lncoshre += LOG1P(reabs);
+        sinim = std::sin(std::imag(xd[i]));
+        cosim = std::cos(std::imag(xd[i]));
+        sinim *= std::copysign((1. - reabs) / (1. + reabs), std::real(xd[i]));
 
-           
-            lncoshre += 0.5 * std::log(std::pow(sinim, 2.) + std::pow(cosim, 2.));
-            rd[i] = std::complex<double>(lncoshre, std::atan2(sinim, cosim));
-        }
+        lncoshre += 0.5 * std::log(std::pow(sinim, 2.) + std::pow(cosim, 2.));
+        ret += std::complex<double>(lncoshre, std::atan2(sinim, cosim));
+    }
+
     //}
+    return ret;
 }

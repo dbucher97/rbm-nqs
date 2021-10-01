@@ -22,11 +22,17 @@
 #include <sampler/abstract_sampler.hpp>
 #include <tools/time_keeper.hpp>
 
+#include "mpi.h"
+
 using namespace sampler;
 
 abstract_sampler::abstract_sampler(machine::abstract_machine& rbm,
-                                   size_t n_samples, int pfaff_refresh)
-    : rbm_{rbm}, n_samples_{n_samples}, pfaff_refresh_(pfaff_refresh) {}
+                                   size_t n_samples, int pfaff_refresh,
+                                   int lut_exchange)
+    : rbm_{rbm},
+      n_samples_{n_samples},
+      pfaff_refresh_(pfaff_refresh),
+      lut_exchange_{lut_exchange} {}
 
 void abstract_sampler::register_ops(
     const std::vector<operators::base_op*>& ops) {
@@ -99,4 +105,15 @@ bool abstract_sampler::pfaffian_refresh(
         return true;
     }
     return false;
+}
+
+void abstract_sampler::exchange_luts(int i) const {
+    if (lut_exchange_ && i > 0 && i % lut_exchange_ == 0) {
+        time_keeper::start("LUT Barrier");
+        MPI_Barrier(MPI_COMM_WORLD);
+        time_keeper::end("LUT Barrier");
+        time_keeper::start("LUT Exchange");
+        rbm_.exchange_luts();
+        time_keeper::end("LUT Exchange");
+    }
 }

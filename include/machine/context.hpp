@@ -21,6 +21,7 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <memory>
+#include <unordered_map>
 
 namespace machine {
 
@@ -44,27 +45,12 @@ struct pfaff_context {
 struct rbm_context {
     Eigen::MatrixXcd thetas;
 
-   private:
-    bool did_coshthetas_ = false;
-    Eigen::ArrayXXcd coshthetas_;
-    bool did_lncoshthetas_ = false;
-    Eigen::ArrayXXcd lncoshthetas_;
-
-    std::function<void(const Eigen::MatrixXcd&, Eigen::ArrayXXcd&)> cosh_;
-    std::function<void(const Eigen::MatrixXcd&, Eigen::ArrayXXcd&)> lncosh_;
-
-    size_t cosh_mode_;
-
-    void init_cosh_funcs();
-
    public:
     rbm_context() {}
 
-    rbm_context(const Eigen::MatrixXcd& thetas, size_t cosh_mode);
-    rbm_context(const Eigen::MatrixXcd& thetas, const pfaff_context& other,
-                size_t cosh_mode);
-    rbm_context(const Eigen::MatrixXcd& thetas, pfaff_context&& other,
-                size_t cosh_mode);
+    rbm_context(const Eigen::MatrixXcd& thetas);
+    rbm_context(const Eigen::MatrixXcd& thetas, const pfaff_context& other);
+    rbm_context(const Eigen::MatrixXcd& thetas, pfaff_context&& other);
 
     rbm_context(const rbm_context& other);
 
@@ -74,13 +60,6 @@ struct rbm_context {
     pfaff_context& pfaff();
 
     const pfaff_context& pfaff() const;
-
-    inline Eigen::ArrayXXcd lncosh_default(const Eigen::MatrixXcd&);
-
-    Eigen::ArrayXXcd& coshthetas();
-    Eigen::ArrayXXcd& lncoshthetas();
-
-    void updated_thetas();
 
    private:
     std::unique_ptr<pfaff_context> pfaff_;

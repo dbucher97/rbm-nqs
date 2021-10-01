@@ -34,7 +34,7 @@ class file_psi : public abstract_machine {
 
     virtual rbm_context get_context(
         const Eigen::MatrixXcd& state) const override {
-        return {Eigen::MatrixXcd::Zero(1, 1), 0};
+        return {Eigen::MatrixXcd::Zero(1, 1)};
     }
 
     virtual Eigen::MatrixXcd derivative(const Eigen::MatrixXcd&,
@@ -47,10 +47,10 @@ class file_psi : public abstract_machine {
                                 rbm_context& thetas) const override {}
 
     virtual std::complex<double> psi(const Eigen::MatrixXcd& state,
-                                     rbm_context& context) const override;
+                                     rbm_context& context) override;
     virtual std::complex<double> psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        rbm_context& context, rbm_context& updated_context) const override;
+        rbm_context& context, rbm_context& updated_context) override;
 };
 
 }  // namespace machine
