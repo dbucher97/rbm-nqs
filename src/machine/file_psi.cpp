@@ -36,6 +36,8 @@ file_psi::file_psi(lattice::bravais& lattice, const std::string& filename)
         state_vec_(c) = line;
         c++;
     }
+    std::cout << filename << std::endl;
+    std::cout << c << std::endl;
     if (c != (size_t)state_vec_.size())
         throw std::runtime_error("File " + filename + " has wrong size!");
     std::cout << "Loaded state vec with norm: "
