@@ -17,6 +17,11 @@ if [ "$1" == "-n" ]; then
   force=""
   shift
 fi
+rand="--seed=$RANDOM"
+if [ "$1" == "-r" ]; then
+  rand=""
+  shift
+fi
 
 tasks=`awk -F= -v key="#TASKS" '$1==key {print $2}' "$ini"`
 cluster=`awk -F= -v key="#CLUSTER" '$1==key {print $2}' "$ini"`
@@ -37,7 +42,7 @@ fi
 #   threads=28
 # fi
 if [ -z $name ]; then
-  name=nonamae
+  name=noname
 fi
 
 addstr=""
@@ -68,6 +73,6 @@ source load_modules.sh
 
 echo \"\$SLURM_JOB_ID $name\" >> ./tasks.log
 
-mpiexec -n $tasks rbm -i $ini $force -P --train --evaluate --name=$name --sampler.metropolis.n_chains=$tasks --seed=$RANDOM $@"
+mpiexec -n $tasks rbm -i $ini $force -P --train --evaluate --name=$name $r $@"
 
 echo "$sub"
