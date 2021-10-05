@@ -59,7 +59,7 @@ stochastic_reconfiguration::stochastic_reconfiguration(
             rbm_.get_n_params(), sampler.get_n_samples(),
             sampler.get_my_n_samples(), rbm_.get_n_neural_params(),
             max_iterations, rtol);
-    } else if (method == "cg" || method == "minres") {
+    } else if (method == "cg" || method == "minres" || method == "cg-single") {
         solver_ = std::make_unique<cg_solver>(
             rbm_.get_n_params(), sampler.get_n_samples(),
             rbm_.get_n_neural_params(), max_iterations, rtol, method);
