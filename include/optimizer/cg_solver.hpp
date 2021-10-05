@@ -22,7 +22,7 @@
 
 namespace optimizer {
 
-enum cg_method { CG, MINRES };
+enum cg_method { CG, MINRES, CG_SINGLE };
 
 class cg_solver : public abstract_solver {
     using Base = abstract_solver;
@@ -44,6 +44,10 @@ class cg_solver : public abstract_solver {
     void cg1(const std::function<void(const Eigen::VectorXcd&,
                                       Eigen::VectorXcd&)>& Aprod,
              const Eigen::VectorXcd& b, Eigen::VectorXcd& x);
+
+    void cg_single(const std::function<void(const Eigen::VectorXcd&,
+                                            Eigen::VectorXcd&)>& Aprod,
+                   const Eigen::VectorXcd& b, Eigen::VectorXcd& x);
 
     // void cg(const std::function<void(const Eigen::VectorXcd&,
     //                                  Eigen::VectorXcd&)>& Aprod,
