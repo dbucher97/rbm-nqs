@@ -35,6 +35,10 @@ INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 CPPFLAGS += $(INC_FLAGS) $(MKL_INC) -MMD -MP -Wall -std=c++14 -O3 -march=native
 CPPFLAGS += -DITERATIVE_USE_MKL
 
+IPO = -ipo
+CPPFLAGS += $(IPO)
+LDFLAGS += $(IPO)
+
 OMP = -fopenmp
 # USE MPI
 MPI = $(shell mpiCC -show | cut -d' ' -f2-)
@@ -59,7 +63,7 @@ CPPFLAGS += -diag-disable 858
 LDFLAGS += -lifcore -lifcoremt
 endif
 
-LDFLAGS += $(MKL_LIB) 
+LDFLAGS += $(MKL_LIB)
 
 TEST_LDFLAGS = libgtest.a libgtest_main.a
 TEST_LDFLAGS := $(addprefix $(HOME)/googletest/build/lib/,$(TEST_LDFLAGS))

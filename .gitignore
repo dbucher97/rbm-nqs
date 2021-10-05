@@ -15,6 +15,7 @@ tsf-out/
 dist/
 __pycache__/
 dist/
+compile_commands.json
 
 notebooks/Plots/
 

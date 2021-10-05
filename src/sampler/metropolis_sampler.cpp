@@ -109,24 +109,24 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
         ups += (state(i) == 1.);
     }
 
-    if (ini::lattice_type == "hex") {
-        if (u_dist_(rng_) < 0.5) {
-            std::complex<double> r = (u_dist_(rng_) < 0.5 ? -1. : 1.);
-            state.setConstant(-r);
-            auto& lat = rbm_.get_lattice();
-            size_t s = 0;
-            state(s) = r;
-            s = lat.nns(s)[0];
-            while (s != 0) {
-                state(s) = r;
-                if (lat.b_idx(s) == 0) {
-                    s = lat.nns(s)[0];
-                } else {
-                    s = lat.nns(s)[1];
-                }
-            }
-        }
-    }
+//     if (ini::lattice_type == "hex") {
+//         if (u_dist_(rng_) < 0.5) {
+//             std::complex<double> r = (u_dist_(rng_) < 0.5 ? -1. : 1.);
+//             state.setConstant(-r);
+//             auto& lat = rbm_.get_lattice();
+//             size_t s = 0;
+//             state(s) = r;
+//             s = lat.nns(s)[0];
+//             while (s != 0) {
+//                 state(s) = r;
+//                 if (lat.b_idx(s) == 0) {
+//                     s = lat.nns(s)[0];
+//                 } else {
+//                     s = lat.nns(s)[1];
+//                 }
+//             }
+//         }
+//     }
     // if (ups % 2 == 1) {
     //     state(0) *= -1;
     // }
