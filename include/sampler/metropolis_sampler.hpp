@@ -20,6 +20,7 @@
 #include <Eigen/Dense>
 #include <complex>
 #include <random>
+#include <unordered_map>
 #include <vector>
 //
 #include <machine/abstract_machine.hpp>
@@ -39,8 +40,9 @@ class metropolis_sampler : public abstract_sampler {
     std::mt19937& rng_;  ///< Referenec to the RNG;
 
     size_t n_chains_;      ///< Number of chains.
-    size_t step_size_;     ///< The steps taken between two samples
-    size_t warmup_steps_;  ///< The number of steps in the beginning before
+    size_t step_size_;     ///< The sweeps taken between two samples
+    size_t n_sweeps_;      ///< The sweeps taken between two samples
+    size_t warmup_steps_;  ///< The number of sweeps in the beginning before
                            ///< sampling.
     double bond_flips_;    ///< use bond flip for update proposal.
 
@@ -51,6 +53,9 @@ class metropolis_sampler : public abstract_sampler {
 
     std::uniform_real_distribution<double> u_dist_{
         0, 1};  ///< Uniform distribution for accepting a new state.
+
+    std::unordered_map<size_t, size_t> n_lut_;
+    std::vector<size_t> sampled_;
 
     /**
      * @brief Sample a Markov chain.

@@ -20,6 +20,10 @@ import argparse
 import numpy as np
 import threading
 
+plt.rcParams.update({
+    "text.usetex": False,
+    })
+
 
 def parse_line(line):
     try:

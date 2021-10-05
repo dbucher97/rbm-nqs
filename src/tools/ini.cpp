@@ -42,6 +42,7 @@ std::string ini_file = "";
 bool train = false;
 bool evaluate = false;
 bool store_state = false;
+bool store_samples = false;
 bool noprogress = false;
 bool print_bonds = false;
 int seed_search = 0;
@@ -149,7 +150,8 @@ int ini::load(int argc, char* argv[]) {
     ("help,h",                                "produce help message")
     ("train",                                 po::bool_switch(&train),                      "train the RBM")
     ("evaluate",                              po::bool_switch(&evaluate),                   "evaluate results of the RBM")
-    ("store_state",                           po::bool_switch(&store_state),                "stores the state into a plain text file 'name.state'")
+    ("store_state",                           po::bool_switch(&store_state),                "stores the state into a file 'name.state'")
+    ("store_samples",                         po::bool_switch(&store_samples),              "stores the samples into a plain text file 'name.samples'")
     ("print_bonds",                           po::bool_switch(&print_bonds),                "print the bonds of the current model and exit")
     ("seed",                                  po::value(&seed),                             "seed of the rng")
     ("infile,i",                              po::value<std::string>(),                     "ini file for params")

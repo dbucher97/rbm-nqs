@@ -51,6 +51,7 @@
 #include <model/kitaev.hpp>
 #include <model/kitaevS3.hpp>
 #include <model/toric.hpp>
+#include <operators/store_state.hpp>
 #include <optimizer/abstract_optimizer.hpp>
 #include <optimizer/gradient_descent.hpp>
 #include <optimizer/plugin.hpp>
@@ -277,6 +278,12 @@ void store_state(std::unique_ptr<model::abstract_model>& model,
     sampler.sample(true);
 }
 
+void store_samples(std::unique_ptr<sampler::abstract_sampler>& sampler) {
+    operators::store_state ss{ini::name + ".samples"};
+    sampler->register_op(&ss);
+    sampler->sample();
+}
+
 void debug_() {
     lattice::honeycomb_hex l(2);
     std::vector<double> symm = {2};
@@ -423,6 +430,12 @@ int main(int argc, char* argv[]) {
         if (ini::train) {
             rc |= init_optimizer(optimizer, model, rbm, sampler);
         }
+    }
+
+    if (ini::store_samples) {
+        store_samples(sampler);
+        mpi::end();
+        return 0;
     }
 
     // if (mpi::master) {

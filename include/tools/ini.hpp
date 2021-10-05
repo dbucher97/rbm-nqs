@@ -161,6 +161,7 @@ extern std::string ini_file;
 extern bool train;
 extern bool evaluate;
 extern bool store_state;
+extern bool store_samples;
 extern bool print_bonds;
 extern bool noprogress;
 extern int seed_search;
