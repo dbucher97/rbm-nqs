@@ -6,7 +6,7 @@ SRC_DIRS ?= src
 TEST_DIR ?= test
 INC_DIRS ?= include
 
-MAT_BACKEND ?= EIGEN
+MAT_BACKEND ?= BLAS
 
 # PFAPACK
 INC_DIRS += lib/pfapack/c_interface

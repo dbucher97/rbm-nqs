@@ -30,7 +30,7 @@
 using namespace optimizer;
 
 cg_method get_method(const std::string& s, size_t n, size_t m, size_t t) {
-    if (s == "minres") {
+    if (s == "cg" || s == "minres") {
         // MINRES NOT YET IMPLEMENTED
         // Used here to go directly to distributed CG
         return CG;
@@ -39,6 +39,9 @@ cg_method get_method(const std::string& s, size_t n, size_t m, size_t t) {
     } else {
         size_t flops_single = 2 * n * n * (m + t) - n * (n + t);
         size_t flops_dist = 4 * n * m * t - t * (m + n);
+        mpi::cout << "using CG method: ";
+        mpi::cout << (flops_dist < flops_single ? "CG" : "CG_SINGLE")
+                  << mpi::endl;
         return (flops_dist < flops_single ? CG : CG_SINGLE);
     }
 }
