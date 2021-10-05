@@ -32,9 +32,18 @@ using namespace optimizer;
 cg_solver::cg_solver(size_t n, size_t m, size_t n_neural, size_t max_iterations,
                      double rtol, const std::string& method)
     : Base{n, n_neural},
-      max_iterations_{max_iterations},
+      max_iterations_{std::min(2 * n, max_iterations)},
       rtol_{rtol},
-      method_{method == "cg" ? CG : MINRES} {
+      method_{method == "cg" ? ((n * n * (m + max_iterations_)) <
+                                        (2 * n * m * max_iterations_)
+                                    ? CG_SINGLE
+                                    : CG)
+                             : MINRES} {
+    mpi::cout << max_iterations_ << mpi::endl;
+    mpi::cout << 2 * n * n * (m + max_iterations_) - n * (n + max_iterations_)
+              << mpi::endl;
+    mpi::cout << 4 * n * m * max_iterations_ - max_iterations_ * (m + n)
+              << mpi::endl;
     if (max_iterations_ == 0) {
         max_iterations_ = 2 * n;
     }
@@ -51,6 +60,53 @@ cg_solver::cg_solver(size_t n, size_t m, size_t n_neural, size_t max_iterations,
         Ap2_ = Eigen::VectorXcd(n);
         p2_ = Eigen::VectorXcd(n);
     }
+}
+
+void cg_solver::cg_single(const std::function<void(const Eigen::VectorXcd&,
+                                                   Eigen::VectorXcd&)>& Aprod,
+                          const Eigen::VectorXcd& b, Eigen::VectorXcd& x) {
+    if (mpi::master) {
+        int omp_prev = omp_get_max_threads();
+        omp_set_num_threads(ini::n_threads);
+        double rsold;
+        bool abort;
+        std::complex<double> alpha;
+
+        r_ = b;
+        if (x.size() == 0) {
+            x = Eigen::VectorXcd(b.size());
+        } else {
+            Aprod(x, Ap_);
+            r_ -= Ap_;
+        }
+
+        p_ = r_;
+        rsold = r_.squaredNorm();
+
+        for (itn_ = 0; itn_ < max_iterations_; itn_++) {
+            if (itn_ > 0) time_keeper::end("CG step");
+            Aprod(p_, Ap_);
+            time_keeper::start("CG step");
+            alpha = p_.dot(Ap_);
+
+            alpha = rsold / alpha;
+            x += alpha * p_;
+            r_ -= alpha * Ap_;
+            rs_ = r_.squaredNorm();
+            abort = rs_ < rtol_;
+            // if (mpi_rank == 0)
+            //     std::cout << i << ", " << std::sqrt(rsnew) << std::endl;
+            if (abort) break;
+            p_ = r_ + (rs_ / rsold) * p_;
+            rsold = rs_;
+        }
+        time_keeper::end("CG step");
+        omp_set_num_threads(omp_prev);
+    }
+
+    time_keeper::start("Opt MPI");
+    MPI_Bcast(x.data(), x.size(), MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+    time_keeper::end("Opt MPI");
 }
 
 void cg_solver::cg1(const std::function<void(const Eigen::VectorXcd&,
@@ -202,24 +258,66 @@ void cg_solver::solve(const Eigen::MatrixXcd& mat, const Eigen::VectorXcd& d,
     //     std::cout << "\n" << r1 << ", " << r2 << ", " << rd << std::endl;
     int nnn = n_ - n_neural_;
     double max_diag = diag.maxCoeff();
-    auto Aprod = [&](const Eigen::VectorXcd& b, Eigen::VectorXcd& x) {
-        // Use last process, since the front processes are linkely to be more
-        // busy, since they are assinged more samples.
-        time_keeper::start("Matmul");
-        if (mpi::rank == mpi::n_proc - 1) {
-            x = diag.array() * b.array();
-            x.topRows(n_neural_) *= r1;
-            x.bottomRows(nnn) *= r1 + rd;
 
-            x += max_diag * r2 * b;
-            x += mat.conjugate() * (mat.transpose() * b) / norm;
-            x -= d.conjugate() * (d.transpose() * b);
-        } else {
-            x = mat.conjugate() * (mat.transpose() * b) / norm;
+    Eigen::MatrixXcd S;
+
+    std::function<void(const Eigen::VectorXcd&, Eigen::VectorXcd&)> Aprod;
+
+    if (method_ == CG_SINGLE) {
+        time_keeper::start("Mat gen");
+        S = mat.conjugate() * mat.transpose() / norm;
+        if (mpi::rank == mpi::n_proc - 1) {
+            S.diagonal().topRows(n_neural_) += r1 * diag.topRows(n_neural_);
+            S.diagonal().bottomRows(nnn) += (r1 + rd) * diag.bottomRows(nnn);
+            S.diagonal().array() += max_diag * r2;
+            S -= d.conjugate() * d.transpose();
         }
-        time_keeper::end("Matmul");
-    };
-    cg1(Aprod, b, x);
+        time_keeper::end("Mat gen");
+
+        time_keeper::start("Opt MPI");
+        if (mpi::rank == 0) {
+            MPI_Reduce(MPI_IN_PLACE, S.data(), S.size(), MPI_DOUBLE_COMPLEX,
+                       MPI_SUM, 0, MPI_COMM_WORLD);
+        } else {
+            MPI_Reduce(S.data(), S.data(), S.size(), MPI_DOUBLE_COMPLEX,
+                       MPI_SUM, 0, MPI_COMM_WORLD);
+        }
+        time_keeper::end("Opt MPI");
+
+        Aprod = [&](const Eigen::VectorXcd& b, Eigen::VectorXcd& x) {
+            time_keeper::start("Matmul");
+            x = S * b;
+            time_keeper::end("Matmul");
+        };
+    } else {
+        Aprod = [&](const Eigen::VectorXcd& b, Eigen::VectorXcd& x) {
+            // Use last process, since the front processes are linkely to be
+            // more busy, since they are assinged more samples.
+            time_keeper::start("Matmul");
+            if (mpi::rank == mpi::n_proc - 1) {
+                x = diag.array() * b.array();
+                x.topRows(n_neural_) *= r1;
+                x.bottomRows(nnn) *= r1 + rd;
+
+                x += max_diag * r2 * b;
+                x += mat.conjugate() * (mat.transpose() * b) / norm;
+                x -= d.conjugate() * (d.transpose() * b);
+            } else {
+                x = mat.conjugate() * (mat.transpose() * b) / norm;
+            }
+            time_keeper::end("Matmul");
+        };
+    }
+
+    switch (method_) {
+        case CG:
+        case MINRES:
+            cg1(Aprod, b, x);
+            break;
+        case CG_SINGLE:
+            cg_single(Aprod, b, x);
+            break;
+    }
     // mpi::cout << "rnorm: " << rs_ << " \tn_iter: " << itn_
     //           << " \tmaxdiag: " << max_diag << " \tr2:" << r2 << mpi::endl;
     // if (mpi::master) std::cout << std::endl << rs_ << ", " << itn_ <<
