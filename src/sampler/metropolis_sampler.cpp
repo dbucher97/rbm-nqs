@@ -28,6 +28,7 @@
 #include <sampler/metropolis_sampler.hpp>
 #include <tools/ini.hpp>
 #include <tools/logger.hpp>
+#include <tools/state.hpp>
 #include <tools/time_keeper.hpp>
 
 using namespace sampler;
@@ -42,6 +43,7 @@ metropolis_sampler::metropolis_sampler(machine::abstract_machine& rbm,
       rng_{rng},
       n_chains_{n_chains},
       step_size_{step_size},
+      n_sweeps_(rbm.n_visible),
       warmup_steps_{warmup_steps},
       bond_flips_{bond_flips},
       f_dist_{0, rbm.n_visible - 1} {}
@@ -85,15 +87,27 @@ void metropolis_sampler::sample() {
     // Average acceptance rate.
     acceptance_rate_ /= n_chains_;
 
+    // Exchange luts
+    // std::vector<size_t> sizes(mpi::n_proc);
+    // size_t m_size = sampled_.size();
+    // MPI_Allgather(&m_size, 1, MPI_UNSIGNED_LONG, &sizes[0], 1,
+    //               MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
+    Eigen::MatrixXcd state;
+    // for (auto& s : sampled_) {
+    //     std::cout << s << ", " << n_lut_[s] << std::endl;
+
+    //     // tools::num_to_state(sampled_[s], state);
+    //     // auto context = rbm_.get_context(state);
+    //     // evaluate_and_aggregate(state, context, n_lut_[sampled_[s]]);
+    // }
+    // std::cout << sampled_.size() << std::endl;
+
+    // sampled_.clear();
+    // n_lut_.clear();
+
     // Finalize aggregators
-    try {
-        for (auto agg : aggs_) {
-            agg->finalize(n_samples_);
-        }
-    } catch (const std::runtime_error& e) {
-        rbm_.save(ini::name);
-        MPI_Barrier(MPI_COMM_WORLD);
-        throw std::runtime_error("X2");
+    for (auto agg : aggs_) {
+        agg->finalize(n_samples_);
     }
 }
 
@@ -109,24 +123,24 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
         ups += (state(i) == 1.);
     }
 
-    if (ini::lattice_type == "hex") {
-        if (u_dist_(rng_) < 0.5) {
-            std::complex<double> r = (u_dist_(rng_) < 0.5 ? -1. : 1.);
-            state.setConstant(-r);
-            auto& lat = rbm_.get_lattice();
-            size_t s = 0;
-            state(s) = r;
-            s = lat.nns(s)[0];
-            while (s != 0) {
-                state(s) = r;
-                if (lat.b_idx(s) == 0) {
-                    s = lat.nns(s)[0];
-                } else {
-                    s = lat.nns(s)[1];
-                }
-            }
-        }
-    }
+    // if (ini::lattice_type == "hex") {
+    //     if (u_dist_(rng_) < 0.5) {
+    //         std::complex<double> r = (u_dist_(rng_) < 0.5 ? -1. : 1.);
+    //         state.setConstant(-r);
+    //         auto& lat = rbm_.get_lattice();
+    //         size_t s = 0;
+    //         state(s) = r;
+    //         s = lat.nns(s)[0];
+    //         while (s != 0) {
+    //             state(s) = r;
+    //             if (lat.b_idx(s) == 0) {
+    //                 s = lat.nns(s)[0];
+    //             } else {
+    //                 s = lat.nns(s)[1];
+    //             }
+    //         }
+    //     }
+    // }
     // if (ups % 2 == 1) {
     //     state(0) *= -1;
     // }
@@ -142,69 +156,41 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
     // Do the Metropolis sampling
     for (size_t step = 0; step < total_steps; step++) {
         // Get the flips vector by randomly selecting one site.
-        time_keeper::start("Metropolis step");
+        time_keeper::start("Metropolis sweep");
 
-        flips.clear();
-        // With probability 1/2 flip a second site.
-        double x = u_dist_(rng_);
-        if (x < bond_flips_) {
-            auto& b = bonds[b_dist(rng_)];
-            flips = {b.a, b.b};
-        } else {
-            flips.push_back(f_dist_(rng_));
+        for (size_t sweep = 0; sweep < n_sweeps_; sweep++) {
+            flips.clear();
+            // With probability 1/2 flip a second site.
+            double x = u_dist_(rng_);
+            if (x < bond_flips_) {
+                auto& b = bonds[b_dist(rng_)];
+                flips = {b.a, b.b};
+                sweep++;
+            } else {
+                flips.push_back(f_dist_(rng_));
+            }
+
+            machine::rbm_context new_context = context;
+            // Calculate the probability of changing to new configuration
+            double acc = std::pow(
+                std::abs(rbm_.psi_over_psi(state, flips, context, new_context)),
+                2);
+
+            // Accept new configuration with given probability
+            if (u_dist_(rng_) < acc) {
+                context = new_context;
+                ar++;
+
+                // Refresh pfaffian context if demanded
+                pfaffian_refresh(state, context.pfaff(), ar, flips);
+
+                for (auto& flip : flips) state(flip) *= -1;
+            }
         }
 
-        machine::rbm_context new_context = context;
-        // Calculate the probability of changing to new configuration
-        // if (mpi::master) {
-        //     std::complex<double> psi = rbm_.psi(state, context);
-        //     if (std::abs(psi) > 100) {
-        //         std::cout << psi << std::endl;
-        //     }
-        // }
-        double acc = std::pow(
-            std::abs(rbm_.psi_over_psi(state, flips, context, new_context)), 2);
-        // if (mpi::rank == 1 && rbm_.get_n_updates() == 179 &&
-        //     (g_chain == 1 || g_chain == 2)) {
-        //     int n = 0;
-        //     for (int i = 0; i < state.size(); i++) {
-        //         if (std::real(state(i)) > 0) n |= 1 << i;
-        //     }
-        //     auto state2 = state;
-        //     for (auto& f : flips) state2(f) *= -1;
-        //     auto c2 = rbm_.get_context(state2);
-        //     if (g_chain == 2) std::cout << "XX ";
-        //     std::cout << acc << "\t" << n << ": \t" << rbm_.psi(state,
-        //     context)
-        //               << ", " << rbm_.psi(state2, c2) << std::endl;
-        // }
-        //
+        time_keeper::end("Metropolis sweep");
 
-        // Accept new configuration with given probability
-        if (u_dist_(rng_) < acc) {
-            // if (mpi::rank == 1 && rbm_.get_n_updates() == 179 &&
-            //     (g_chain == 1 || g_chain == 2)) {
-            //     int n = 0;
-            //     for (int i = 0; i < state.size(); i++) {
-            //         if (std::real(state(i)) > 0) n |= 1 << i;
-            //     }
-            //     std::vector<size_t> ones;
-            //     for (size_t i = 0; i < rbm_.n_visible; i++) {
-            //         if ((n >> i) & 1) {
-            //             ones.push_back(i);
-            //         }
-            //     }
-            //     rbm_.get_lattice().print_lattice(ones);
-            // }
-            context = new_context;
-            ar++;
-
-            pfaffian_refresh(state, context.pfaff(), ar, flips);
-
-            for (auto& flip : flips) state(flip) *= -1;
-        }
-
-        time_keeper::end("Metropolis step");
+        // Exchange RBM LUT if demanded
         exchange_luts(step);
 
         // If a sample is required
@@ -212,7 +198,14 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
             ((step - warmup_steps_) % step_size_ == 0)) {
             // Evaluate oprators
             evaluate_and_aggregate(state, context);
-            // thetas = rbm_.get_thetas(state);
+            // Store state num
+            // size_t statenum = tools::state_to_num(state);
+            // if (n_lut_.find(statenum) == n_lut_.end()) {
+            //     n_lut_[statenum] = 1;
+            //     sampled_.push_back(statenum);
+            // } else {
+            //     n_lut_[statenum]++;
+            // }
         }
     }
     // if (mpi::rank == 1 && rbm_.get_n_updates() == 179 && g_chain == 1) {
@@ -221,7 +214,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
     // }
 
     // Normalize acceptance rate
-    return ar / (double)total_steps;
+    return ar / (double)total_steps / n_sweeps_;
 }
 
 void metropolis_sampler::log() {
