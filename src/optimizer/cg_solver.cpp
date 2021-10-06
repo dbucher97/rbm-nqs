@@ -22,7 +22,6 @@
 #include <iostream>
 //
 #include <optimizer/cg_solver.hpp>
-#include <optimizer/minres_adapter.hpp>
 #include <tools/ini.hpp>
 #include <tools/mpi.hpp>
 #include <tools/time_keeper.hpp>

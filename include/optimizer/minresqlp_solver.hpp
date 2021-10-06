@@ -22,7 +22,7 @@
 
 namespace optimizer {
 
-class minres_solver : public abstract_solver {
+class minresqlp_solver : public abstract_solver {
     using Base = abstract_solver;
 
     size_t max_iterations_;
@@ -35,9 +35,9 @@ class minres_solver : public abstract_solver {
     int* n_offsets;
 
    public:
-    minres_solver(size_t n, size_t m, int mloc, size_t n_neural,
-                  size_t max_iterations = 0, double r_tol = 0);
-    ~minres_solver();
+    minresqlp_solver(size_t n, size_t m, int mloc, size_t n_neural,
+                     size_t max_iterations = 0, double r_tol = 0);
+    ~minresqlp_solver();
 
     void solve(const Eigen::MatrixXcd& mat, const Eigen::VectorXcd& d,
                const double norm, const Eigen::VectorXcd& b,

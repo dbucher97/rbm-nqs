@@ -36,7 +36,7 @@ namespace ini {
 
 // Program
 size_t seed = 421390484L;
-size_t n_threads = 8;
+size_t n_threads = 4;
 std::string name = "";
 std::string ini_file = "";
 bool train = false;
