@@ -1,4 +1,4 @@
-Metadata-Version: 2.1
+Metadata-Version: 1.0
 Name: rbm-adapter
 Version: 0.0.1
 Summary: Package for interfacing with the C RBM program
@@ -6,8 +6,6 @@ Home-page: https://gitlab.physik.uni-muenchen.de/David.Bucher/rbm-nqs
 Author: David Bucher
 Author-email: David.Bucher@physik.lmu.de
 License: GNU
+Description: UNKNOWN
 Keywords: spin liquids,tksvm,mlgen
 Platform: UNKNOWN
-
-UNKNOWN
-

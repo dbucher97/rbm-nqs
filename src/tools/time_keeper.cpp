@@ -81,6 +81,7 @@ void time_keeper::resumee() {
         }
         MPI_Barrier(MPI_COMM_WORLD);
     }
+    MPI_Barrier(MPI_COMM_WORLD);
 }
 
 #endif

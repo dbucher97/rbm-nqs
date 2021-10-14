@@ -61,6 +61,7 @@ rbm_context rbm_symmetry::get_context(const Eigen::MatrixXcd& state) const {
 void rbm_symmetry::update_context(const Eigen::MatrixXcd& state,
                                   const std::vector<size_t>& flips,
                                   rbm_context& context) const {
+    time_keeper::start("Update context");
     Eigen::MatrixXcd& thetas = context.thetas;
     // Same as base class but with symmetries involved
     std::vector<std::vector<size_t>> cidxs;
@@ -88,6 +89,7 @@ void rbm_symmetry::update_context(const Eigen::MatrixXcd& state,
     if (pfaffian_) {
         pfaffian_->update_context(state, flips, context.pfaff());
     }
+    time_keeper::end("Update context");
 }
 
 Eigen::MatrixXcd rbm_symmetry::derivative(const Eigen::MatrixXcd& state,
@@ -135,60 +137,62 @@ std::complex<double> rbm_symmetry::psi_notheta(
     return std::exp(vbias_part.sum());
 }
 
-std::complex<double> rbm_symmetry::log_psi_over_psi(
-    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    rbm_context& context, rbm_context& updated_context) {
-    if (flips.empty()) return 0.;
+// std::complex<double> rbm_symmetry::log_psi_over_psi(
+//     const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+//     rbm_context& context, rbm_context& updated_context) {
+//     if (flips.empty()) return 0.;
 
-    // Just adjusted for the single v_bias
-    std::complex<double> ret = 0;
-    for (auto& f : flips) ret -= 2. * state(f) * v_bias_(f % n_vb_);
+//     // Just adjusted for the single v_bias
+//     // std::complex<double> ret = 0;
+//     // for (auto& f : flips) ret -= 2. * state(f) * v_bias_(f % n_vb_);
 
-    std::vector<std::vector<size_t>> cidxs;
-    for (auto& c : correlators_) {
-        c->get_cidxs_from_flips(flips, cidxs);
-        ret += c->log_psi_over_psi(state, *(cidxs.end() - 1));
-    }
+//     // std::vector<std::vector<size_t>> cidxs;
+//     // for (auto& c : correlators_) {
+//     //     c->get_cidxs_from_flips(flips, cidxs);
+//     //     ret += c->log_psi_over_psi(state, *(cidxs.end() - 1));
+//     // }
+//     std::complex<double> ret = log_psi_over_psi_bias(state, flips);
 
-    // Same as base class
-    update_context(state, flips, updated_context);
+//     // Same as base class
+//     update_context(state, flips, updated_context);
 
-    size_t num = tools::state_to_num(state);
-    size_t num2 = num;
-    for (auto& f : flips) num2 ^= (1 << f);
-    ret += lncosh(updated_context, num2) - lncosh(context, num);
-    // ret += std::log(
-    //     (updated_context.thetas.array().cosh() /
-    //     context.thetas.array().cosh())
-    //         .prod());
+//     size_t num = tools::state_to_num(state);
+//     size_t num2 = num;
+//     for (auto& f : flips) num2 ^= (1 << f);
+//     ret += lncosh(updated_context, num2) - lncosh(context, num);
+//     // ret += std::log(
+//     //     (updated_context.thetas.array().cosh() /
+//     //     context.thetas.array().cosh())
+//     //         .prod());
 
-    return ret;
-}
+//     return ret;
+// }
 
-std::complex<double> rbm_symmetry::psi_over_psi_alt(
-    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    rbm_context& context, rbm_context& updated_context) {
-    if (flips.empty()) return 1.;
+// std::complex<double> rbm_symmetry::psi_over_psi_alt(
+//     const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+//     rbm_context& context, rbm_context& updated_context) {
+//     if (flips.empty()) return 1.;
 
-    // Just adjusted for the single v_bias
-    std::complex<double> ret = 1;
-    for (auto& f : flips) ret *= std::exp(-2. * state(f) * v_bias_(f % n_vb_));
+//     // Just adjusted for the single v_bias
+//     std::complex<double> ret = 1;
+//     for (auto& f : flips) ret *= std::exp(-2. * state(f) * v_bias_(f %
+//     n_vb_));
 
-    std::vector<std::vector<size_t>> cidxs;
-    for (auto& c : correlators_) {
-        c->get_cidxs_from_flips(flips, cidxs);
-        ret *= std::exp(c->log_psi_over_psi(state, *(cidxs.end() - 1)));
-    }
+//     std::vector<std::vector<size_t>> cidxs;
+//     for (auto& c : correlators_) {
+//         c->get_cidxs_from_flips(flips, cidxs);
+//         ret *= std::exp(c->log_psi_over_psi(state, *(cidxs.end() - 1)));
+//     }
 
-    // Same as base class
-    update_context(state, flips, updated_context);
+//     // Same as base class
+//     update_context(state, flips, updated_context);
 
-    size_t num = tools::state_to_num(state);
-    size_t num2 = num;
-    for (auto& f : flips) num2 ^= (1 << f);
-    ret *= cosh(updated_context, num2) / cosh(context, num);
-    // ret *= (updated_context.thetas.array().cosh() /
-    // context.thetas.array().cosh()).prod();
+//     size_t num = tools::state_to_num(state);
+//     size_t num2 = num;
+//     for (auto& f : flips) num2 ^= (1 << f);
+//     ret *= cosh(updated_context, num2) / cosh(context, num);
+//     // ret *= (updated_context.thetas.array().cosh() /
+//     // context.thetas.array().cosh()).prod();
 
-    return ret;
-}
+//     return ret;
+// }

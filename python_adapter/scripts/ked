@@ -20,8 +20,7 @@ if __name__ == '__main__':
         size = int(sys.argv[1])
     ham = rbm.get_hamiltonian(size, log=True, args=args)
     print('Exact Diagonalization')
-    v, w = rbm.eigsh(ham)
-    print(v)
+    v, w = rbm.eigsh(ham, which='SA')
     N = np.log2(w.shape[0])
     print('E0', np.min(v) / N)
     gs = w[:, np.abs(v - np.min(v)) < 1e-10].T
@@ -35,3 +34,23 @@ if __name__ == '__main__':
         print(f'Eval for GS({j})')
         for i, h in enumerate(hex):
             print(f'Wp{i}', rbm.evaluate(g, h))
+    print()
+    print('Exact Diagonalization with Hex')
+    hamx = ham
+    for h in hex:
+        hamx -= h
+    vx, wx = rbm.eigsh(hamx, which='SA')
+    print('E0', (np.min(vx) + len(hex)) / N)
+    gsx = wx[:, np.abs(vx - np.min(vx)) < 1e-10].T
+    for j, g in enumerate(gsx):
+        fn = f'state_{sys.argv[1]}_x{j}.txt'
+        print(f'Store State in "{fn}"')
+        with open(fn, 'w') as f:
+            for x in g:
+                f.write(f'({np.real(x)},{np.imag(x)})\n')
+        print(f'Eval for GSX({j})')
+        for i, h in enumerate(hex):
+            print(f'Wp{i}', rbm.evaluate(g, h))
+        print(f'Superposition of GSX({j})')
+        print(gs.conj().dot(g).T)
+

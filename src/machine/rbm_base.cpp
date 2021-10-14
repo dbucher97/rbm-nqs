@@ -127,10 +127,11 @@ void rbm_base::update_weights(const Eigen::MatrixXcd& dw) {
 std::complex<double> rbm_base::psi_over_psi(const Eigen::MatrixXcd& state,
                                             const std::vector<size_t>& flips,
                                             rbm_context& context,
-                                            rbm_context& updated_context) {
+                                            rbm_context& updated_context,
+                                            bool* didupdate) {
     time_keeper::start("PoP");
-    std::complex<double> ret =
-        (this->*psi_over_psi_)(state, flips, context, updated_context);
+    std::complex<double> ret = (this->*psi_over_psi_)(
+        state, flips, context, updated_context, didupdate);
     if (pfaffian_) {
         ret *= pfaffian_->psi_over_psi(state, flips, context.pfaff(),
                                        updated_context.pfaff());
@@ -279,57 +280,60 @@ std::complex<double> rbm_base::psi_default(const Eigen::MatrixXcd& state,
     return psi_notheta(state) * cosh_part;
 }
 
-std::complex<double> rbm_base::log_psi_over_psi(
-    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    rbm_context& context, rbm_context& updated_context) {
-    if (flips.empty()) return 0.;
-
+std::complex<double> rbm_base::log_psi_over_psi_bias(
+    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips) const {
     std::complex<double> ret = 0;
     // Claculate the visible bias part, calcels out for all not flipped sites.
-    for (auto& f : flips) ret -= 2. * state(f) * v_bias_(f);
+    for (auto& f : flips) ret -= 2. * state(f) * v_bias_(f % n_vb_);
 
     std::vector<std::vector<size_t>> cidxs;
     for (auto& c : correlators_) {
         c->get_cidxs_from_flips(flips, cidxs);
         ret += c->log_psi_over_psi(state, *(cidxs.end() - 1));
     }
+    return ret;
+}
 
-    // Update the thetas with the flips
-    update_context(state, flips, updated_context);
+std::complex<double> rbm_base::log_psi_over_psi(
+    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+    rbm_context& context, rbm_context& updated_context, bool* didupdate) {
+    if (flips.empty()) return 0.;
 
-    // Caclulate the diffrenece of the lncoshs, which is the same as the log
-    // of the ratio of coshes.
-    // ret += math::lncoshdiff(updated_context.thetas, context.thetas);
+    std::complex<double> ret = log_psi_over_psi_bias(state, flips);
 
     size_t num = tools::state_to_num(state);
     size_t num2 = num;
     for (auto& f : flips) num2 ^= (1 << f);
+    if (true || lut_.find(num2) != lut_.end()) {
+        // Update the thetas with the flips
+        update_context(state, flips, updated_context);
+    } else {
+        if (didupdate) *didupdate = false;
+    }
 
-    ret *= lncosh(updated_context, num2) - lncosh(context, num);
+    // Caclulate the diffrenece of the lncoshs, which is the same as the log
+    // of the ratio of coshes.
+    ret += lncosh(updated_context, num2) - lncosh(context, num);
 
     return ret;
 }
 
 std::complex<double> rbm_base::psi_over_psi_alt(
     const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-    rbm_context& context, rbm_context& updated_context) {
+    rbm_context& context, rbm_context& updated_context, bool* didupdate) {
     if (flips.empty()) return 1.;
 
-    std::complex<double> ret = 1;
-    // Claculate the visible bias part, calcels out for all not flipped sites.
-    for (auto& f : flips) ret *= std::exp(-2. * state(f) * v_bias_(f));
-
-    std::vector<std::vector<size_t>> cidxs;
-    for (auto& c : correlators_) {
-        c->get_cidxs_from_flips(flips, cidxs);
-        ret *= std::exp(c->log_psi_over_psi(state, *(cidxs.end() - 1)));
-    }
-    // Update the thetas with the flips
-    update_context(state, flips, updated_context);
+    std::complex<double> ret = std::exp(log_psi_over_psi_bias(state, flips));
 
     size_t num = tools::state_to_num(state);
     size_t num2 = num;
     for (auto& f : flips) num2 ^= (1 << f);
+    if (true || lut_.find(num2) != lut_.end()) {
+        // Update the thetas with the flips
+        update_context(state, flips, updated_context);
+    } else {
+        if (didupdate) *didupdate = false;
+    }
 
     ret *= cosh(updated_context, num2) / cosh(context, num);
 
@@ -338,11 +342,16 @@ std::complex<double> rbm_base::psi_over_psi_alt(
 
 #define COSH_LUT(func)                                   \
     g_tot++;                                             \
-    if (lut_.find(statenum) != lut_.end()) {             \
+    time_keeper::start("hashmap");                       \
+    auto lx = lut_.find(statenum);                       \
+    time_keeper::end("hashmap");                         \
+    if (lx != lut_.end()) {                              \
         g_lut++;                                         \
-        return lut_[statenum];                           \
+        return lx->second;                               \
     } else {                                             \
+        time_keeper::start("evaluation");                \
         std::complex<double> ret = func(context.thetas); \
+        time_keeper::end("evaluation");                  \
         /*lut_update_nums_.push_back(statenum);*/        \
         /*lut_update_vals_.push_back(ret);       */      \
         lut_[statenum] = ret;                            \

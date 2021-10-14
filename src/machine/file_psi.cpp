@@ -52,7 +52,8 @@ std::complex<double> file_psi::psi(const Eigen::MatrixXcd& state,
 
 std::complex<double> file_psi::psi_over_psi(const Eigen::MatrixXcd& state,
                                             const std::vector<size_t>& flips,
-                                            rbm_context& co, rbm_context&) {
+                                            rbm_context& co, rbm_context&,
+                                            bool* didupdate) {
     std::complex<double> ps1 = psi(state, co);
     Eigen::MatrixXcd state2 = state;
     for (auto& i : flips) state2(i) *= -1;

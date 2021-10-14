@@ -163,6 +163,7 @@ extern bool evaluate;
 extern bool store_state;
 extern bool store_samples;
 extern bool print_bonds;
+extern bool print_hex;
 extern bool noprogress;
 extern int seed_search;
 extern size_t seed_search_epochs;

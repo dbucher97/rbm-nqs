@@ -45,6 +45,7 @@ bool store_state = false;
 bool store_samples = false;
 bool noprogress = false;
 bool print_bonds = false;
+bool print_hex = false;
 int seed_search = 0;
 size_t seed_search_epochs = 200;
 
@@ -153,6 +154,7 @@ int ini::load(int argc, char* argv[]) {
     ("store_state",                           po::bool_switch(&store_state),                "stores the state into a file 'name.state'")
     ("store_samples",                         po::bool_switch(&store_samples),              "stores the samples into a plain text file 'name.samples'")
     ("print_bonds",                           po::bool_switch(&print_bonds),                "print the bonds of the current model and exit")
+    ("print_hex"  ,                           po::bool_switch(&print_hex),                  "print the hexagons of the kitaev model and exit")
     ("seed",                                  po::value(&seed),                             "seed of the rng")
     ("infile,i",                              po::value<std::string>(),                     "ini file for params")
     ("name,n",                                po::value(&name),                             "set name of current rbm")

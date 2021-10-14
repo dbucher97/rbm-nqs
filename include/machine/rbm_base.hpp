@@ -43,7 +43,8 @@ class rbm_base : public abstract_machine {
 
     std::complex<double> (rbm_base::*psi_over_psi_)(const Eigen::MatrixXcd&,
                                                     const std::vector<size_t>&,
-                                                    rbm_context&, rbm_context&);
+                                                    rbm_context&, rbm_context&,
+                                                    bool*);
 
     size_t
         cosh_mode_;  ///< Cosh mode 0 for default 1 for approximate 2 for lncosh
@@ -122,9 +123,11 @@ class rbm_base : public abstract_machine {
     }
 
     using Base::psi_over_psi;
-    virtual std::complex<double> psi_over_psi(
-        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        rbm_context& context, rbm_context& updated_context) override;
+    virtual std::complex<double> psi_over_psi(const Eigen::MatrixXcd& state,
+                                              const std::vector<size_t>& flips,
+                                              rbm_context& context,
+                                              rbm_context& updated_context,
+                                              bool* didupdate) override;
 
     virtual bool save(const std::string& name, bool silent = false) final;
 
@@ -169,7 +172,8 @@ class rbm_base : public abstract_machine {
      */
     virtual std::complex<double> log_psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        rbm_context& context, rbm_context& updated_context);
+        rbm_context& context, rbm_context& updated_context,
+        bool* didupdate = 0);
 
     /**
      * @brief Computes the ratio of \psi with some spins
@@ -186,9 +190,10 @@ class rbm_base : public abstract_machine {
      */
     inline std::complex<double> psi_over_psi_default(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        rbm_context& context, rbm_context& updated_context) {
-        return std::exp(
-            log_psi_over_psi(state, flips, context, updated_context));
+        rbm_context& context, rbm_context& updated_context,
+        bool* didupdate = 0) {
+        return std::exp(log_psi_over_psi(state, flips, context, updated_context,
+                                         didupdate));
     }
 
     /**
@@ -206,11 +211,15 @@ class rbm_base : public abstract_machine {
      */
     virtual std::complex<double> psi_over_psi_alt(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        rbm_context& context, rbm_context& updated_context);
+        rbm_context& context, rbm_context& updated_context,
+        bool* didupdate = 0);
 
     std::complex<double> cosh(rbm_context& context, size_t statenum);
     std::complex<double> lncosh(rbm_context& context, size_t statenum);
 
     void exchange_luts() override;
+
+    std::complex<double> log_psi_over_psi_bias(
+        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips) const;
 };
 }  // namespace machine

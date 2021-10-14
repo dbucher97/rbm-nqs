@@ -69,7 +69,8 @@ class pfaffian_psi : public abstract_machine {
 
     virtual inline std::complex<double> psi_over_psi(
         const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        rbm_context& context, rbm_context& updated_context) override {
+        rbm_context& context, rbm_context& updated_context,
+        bool* didupdate = 0) override {
         update_context(state, flips, updated_context);
         return pfaffian_->psi_over_psi(state, flips, context.pfaff(),
                                        updated_context.pfaff());
