@@ -49,7 +49,8 @@ def get_bonds(n : int, model : str = "kitaev", args : List = []) -> Tuple[List, 
     prstr = ''
     if platform.system() == 'Darwin':
         prstr = 'env DYLD_LIBRARY_PATH=$HOME/boost-gcc/lib: '
-    
+    else:
+        prstr = 'mpirun -n 1'
     process = os.popen(f'{prstr}rbm --model.n_cells={n} --model.type={model} ' +
             '--print_bonds ' + ' '.join(args))
 
@@ -84,7 +85,8 @@ def get_hex(n : int, log : bool = False, args : List = []) -> List[sp.csr_matrix
     prstr = ''
     if platform.system() == 'Darwin':
         prstr = 'env DYLD_LIBRARY_PATH=$HOME/boost-gcc/lib: '
-    
+    else:
+        prstr = 'mpirun -n 1'
     process = os.popen(f'{prstr}rbm --model.n_cells={n} ' +
             '--print_hex ' + ' '.join(args))
     out = process.read()
