@@ -19,15 +19,16 @@
 
 #include <iostream>
 //
-#include <optimizer/minres_adapter.hpp>
-#include <optimizer/minres_solver.hpp>
+#include <optimizer/minresqlp_adapter.hpp>
+#include <optimizer/minresqlp_solver.hpp>
 #include <tools/ini.hpp>
 #include <tools/mpi.hpp>
 
 using namespace optimizer;
 
-minres_solver::minres_solver(size_t n, size_t m, int mloc, size_t n_neural,
-                             size_t max_iterations, double rtol)
+minresqlp_solver::minresqlp_solver(size_t n, size_t m, int mloc,
+                                   size_t n_neural, size_t max_iterations,
+                                   double rtol)
     : Base{n, n_neural}, max_iterations_{max_iterations}, rtol_{rtol} {
     if (mpi::master) {
         mat_ = Eigen::MatrixXcd(n, m);
@@ -45,16 +46,16 @@ minres_solver::minres_solver(size_t n, size_t m, int mloc, size_t n_neural,
         start += n_samples[i];
     }
 }
-minres_solver::~minres_solver() {
+minresqlp_solver::~minresqlp_solver() {
     delete[] n_samples;
     delete[] n_offsets;
 }
 
-void minres_solver::solve(const Eigen::MatrixXcd& mat,
-                          const Eigen::VectorXcd& d, const double norm,
-                          const Eigen::VectorXcd& b, Eigen::VectorXcd& x,
-                          const double r1, const double r2, const double rd,
-                          const Eigen::VectorXd& diag) {
+void minresqlp_solver::solve(const Eigen::MatrixXcd& mat,
+                             const Eigen::VectorXcd& d, const double norm,
+                             const Eigen::VectorXcd& b, Eigen::VectorXcd& x,
+                             const double r1, const double r2, const double rd,
+                             const Eigen::VectorXd& diag) {
     MPI_Gatherv(mat.data(), mat.size(), MPI_DOUBLE_COMPLEX, mat_.data(),
                 n_samples, n_offsets, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
     if (mpi::master) {

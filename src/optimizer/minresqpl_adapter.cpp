@@ -24,7 +24,7 @@
 //
 #include <iostream>
 #include <minresqlp.hpp>
-#include <optimizer/minres_adapter.hpp>
+#include <optimizer/minresqlp_adapter.hpp>
 
 namespace optimizer {
 

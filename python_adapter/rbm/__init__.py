@@ -4,6 +4,7 @@ import os
 import numpy as np
 import scipy.sparse as sp
 import platform
+import struct
 from scipy.sparse.linalg import eigsh
 from typing import Union, List, Tuple
 
@@ -113,3 +114,16 @@ def evaluate(state : np.ndarray, op : Union[np.ndarray, sp.csr_matrix]) -> compl
 def groundstate(ham : sp.csr_matrix) -> Tuple[float, np.ndarray]:
     v, w = eigsh(ham, k=1)
     return v[0], w[:, 0]
+
+def load_state(name : str, N : int) -> np.ndarray:
+    fmt = 'dd' * (2 ** N)
+    with open(name, 'rb') as f:
+        rows,  = struct.unpack('Q', f.read(8))
+        cols,  = struct.unpack('Q', f.read(8))
+        print(rows, cols)
+        vec1 = np.array(struct.unpack(fmt, f.read(len(fmt) * 8)), dtype=np.complex128)
+    vec1 = vec1.reshape(2 ** N, 2)
+    vec1[:, 1] *= 1j
+    vec1 = vec1.sum(axis=1)
+    return vec1
+

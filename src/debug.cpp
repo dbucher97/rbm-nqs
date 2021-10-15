@@ -9,7 +9,7 @@
 #include <model/isingS3.hpp>
 #include <model/kitaev.hpp>
 #include <operators/aggregator.hpp>
-#include <optimizer/minres_adapter.hpp>
+#include <optimizer/minresqlp_adapter.hpp>
 #include <sampler/full_sampler.hpp>
 #include <sampler/metropolis_sampler.hpp>
 #include <tools/ini.hpp>

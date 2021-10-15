@@ -43,7 +43,6 @@ kitaev::kitaev(size_t size, const std::array<double, 3>& J, int size_b,
 }
 
 void kitaev::add_helper_hamiltonian(double strength) {
-    std::cout << "Helper" << std::endl;
     auto hex =
         dynamic_cast<lattice::honeycomb*>(lattice_.get())->get_hexagons();
     SparseXcd plaq_op = kron({sx(), sy(), sz(), sx(), sy(), sz()});

@@ -172,12 +172,15 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
 
             machine::rbm_context new_context = context;
             // Calculate the probability of changing to new configuration
-            double acc = std::pow(
-                std::abs(rbm_.psi_over_psi(state, flips, context, new_context)),
-                2);
+            bool didupdate = true;
+            double acc =
+                std::pow(std::abs(rbm_.psi_over_psi(state, flips, context,
+                                                    new_context, &didupdate)),
+                         2);
 
             // Accept new configuration with given probability
             if (u_dist_(rng_) < acc) {
+                if (!didupdate) rbm_.update_context(state, flips, new_context);
                 context = new_context;
                 ar++;
 

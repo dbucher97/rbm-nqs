@@ -26,7 +26,7 @@
 //
 #include <optimizer/cg_solver.hpp>
 #include <optimizer/direct_solver.hpp>
-#include <optimizer/minres_solver.hpp>
+#include <optimizer/minresqlp_solver.hpp>
 #include <optimizer/outer_matrix.hpp>
 #include <optimizer/plugin.hpp>
 #include <optimizer/stochastic_reconfiguration.hpp>
@@ -55,11 +55,12 @@ stochastic_reconfiguration::stochastic_reconfiguration(
         solver_ = std::make_unique<direct_solver>(rbm_.get_n_params(),
                                                   rbm_.get_n_neural_params());
     } else if (method == "minresqlp") {
-        solver_ = std::make_unique<minres_solver>(
+        solver_ = std::make_unique<minresqlp_solver>(
             rbm_.get_n_params(), sampler.get_n_samples(),
             sampler.get_my_n_samples(), rbm_.get_n_neural_params(),
             max_iterations, rtol);
-    } else if (method == "cg" || method == "minres") {
+    } else if (method == "cg" || method == "minres" || method == "cg-single" ||
+               method == "cg-dynamic") {
         solver_ = std::make_unique<cg_solver>(
             rbm_.get_n_params(), sampler.get_n_samples(),
             rbm_.get_n_neural_params(), max_iterations, rtol, method);

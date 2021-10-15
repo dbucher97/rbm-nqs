@@ -44,6 +44,7 @@ struct pfaff_context {
 
 struct rbm_context {
     Eigen::MatrixXcd thetas;
+    using map_it = std::unordered_map<size_t, std::complex<double>>::iterator;
 
    public:
     rbm_context() {}

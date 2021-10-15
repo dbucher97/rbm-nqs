@@ -196,7 +196,8 @@ class abstract_machine {
     virtual std::complex<double> psi_over_psi(const Eigen::MatrixXcd& state,
                                               const std::vector<size_t>& flips,
                                               rbm_context& context,
-                                              rbm_context& updated_context) = 0;
+                                              rbm_context& updated_context,
+                                              bool* did_update = 0) = 0;
 
     /**
      * @brief Computes ratio of \psi with some spins flipped to the

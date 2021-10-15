@@ -48,9 +48,11 @@ class file_psi : public abstract_machine {
 
     virtual std::complex<double> psi(const Eigen::MatrixXcd& state,
                                      rbm_context& context) override;
-    virtual std::complex<double> psi_over_psi(
-        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
-        rbm_context& context, rbm_context& updated_context) override;
+    virtual std::complex<double> psi_over_psi(const Eigen::MatrixXcd& state,
+                                              const std::vector<size_t>& flips,
+                                              rbm_context& context,
+                                              rbm_context& updated_context,
+                                              bool* didupdate = 0) override;
 };
 
 }  // namespace machine

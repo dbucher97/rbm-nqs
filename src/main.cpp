@@ -272,7 +272,8 @@ int init_optimizer(std::unique_ptr<optimizer::abstract_optimizer>& optimizer,
 void store_state(std::unique_ptr<model::abstract_model>& model,
                  std::unique_ptr<machine::abstract_machine>& rbm,
                  machine::pfaffian* pfaff, std::mt19937& rng) {
-    init_weights(rbm, pfaff, NULL, false, rng);
+    init_machine(rbm, pfaff, model);
+    init_weights(rbm, pfaff, model, false, rng);
     sampler::full_sampler sampler{*rbm, ini::sa_full_n_parallel_bits};
     mpi::cout << "Storing State..." << mpi::endl;
     sampler.sample(true);
@@ -318,6 +319,19 @@ int main(int argc, char* argv[]) {
         auto bonds = model->get_lattice().get_bonds();
         for (const auto& b : bonds) {
             std::cout << b.a << "," << b.b << "," << b.type << std::endl;
+        }
+        mpi::end();
+        return 0;
+    }
+
+    if (ini::print_hex && mpi::master && ini::model == ini::KITAEV) {
+        std::unique_ptr<model::abstract_model> model;
+        init_model(model);
+        auto hex = dynamic_cast<lattice::honeycomb*>(&model->get_lattice())
+                       ->get_hexagons();
+        for (const auto& h : hex) {
+            for (const auto& x : h) std::cout << x << ", ";
+            std::cout << std::endl;
         }
         mpi::end();
         return 0;
