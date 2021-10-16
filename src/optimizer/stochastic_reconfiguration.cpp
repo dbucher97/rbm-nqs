@@ -91,8 +91,6 @@ Eigen::VectorXcd& stochastic_reconfiguration::gradient(bool log) {
         sampler_.log();
     }
 
-    mpi::cout << std::real(h(0)) / rbm_.n_visible << mpi::endl;
-
     double reg1 = kp1_.get();
     double reg2 = kp2_.get();
     double reg1delta = kp1d_.get();
