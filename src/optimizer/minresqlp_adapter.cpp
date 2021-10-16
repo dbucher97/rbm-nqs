@@ -100,12 +100,10 @@ minresqlp_adapter::minresqlp_adapter(const Eigen::MatrixXcd& mat,
     g_norm = 1 / norm;
     shift -= e2 * diag.real().maxCoeff();
 
-    std::cout << mat << std::endl;
-
     Eigen::VectorXcd res(n);
     Eigen::VectorXcd vec2 = vec;
     Aprod(&n, vec2.data(), res.data());
-    std::cout << res.transpose() << std::endl;
+    std::cout << ((mat.transpose() * vec2 / norm) - tmp).norm() << std::endl;
 }
 
 int minresqlp_adapter::apply(const Eigen::VectorXcd& b, Eigen::VectorXcd& x) {
