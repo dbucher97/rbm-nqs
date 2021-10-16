@@ -30,11 +30,13 @@ using namespace machine;
 file_psi::file_psi(lattice::bravais& lattice, const std::string& filename)
     : Base{lattice, 1}, state_vec_((size_t)(1 << lattice.n_total), 1) {
     std::ifstream file{filename};
+    std::cout << file.good() << std::endl;
     std::complex<double> line;
     size_t c = 0;
     while (file >> line) {
         state_vec_(c) = line;
         c++;
+        if (c % 10000 == 0) std::cout << c << std::endl;
     }
     std::cout << filename << std::endl;
     std::cout << c << std::endl;

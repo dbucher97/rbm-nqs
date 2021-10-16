@@ -41,7 +41,10 @@ def construct_op(bonds : List[Tuple], bond_ops : List[Tuple], N : int , J :
 def get_bonds_ops(model : str = "kitaev") -> List[Tuple]:
     if model == "kitaev":
         return [(SX, SX), (SY, SY), (SZ, SZ)]
+    elif model == "toric":
+        return [(SX, SX, SX, SX), (SZ, SZ, SZ, SZ)]
     return []
+
 def get_hex_ops() -> List[Tuple]:
     return [(SX, SY, SZ, SX, SY, SZ)]
 
@@ -61,14 +64,13 @@ def get_bonds(n : int, model : str = "kitaev", args : List = []) -> Tuple[List, 
     bonds = []
     midx = 0
     for l in out.strip().split('\n'):
-        a, b, typ = l.strip().split(',')
-        a = int(a)
-        b = int(b)
-        if a > midx:
-            midx = a
-        if b > midx:
-            midx = b
-        bonds.append(([a, b], int(typ)))
+        sites = l.strip().split(',')
+        sites = list(map(int, sites))
+        typ = sites[-1]
+        del sites[-1]
+        if max(sites) > midx:
+            midx = max(sites)
+        bonds.append((sites, typ))
     return bonds, midx + 1
 
 

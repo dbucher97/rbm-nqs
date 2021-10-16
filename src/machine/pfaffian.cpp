@@ -28,15 +28,6 @@
 
 using namespace machine;
 
-size_t pfaffian::calc_n_params(size_t ns,
-                               const std::vector<size_t>& symm_basis) {
-    int ret = 0;
-    for (auto& s : symm_basis) {
-        ret += ns - s - 1;
-    }
-    return ret;
-}
-
 pfaffian::pfaffian(const lattice::bravais& lattice,
                    const std::vector<double>& symm, bool no_updating)
     : lattice_{lattice},
@@ -88,6 +79,7 @@ pfaffian::pfaffian(const lattice::bravais& lattice,
         }
     }
 
+    // Check symmetry constraints due to transposition
     // bs_.triangularView<Eigen::StrictlyUpper>() *= -1;
 
     fs_.resize(bs_.maxCoeff(), 4);

@@ -316,9 +316,19 @@ int main(int argc, char* argv[]) {
     if (ini::print_bonds && mpi::master) {
         std::unique_ptr<model::abstract_model> model;
         init_model(model);
-        auto bonds = model->get_lattice().get_bonds();
-        for (const auto& b : bonds) {
-            std::cout << b.a << "," << b.b << "," << b.type << std::endl;
+        if (ini::model == ini::TORIC) {
+            auto plaq =
+                dynamic_cast<lattice::toric_lattice*>(&model->get_lattice())
+                    ->construct_plaqs();
+            for (auto& p : plaq) {
+                for (auto& i : p.idxs) std::cout << i << ",";
+                std::cout << p.type << std::endl;
+            }
+        } else {
+            auto bonds = model->get_lattice().get_bonds();
+            for (const auto& b : bonds) {
+                std::cout << b.a << "," << b.b << "," << b.type << std::endl;
+            }
         }
         mpi::end();
         return 0;
@@ -578,6 +588,7 @@ int main(int argc, char* argv[]) {
             // }
 
             std::cout << ah.get_result() / rbm->n_visible << std::endl;
+            std::cout << ah.get_variance()(0) << std::endl;
             std::cout << std::sqrt(ah.get_variance()(0)) / rbm->n_visible
                       << std::endl;
             if (ini::sa_type == ini::sampler_t::METROPOLIS) {
@@ -592,25 +603,26 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // std::ofstream ws{"weights/weights_" + ini::name + ".txt"};
-    // ws << "# Weights\n";
-    // ws << rbm->get_weights();
-    // ws << "\n\n# Hidden Bias\n";
-    // ws << rbm->get_h_bias();
-    // ws << "\n\n# Visible Bias\n";
-    // ws << rbm->get_v_bias();
-    // ws.close();
+    auto samples = {16, 32, 64, 128, 256, 512, 1024, 2048, 4096};
+    for (auto& s : samples) {
+        sampler->clear_ops();
+        sampler->clear_aggs();
 
-    // model->remove_helper_hamiltoian();
-    // machine::full_sampler samp{*rbm, 3};
-    // operators::aggregator agg{model->get_hamiltonian()};
-    // samp.register_op(&(model->get_hamiltonian()));
-    // samp.register_agg(&agg);
-    // samp.sample(true);
-    // std::cout.precision(17);
-    // std::cout << std::real(agg.get_result()(0)) / rbm->n_visible <<
-    // std::endl;
-    //
+        sampler->set_n_samples(s);
+
+        auto& h = model->get_hamiltonian();
+        operators::aggregator ah(h);
+        ah.track_variance();
+        sampler->register_op(&h);
+        sampler->register_agg(&ah);
+
+        sampler->sample();
+
+        std::cout << s << ", ";
+        std::cout << std::real(ah.get_result()(0)) / rbm->n_visible << ", ";
+        std::cout << ah.get_variance()(0) / rbm->n_visible << std::endl;
+    }
+
     mpi::end();
 
     return rc;

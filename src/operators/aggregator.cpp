@@ -63,7 +63,7 @@ void aggregator::finalize(double num) {
 
         MPI_Allreduce(MPI_IN_PLACE, variance_.data(), variance_.size(),
                       MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        variance_ -= result_.real().cwiseAbs2();
+        variance_ -= result_.cwiseAbs2();
     }
 }
 
@@ -85,7 +85,7 @@ void aggregator::aggregate(double weight) {
 
     if (track_variance_) {
         // Calculate the resul of the squared observable
-        variance_.noalias() += weight * x.real().cwiseAbs2();
+        variance_.noalias() += weight * x.cwiseAbs2();
     }
 }
 
