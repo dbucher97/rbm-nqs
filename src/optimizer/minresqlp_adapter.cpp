@@ -47,9 +47,9 @@ void Aprod(int* n, std::complex<double>* x, std::complex<double>* y) {
     cblas_zgemv(CblasRowMajor, CblasConjTrans, g_mat_dim2, *n, &g_one, g_mat,
                 *n, g_tmp, 1, &g_zero, y, 1);
 
-    //     cblas_zdotc_sub(*n, g_vec, 1, x, 1, g_dot);
-    //     (*g_dot) = -(*g_dot);
-    //     cblas_zaxpy(*n, g_dot, g_vec, 1, y, 1);
+    cblas_zdotc_sub(*n, g_vec, 1, x, 1, g_dot);
+    (*g_dot) = -(*g_dot);
+    cblas_zaxpy(*n, g_dot, g_vec, 1, y, 1);
 
     //     // diagonal scaling
     // #pragma omp parallel for simd
@@ -99,12 +99,6 @@ minresqlp_adapter::minresqlp_adapter(const Eigen::MatrixXcd& mat,
     g_reg = reg;
     g_norm = 1 / norm;
     shift -= e2 * diag.real().maxCoeff();
-
-    Eigen::VectorXcd res(n);
-    Eigen::VectorXcd vec2 = vec;
-    Aprod(&n, vec2.data(), res.data());
-    std::cout << vec2 << std::endl;
-    std::cout << tmp << std::endl;
 }
 
 int minresqlp_adapter::apply(const Eigen::VectorXcd& b, Eigen::VectorXcd& x) {

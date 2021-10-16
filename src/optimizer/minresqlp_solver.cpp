@@ -62,11 +62,21 @@ void minresqlp_solver::solve(const Eigen::MatrixXcd& mat,
         int nt = omp_get_max_threads();
         omp_set_num_threads(ini::n_threads);
 
+        Eigen::MatrixXcd S = mat.conjugate() * mat.transpose() / norm -
+                             d.conjugate() * d.transpose();
+
         diag_ = diag.cast<std::complex<double>>();
         vec_ = d.conjugate();
 
         minresqlp_adapter min(mat_, vec_, r1, r2, rd, norm, n_neural_, diag_,
                               tmp_);
+
+        Eigen::VectorXcd tr = Eigen::VectorXcd::Ones(mat.rows());
+        Eigen::VectorXcd res(mat.rows());
+        int n = mat.rows();
+        Aprod(&n, tr.data(), res.data());
+        std::cout << (res - S * tr).norm() << std::endl;
+
         if (max_iterations_) min.itnlim = max_iterations_;
         if (rtol_ > 0.0) min.rtol = rtol_;
         min.apply(b, x);
