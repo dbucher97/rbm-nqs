@@ -94,6 +94,8 @@ void rbm_base::initialize_weights(std::mt19937& rng, double std_dev,
     // Initialize weights
     for (auto& c : correlators_)
         c->initialize_weights(rng, std_dev, std_dev_imag);
+
+    mpi::cout << weights_ << mpi::endl;
 }
 
 int g_lut = 0, g_tot = 0;

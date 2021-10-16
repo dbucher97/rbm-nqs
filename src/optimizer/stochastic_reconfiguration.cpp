@@ -91,6 +91,8 @@ Eigen::VectorXcd& stochastic_reconfiguration::gradient(bool log) {
         sampler_.log();
     }
 
+    mpi::cout << std::real(h(0)) / rbm_.n_visible << mpi::endl;
+
     double reg1 = kp1_.get();
     double reg2 = kp2_.get();
     double reg1delta = kp1d_.get();
@@ -101,6 +103,8 @@ Eigen::VectorXcd& stochastic_reconfiguration::gradient(bool log) {
     dw_.setZero();
     solver_->solve(a_dd_.get_result(), d, a_dd_.get_norm(), F_, dw_, reg1, reg2,
                    reg1delta, a_dd_.get_diag());
+
+    mpi::cout << dw_.transpose() << mpi::endl;
 
     if (plug_) {
         plug_->add_metric(&(a_dd_.get_result()), &a_d_.get_result());
