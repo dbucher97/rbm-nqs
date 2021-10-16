@@ -46,7 +46,7 @@ rbm_base::rbm_base(size_t n_alpha, size_t n_v_bias, lattice::bravais& l,
       cosh_mode_{cosh_mode},
       cosh_{(cosh_mode == 0) ? &math::cosh1 : &math::cosh2},
       lncosh_{&math::lncosh},
-      tanh_{(cosh_mode != 0) ? &math::tanh1 : &math::tanh2} {}
+      tanh_{(cosh_mode != 1) ? &math::tanh1 : &math::tanh2} {}
 
 rbm_base::rbm_base(size_t n_alpha, lattice::bravais& l, size_t pop_mode,
                    size_t cosh_mode)

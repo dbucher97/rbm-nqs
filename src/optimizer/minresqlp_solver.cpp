@@ -71,8 +71,6 @@ void minresqlp_solver::solve(const Eigen::MatrixXcd& mat,
         if (rtol_ > 0.0) min.rtol = rtol_;
         min.apply(b, x);
 
-        std::cout << diag_.transpose() << std::endl;
-
         std::cout << "Istop: " << min.getIstop() << " It: " << min.getItn()
                   << " Rtol: " << min.getRnorm() << " Acond: " << min.getAcond()
                   << std::endl;
