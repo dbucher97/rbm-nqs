@@ -103,7 +103,8 @@ minresqlp_adapter::minresqlp_adapter(const Eigen::MatrixXcd& mat,
     Eigen::VectorXcd res(n);
     Eigen::VectorXcd vec2 = vec;
     Aprod(&n, vec2.data(), res.data());
-    std::cout << ((mat.transpose() * vec2 / norm) - tmp).norm() << std::endl;
+    std::cout << vec2 << std::endl;
+    std::cout << tmp << std::endl;
 }
 
 int minresqlp_adapter::apply(const Eigen::VectorXcd& b, Eigen::VectorXcd& x) {
