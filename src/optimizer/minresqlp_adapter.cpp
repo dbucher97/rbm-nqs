@@ -47,19 +47,19 @@ void Aprod(int* n, std::complex<double>* x, std::complex<double>* y) {
     cblas_zgemv(CblasRowMajor, CblasConjTrans, g_mat_dim2, *n, &g_one, g_mat,
                 *n, g_tmp, 1, &g_zero, y, 1);
 
-    cblas_zdotc_sub(*n, g_vec, 1, x, 1, g_dot);
-    (*g_dot) = -(*g_dot);
-    cblas_zaxpy(*n, g_dot, g_vec, 1, y, 1);
+    //     cblas_zdotc_sub(*n, g_vec, 1, x, 1, g_dot);
+    //     (*g_dot) = -(*g_dot);
+    //     cblas_zaxpy(*n, g_dot, g_vec, 1, y, 1);
 
-    // diagonal scaling
-#pragma omp parallel for simd
-    for (int i = 0; i < g_nn; i++) {
-        y[i] += g_reg[0] * g_diag[i] * x[i];
-    }
-#pragma omp parallel for simd
-    for (int i = g_nn; i < *n; i++) {
-        y[i] += g_reg[1] * g_diag[i] * x[i];
-    }
+    //     // diagonal scaling
+    // #pragma omp parallel for simd
+    //     for (int i = 0; i < g_nn; i++) {
+    //         y[i] += g_reg[0] * g_diag[i] * x[i];
+    //     }
+    // #pragma omp parallel for simd
+    //     for (int i = g_nn; i < *n; i++) {
+    //         y[i] += g_reg[1] * g_diag[i] * x[i];
+    //     }
 }
 
 void Msolve(int* n, std::complex<double>* x, std::complex<double>* y) {
@@ -100,16 +100,7 @@ minresqlp_adapter::minresqlp_adapter(const Eigen::MatrixXcd& mat,
     g_norm = 1 / norm;
     shift -= e2 * diag.real().maxCoeff();
 
-    std::cout << itnlim << ", ";
-    std::cout << reg[0] << ", ";
-    std::cout << reg[1] << ", ";
-    std::cout << *g_diag << ", ";
-    std::cout << *g_vec << ", ";
-    std::cout << *g_mat << ", ";
-    std::cout << g_mat_dim2 << ", ";
-    std::cout << g_nn << ", ";
-    std::cout << g_norm << ", ";
-    std::cout << shift << std::endl;
+    std::cout << mat << std::endl;
 
     Eigen::VectorXcd res(n);
     Eigen::VectorXcd vec2 = vec;
