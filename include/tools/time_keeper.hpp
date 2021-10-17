@@ -32,6 +32,7 @@ extern std::map<std::string, int> counters;
 extern std::map<std::string, double> elapsed_times;
 extern std::vector<std::string> tracked;
 extern int iteration_count;
+extern std::chrono::time_point<clock> global;
 
 extern void start(const std::string& name);
 extern void end(const std::string& name);

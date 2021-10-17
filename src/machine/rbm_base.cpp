@@ -340,9 +340,7 @@ std::complex<double> rbm_base::psi_over_psi_alt(
 
 #define COSH_LUT(func)                                   \
     g_tot++;                                             \
-    time_keeper::start("hashmap");                       \
     auto lx = lut_.find(state);                          \
-    time_keeper::end("hashmap");                         \
     if (lx != lut_.end()) {                              \
         g_lut++;                                         \
         return lx->second;                               \
@@ -352,6 +350,7 @@ std::complex<double> rbm_base::psi_over_psi_alt(
         time_keeper::end("evaluation");                  \
         /*lut_update_nums_.push_back(statenum);*/        \
         /*lut_update_vals_.push_back(ret);       */      \
+_Pragma("omp critical")                                  \
         lut_[state] = ret;                               \
         return ret;                                      \
     }

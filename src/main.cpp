@@ -504,6 +504,7 @@ int main(int argc, char* argv[]) {
             progress_bar(0, ini::n_epochs, -1, 'S');
         }
 
+        time_keeper::clear();
         int ch = 0;
         for (int i = rbm->get_n_updates(); i < (int)ini::n_epochs && ch != '';
              i++) {

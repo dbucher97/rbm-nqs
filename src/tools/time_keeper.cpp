@@ -29,6 +29,7 @@ std::map<std::string, std::chrono::time_point<clock>> start_times = {};
 std::map<std::string, int> counters = {};
 std::map<std::string, double> elapsed_times = {};
 std::vector<std::string> tracked = {};
+std::chrono::time_point<clock> global;
 int iteration_count = 0;
 }  // namespace time_keeper
 
@@ -57,11 +58,20 @@ void time_keeper::clear() {
     counters.clear();
     elapsed_times.clear();
     tracked.clear();
+    global = clock::now();
 }
 
 void time_keeper::itn() { iteration_count++; }
 
 void time_keeper::resumee() {
+    auto total = std::chrono::duration_cast<std::chrono::milliseconds>(
+                     clock::now() - global)
+                     .count();
+    int milli = (total / 100) % 10;
+    int seconds = (total / 1000) % 60;
+    int minutes = (total / 60000) % 60;
+    int hours = (total / 3600000);
+
     for (int i = 0; i < mpi::n_proc; i++) {
         if (i == mpi::rank) {
             std::printf("\nTime Keeper Rank %d\n", i);
@@ -78,6 +88,8 @@ void time_keeper::resumee() {
                 std::printf("%-20s | %10.2f | %10.5f | %10.1f\n", name.c_str(),
                             time_per_epoch, time_per_call, calls_per_epoch);
             }
+            std::printf("Total time elapsed %02d:%02d:%02d.%d\n", hours,
+                        minutes, seconds, milli);
         }
         MPI_Barrier(MPI_COMM_WORLD);
     }

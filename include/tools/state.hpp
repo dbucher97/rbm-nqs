@@ -15,6 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// ATTENTION: Deprecated since spin_state
+
 #include <Eigen/Dense>
 #include <vector>
 
@@ -74,4 +76,3 @@ inline void get_flips(size_t num, std::vector<size_t>& flips,
 }
 
 }  // namespace tools
-
