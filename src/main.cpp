@@ -100,9 +100,11 @@ void init_seed(size_t g_seed, std::unique_ptr<std::mt19937>& rng) {
         MPI_Recv(&seed, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD,
                  MPI_STATUS_IGNORE);
     }
-    if (!mpi::master)
+    if (!mpi::master) {
+        std::cout << seed << std::endl;
         rng = std::make_unique<std::mt19937>(
             static_cast<std::mt19937::result_type>(seed));
+    }
 }
 
 int init_model(std::unique_ptr<model::abstract_model>& model) {

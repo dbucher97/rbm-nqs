@@ -99,6 +99,7 @@ minresqlp_adapter::minresqlp_adapter(const Eigen::MatrixXcd& mat,
     g_reg = reg;
     g_norm = 1 / norm;
     shift -= e2 * diag.real().maxCoeff();
+    std::cout << shift << std::endl;
 }
 
 int minresqlp_adapter::apply(const Eigen::VectorXcd& b, Eigen::VectorXcd& x) {

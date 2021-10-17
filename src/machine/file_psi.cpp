@@ -29,8 +29,10 @@ using namespace machine;
 
 file_psi::file_psi(lattice::bravais& lattice, const std::string& filename)
     : Base{lattice, 1}, state_vec_((size_t)(1 << lattice.n_total), 1) {
+    if (lattice.n_total > 64) {
+        throw std::runtime_error("File psi not possible for N > 64.");
+    }
     std::ifstream file{filename};
-    std::cout << file.good() << std::endl;
     std::complex<double> line;
     size_t c = 0;
     while (file >> line) {
@@ -38,8 +40,6 @@ file_psi::file_psi(lattice::bravais& lattice, const std::string& filename)
         c++;
         if (c % 10000 == 0) std::cout << c << std::endl;
     }
-    std::cout << filename << std::endl;
-    std::cout << c << std::endl;
     if (c != (size_t)state_vec_.size())
         throw std::runtime_error("File " + filename + " has wrong size!");
     std::cout << "Loaded state vec with norm: "

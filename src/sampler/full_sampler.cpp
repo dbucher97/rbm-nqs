@@ -33,7 +33,11 @@ using namespace sampler;
 full_sampler::full_sampler(machine::abstract_machine& rbm_, size_t bp,
                            int pfaff_refresh, int lut_exchange)
     : Base{rbm_, (size_t)(1 << rbm_.n_visible), pfaff_refresh, lut_exchange},
-      bits_parallel_{bp} {}
+      bits_parallel_{bp} {
+    if (rbm_.n_visible > 64) {
+        throw std::runtime_error("Perfect sampling not possible for N > 64.");
+    }
+}
 
 void full_sampler::sample(bool keep_state) {
     // Initialize aggregators
