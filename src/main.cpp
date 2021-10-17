@@ -605,25 +605,25 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    auto samples = {16, 32, 64, 128, 256, 512, 1024, 2048, 4096};
-    for (auto& s : samples) {
-        sampler->clear_ops();
-        sampler->clear_aggs();
+    // auto samples = {16, 32, 64, 128, 256, 512, 1024, 2048, 4096};
+    // for (auto& s : samples) {
+    //     sampler->clear_ops();
+    //     sampler->clear_aggs();
 
-        sampler->set_n_samples(s);
+    //     sampler->set_n_samples(s);
 
-        auto& h = model->get_hamiltonian();
-        operators::aggregator ah(h);
-        ah.track_variance();
-        sampler->register_op(&h);
-        sampler->register_agg(&ah);
+    //     auto& h = model->get_hamiltonian();
+    //     operators::aggregator ah(h);
+    //     ah.track_variance();
+    //     sampler->register_op(&h);
+    //     sampler->register_agg(&ah);
 
-        sampler->sample();
+    //     sampler->sample();
 
-        std::cout << s << ", ";
-        std::cout << std::real(ah.get_result()(0)) / rbm->n_visible << ", ";
-        std::cout << ah.get_variance()(0) / rbm->n_visible << std::endl;
-    }
+    //     std::cout << s << ", ";
+    //     std::cout << std::real(ah.get_result()(0)) / rbm->n_visible << ", ";
+    //     std::cout << ah.get_variance()(0) / rbm->n_visible << std::endl;
+    // }
 
     mpi::end();
 

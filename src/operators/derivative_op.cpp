@@ -27,7 +27,7 @@ using namespace operators;
 derivative_op::derivative_op(size_t n_params) : Base{n_params} {}
 
 void derivative_op::evaluate(machine::abstract_machine& rbm,
-                             const Eigen::MatrixXcd& state,
+                             const machine::spin_state& state,
                              machine::rbm_context& context) {
     auto& result = get_result_();
     // Get the result from `rbm.derivative`

@@ -44,7 +44,7 @@ class local_op : public base_op {
      */
     local_op(const std::vector<size_t>& acts_on, const SparseXcd& op);
 
-    void evaluate(machine::abstract_machine&, const Eigen::MatrixXcd&,
+    void evaluate(machine::abstract_machine&, const machine::spin_state&,
                   machine::rbm_context&) final;
 
     const SparseXcd& get_op() { return op_; }

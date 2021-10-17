@@ -124,7 +124,7 @@ void rbm_base::update_weights(const Eigen::MatrixXcd& dw) {
     g_tot = 0;
 }
 
-std::complex<double> rbm_base::psi_over_psi(const Eigen::MatrixXcd& state,
+std::complex<double> rbm_base::psi_over_psi(const spin_state& state,
                                             const std::vector<size_t>& flips,
                                             rbm_context& context,
                                             rbm_context& updated_context,
@@ -140,10 +140,11 @@ std::complex<double> rbm_base::psi_over_psi(const Eigen::MatrixXcd& state,
     return ret;
 }
 
-rbm_context rbm_base::get_context(const Eigen::MatrixXcd& state) const {
+rbm_context rbm_base::get_context(const spin_state& state) const {
+    Eigen::MatrixXcd vstate = state.to_vec();
     // Calculate the thetas from `state`
     Eigen::MatrixXcd thetas =
-        (state.transpose() * weights_).transpose() + h_bias_;
+        (vstate.transpose() * weights_).transpose() + h_bias_;
     for (auto& c : correlators_) c->add_thetas(state, thetas);
     if (pfaffian_) {
         return {thetas, pfaffian_->get_context(state)};
@@ -152,14 +153,14 @@ rbm_context rbm_base::get_context(const Eigen::MatrixXcd& state) const {
     }
 }
 
-void rbm_base::update_context(const Eigen::MatrixXcd& state,
+void rbm_base::update_context(const spin_state& state,
                               const std::vector<size_t>& flips,
                               rbm_context& context) const {
     Eigen::MatrixXcd& thetas = context.thetas;
     // Update the thetas for a given number of flips
     for (auto& f : flips) {
         // Just subtract a row from weights from the thetas
-        thetas -= 2 * weights_.row(f).transpose() * state(f);
+        thetas -= (state[f] ? -2. : 2.) * weights_.row(f).transpose();
     }
     std::vector<std::vector<size_t>> cidxs;
     for (auto& c : correlators_) {
@@ -172,18 +173,19 @@ void rbm_base::update_context(const Eigen::MatrixXcd& state,
     }
 }
 
-Eigen::MatrixXcd rbm_base::derivative(const Eigen::MatrixXcd& state,
+Eigen::MatrixXcd rbm_base::derivative(const spin_state& state,
                                       const rbm_context& context) const {
     // Calculate thr derivative of the RBM with respect to the parameters.
     // The formula for this can be calculated by pen and paper.
+    auto vstate = state.to_vec();
     Eigen::MatrixXcd result = Eigen::MatrixXcd::Zero(get_n_params(), 1);
-    result.block(0, 0, n_vb_, 1) = state;
+    result.block(0, 0, n_vb_, 1) = vstate;
     // Eigen::MatrixXcd tanh = thetas.array().tanh();
     Eigen::ArrayXXcd tanh(context.thetas.rows(), context.thetas.cols());
     (*tanh_)(context.thetas, tanh);
 
     result.block(n_vb_, 0, n_alpha_, 1) = tanh;
-    Eigen::ArrayXXcd x = state * tanh.matrix().transpose();
+    Eigen::ArrayXXcd x = vstate * tanh.matrix().transpose();
     // Transform weights matrix into a vector.
     result.block(n_vb_ + n_alpha_, 0, n_alpha_ * n_visible, 1) =
         Eigen::Map<Eigen::ArrayXXcd>(x.data(), n_alpha_ * n_visible, 1);
@@ -266,25 +268,23 @@ void rbm_base::add_correlator(const std::vector<std::vector<size_t>>& corr) {
     correlators_.push_back(std::make_unique<correlator>(corr, n_alpha_));
 }
 
-std::complex<double> rbm_base::psi_notheta(
-    const Eigen::MatrixXcd& state) const {
-    return std::exp((v_bias_.array() * state.array()).sum());
+std::complex<double> rbm_base::psi_notheta(const spin_state& state) const {
+    return std::exp((v_bias_.array() * state.to_vec().array()).sum());
 }
 
-std::complex<double> rbm_base::psi_default(const Eigen::MatrixXcd& state,
+std::complex<double> rbm_base::psi_default(const spin_state& state,
                                            rbm_context& context) {
     // Calculate the \psi with `thetas`
-    size_t num = tools::state_to_num(state);
-    std::complex<double> cosh_part = cosh(context, num);
+    std::complex<double> cosh_part = cosh(context, state);
     for (auto& c : correlators_) c->psi(state, cosh_part);
     return psi_notheta(state) * cosh_part;
 }
 
 std::complex<double> rbm_base::log_psi_over_psi_bias(
-    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips) const {
+    const spin_state& state, const std::vector<size_t>& flips) const {
     std::complex<double> ret = 0;
     // Claculate the visible bias part, calcels out for all not flipped sites.
-    for (auto& f : flips) ret -= 2. * state(f) * v_bias_(f % n_vb_);
+    for (auto& f : flips) ret -= (state[f] ? -2. : 2.) * v_bias_(f % n_vb_);
 
     std::vector<std::vector<size_t>> cidxs;
     for (auto& c : correlators_) {
@@ -295,16 +295,15 @@ std::complex<double> rbm_base::log_psi_over_psi_bias(
 }
 
 std::complex<double> rbm_base::log_psi_over_psi(
-    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+    const spin_state& state, const std::vector<size_t>& flips,
     rbm_context& context, rbm_context& updated_context, bool* didupdate) {
     if (flips.empty()) return 0.;
 
     std::complex<double> ret = log_psi_over_psi_bias(state, flips);
 
-    size_t num = tools::state_to_num(state);
-    size_t num2 = num;
-    for (auto& f : flips) num2 ^= (1 << f);
-    if (true || lut_.find(num2) != lut_.end()) {
+    spin_state state2 = state;
+    state2.flip(flips);
+    if (true || lut_.find(state2) != lut_.end()) {
         // Update the thetas with the flips
         update_context(state, flips, updated_context);
     } else {
@@ -313,29 +312,28 @@ std::complex<double> rbm_base::log_psi_over_psi(
 
     // Caclulate the diffrenece of the lncoshs, which is the same as the log
     // of the ratio of coshes.
-    ret += lncosh(updated_context, num2) - lncosh(context, num);
+    ret += lncosh(updated_context, state2) - lncosh(context, state);
 
     return ret;
 }
 
 std::complex<double> rbm_base::psi_over_psi_alt(
-    const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+    const spin_state& state, const std::vector<size_t>& flips,
     rbm_context& context, rbm_context& updated_context, bool* didupdate) {
     if (flips.empty()) return 1.;
 
     std::complex<double> ret = std::exp(log_psi_over_psi_bias(state, flips));
 
-    size_t num = tools::state_to_num(state);
-    size_t num2 = num;
-    for (auto& f : flips) num2 ^= (1 << f);
-    if (true || lut_.find(num2) != lut_.end()) {
+    spin_state state2 = state;
+    state2.flip(flips);
+    if (true || lut_.find(state2) != lut_.end()) {
         // Update the thetas with the flips
         update_context(state, flips, updated_context);
     } else {
         if (didupdate) *didupdate = false;
     }
 
-    ret *= cosh(updated_context, num2) / cosh(context, num);
+    ret *= cosh(updated_context, state2) / cosh(context, state);
 
     return ret;
 }
@@ -343,7 +341,7 @@ std::complex<double> rbm_base::psi_over_psi_alt(
 #define COSH_LUT(func)                                   \
     g_tot++;                                             \
     time_keeper::start("hashmap");                       \
-    auto lx = lut_.find(statenum);                       \
+    auto lx = lut_.find(state);                          \
     time_keeper::end("hashmap");                         \
     if (lx != lut_.end()) {                              \
         g_lut++;                                         \
@@ -354,22 +352,25 @@ std::complex<double> rbm_base::psi_over_psi_alt(
         time_keeper::end("evaluation");                  \
         /*lut_update_nums_.push_back(statenum);*/        \
         /*lut_update_vals_.push_back(ret);       */      \
-        lut_[statenum] = ret;                            \
+        lut_[state] = ret;                               \
         return ret;                                      \
     }
 
-std::complex<double> rbm_base::cosh(rbm_context& context, size_t statenum) {
-    if (cosh_mode_ == 2) return std::exp(lncosh(context, statenum));
+std::complex<double> rbm_base::cosh(rbm_context& context,
+                                    const spin_state& state) {
+    if (cosh_mode_ == 2) return std::exp(lncosh(context, state));
     COSH_LUT(cosh_);
 }
-std::complex<double> rbm_base::lncosh(rbm_context& context, size_t statenum) {
-    if (cosh_mode_ != 2) return std::log(cosh(context, statenum));
+std::complex<double> rbm_base::lncosh(rbm_context& context,
+                                      const spin_state& state) {
+    if (cosh_mode_ != 2) return std::log(cosh(context, state));
     COSH_LUT(lncosh_);
 }
 
 #undef COSH_LUT
 
 void rbm_base::exchange_luts() {
+    throw std::runtime_error("Not yet implemented with new state");
     std::vector<int> update_sizes(mpi::n_proc);
     std::vector<int> starts(mpi::n_proc);
     int m_size = lut_update_nums_.size();

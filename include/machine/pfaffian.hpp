@@ -25,6 +25,7 @@
 //
 #include <lattice/bravais.hpp>
 #include <machine/context.hpp>
+#include <machine/spin_state.hpp>
 
 namespace machine {
 
@@ -54,23 +55,23 @@ class pfaffian {
         const std::vector<Eigen::SparseMatrix<std::complex<double>>>& mats,
         const std::vector<std::vector<size_t>>& acts_on);
 
-    pfaff_context get_context(const Eigen::MatrixXcd& state) const;
+    pfaff_context get_context(const spin_state& state) const;
 
-    void update_context(const Eigen::MatrixXcd& state,
+    void update_context(const spin_state& state,
                         const std::vector<size_t>& flips,
                         pfaff_context& context) const;
 
-    void derivative(const Eigen::MatrixXcd& state, const pfaff_context& context,
+    void derivative(const spin_state& state, const pfaff_context& context,
                     Eigen::MatrixXcd& result, size_t& offset) const;
 
-    inline std::complex<double> psi(const Eigen::MatrixXcd& state,
+    inline std::complex<double> psi(const spin_state& state,
                                     const pfaff_context& context) const {
         // auto context2 = get_context(state);
         return context.pfaff * std::pow(10, context.exp);
     }
 
     inline std::complex<double> psi_over_psi(
-        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+        const spin_state& state, const std::vector<size_t>& flips,
         const pfaff_context& context, pfaff_context& updated_context) const {
         // Eigen::MatrixXcd state2 = state;
         // for (auto& f : flips) state2(f) *= -1;
@@ -99,17 +100,16 @@ class pfaffian {
     void bcast(int rank);
 
    private:
-    bool spidx(size_t i, const Eigen::MatrixXcd& state, bool flip) const;
-    int spidx(size_t i, size_t j, const Eigen::MatrixXcd& state,
-              bool flipi = false, bool flipj = false) const;
+    bool spidx(size_t i, const spin_state& state, bool flip) const;
+    int spidx(size_t i, size_t j, const spin_state& state, bool flipi = false,
+              bool flipj = false) const;
 
     size_t idx(size_t i, size_t j) const;
 
-    inline std::complex<double> a(size_t i, size_t j,
-                                  const Eigen::MatrixXcd& state,
+    inline std::complex<double> a(size_t i, size_t j, const spin_state& state,
                                   bool flipi = false, bool flipj = false) const;
 
-    Eigen::MatrixXcd get_mat(const Eigen::MatrixXcd& state) const;
+    Eigen::MatrixXcd get_mat(const spin_state& state) const;
 };
 
 }  // namespace machine

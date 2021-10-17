@@ -30,7 +30,7 @@ local_op_chain::local_op_chain(const std::vector<local_op>& ops)
     : Base{}, ops_{ops} {}
 
 void local_op_chain::evaluate(machine::abstract_machine& rbm,
-                              const Eigen::MatrixXcd& state,
+                              const machine::spin_state& state,
                               machine::rbm_context& context) {}
 
 void local_op_chain::push_back(local_op op) {

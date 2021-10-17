@@ -20,6 +20,7 @@
 #include <Eigen/Dense>
 #include <complex>
 #include <fstream>
+#include <machine/spin_state.hpp>
 #include <random>
 #include <unordered_map>
 #include <vector>
@@ -50,7 +51,7 @@ class correlator {
     correlator(const std::vector<std::vector<size_t>>& corr, size_t n_hidden,
                const std::vector<std::vector<size_t>>& symm = {});
 
-    std::complex<double> evaluate(const Eigen::MatrixXcd& state, size_t cidx,
+    std::complex<double> evaluate(const spin_state& state, size_t cidx,
                                   size_t sidx = 0) const;
 
     /**
@@ -69,24 +70,23 @@ class correlator {
 
     void update_weights(const Eigen::MatrixXcd& dw, size_t& offset);
 
-    void psi(const Eigen::MatrixXcd& state, std::complex<double>& res) const;
+    void psi(const spin_state& state, std::complex<double>& res) const;
 
-    void add_thetas(const Eigen::MatrixXcd& state, Eigen::MatrixXcd& res,
+    void add_thetas(const spin_state& state, Eigen::MatrixXcd& res,
                     size_t sidx = 0) const;
 
     void get_cidxs_from_flips(const std::vector<size_t>& flips,
                               std::vector<std::vector<size_t>>& cidxs) const;
 
-    void update_thetas(const Eigen::MatrixXcd& state,
+    void update_thetas(const spin_state& state,
                        const std::vector<size_t>& cidxs,
                        Eigen::MatrixXcd& thetas, size_t sidx = 0) const;
 
     std::complex<double> log_psi_over_psi(
-        const Eigen::MatrixXcd& state, const std::vector<size_t>& cidxs) const;
+        const spin_state& state, const std::vector<size_t>& cidxs) const;
 
-    void derivative(const Eigen::MatrixXcd& state,
-                    const Eigen::MatrixXcd& thetas, Eigen::MatrixXcd& result,
-                    size_t& offset) const;
+    void derivative(const spin_state& state, const Eigen::MatrixXcd& thetas,
+                    Eigen::MatrixXcd& result, size_t& offset) const;
 
     void load(std::ifstream& input);
     void save(std::ofstream& output);

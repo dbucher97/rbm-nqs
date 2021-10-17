@@ -47,17 +47,16 @@ file_psi::file_psi(lattice::bravais& lattice, const std::string& filename)
               << std::endl;
 }
 
-std::complex<double> file_psi::psi(const Eigen::MatrixXcd& state,
-                                   rbm_context&) {
-    return state_vec_(tools::state_to_num(state));
+std::complex<double> file_psi::psi(const spin_state& state, rbm_context&) {
+    return state_vec_(state.to_num());
 }
 
-std::complex<double> file_psi::psi_over_psi(const Eigen::MatrixXcd& state,
+std::complex<double> file_psi::psi_over_psi(const spin_state& state,
                                             const std::vector<size_t>& flips,
                                             rbm_context& co, rbm_context&,
                                             bool* didupdate) {
     std::complex<double> ps1 = psi(state, co);
-    Eigen::MatrixXcd state2 = state;
-    for (auto& i : flips) state2(i) *= -1;
+    spin_state state2 = state;
+    state2.flip(flips);
     return psi(state2, co) / ps1;
 }

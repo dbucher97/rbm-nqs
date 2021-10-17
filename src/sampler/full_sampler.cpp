@@ -69,8 +69,7 @@ void full_sampler::sample(bool keep_state) {
         size_t flip;
 
         // Get the state for `b`
-        Eigen::MatrixXcd state(rbm_.n_visible, 1);
-        tools::num_to_state(b, state);
+        machine::spin_state state(rbm_.n_visible, b);
 
         // Precalculate context
         auto context = rbm_.get_context(state);
@@ -112,7 +111,7 @@ void full_sampler::sample(bool keep_state) {
             // If keep state store \psi into the state vector
             if (keep_state) {
                 local_vec(i - 1) = psi;
-                local_vec_idx(i - 1) = tools::state_to_num(state);
+                local_vec_idx(i - 1) = state.to_num();
             }
 
             // Cumulate probability for normalization
@@ -133,7 +132,7 @@ void full_sampler::sample(bool keep_state) {
 
                 rbm_.update_context(state, {flip}, context);
                 pfaffian_refresh(state, context.pfaff(), i, {flip});
-                state(flip) *= -1;
+                state.flip(flip);
 
                 exchange_luts(i);
             }

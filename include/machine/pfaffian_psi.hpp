@@ -37,13 +37,12 @@ class pfaffian_psi : public abstract_machine {
     pfaffian_psi(lattice::bravais& lattice) : Base{lattice, 0} {}
 
     virtual inline rbm_context get_context(
-        const Eigen::MatrixXcd& state) const override {
+        const spin_state& state) const override {
         return {Eigen::MatrixXcd::Zero(1, 1), pfaffian_->get_context(state)};
     }
 
     virtual inline Eigen::MatrixXcd derivative(
-        const Eigen::MatrixXcd& state,
-        const rbm_context& context) const override {
+        const spin_state& state, const rbm_context& context) const override {
         Eigen::MatrixXcd ret(pfaffian_->get_n_params(), 1);
         size_t offset = 0;
         pfaffian_->derivative(state, context.pfaff(), ret, offset);
@@ -56,19 +55,19 @@ class pfaffian_psi : public abstract_machine {
         n_updates_++;
     }
 
-    virtual inline void update_context(const Eigen::MatrixXcd& state,
+    virtual inline void update_context(const spin_state& state,
                                        const std::vector<size_t>& flips,
                                        rbm_context& context) const override {
         pfaffian_->update_context(state, flips, context.pfaff());
     }
 
-    virtual inline std::complex<double> psi(const Eigen::MatrixXcd& state,
+    virtual inline std::complex<double> psi(const spin_state& state,
                                             rbm_context& context) override {
         return pfaffian_->psi(state, context.pfaff());
     }
 
     virtual inline std::complex<double> psi_over_psi(
-        const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+        const spin_state& state, const std::vector<size_t>& flips,
         rbm_context& context, rbm_context& updated_context,
         bool* didupdate = 0) override {
         update_context(state, flips, updated_context);

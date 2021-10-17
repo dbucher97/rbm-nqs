@@ -32,23 +32,22 @@ class file_psi : public abstract_machine {
    public:
     file_psi(lattice::bravais& lattice, const std::string& filename);
 
-    virtual rbm_context get_context(
-        const Eigen::MatrixXcd& state) const override {
+    virtual rbm_context get_context(const spin_state& state) const override {
         return {Eigen::MatrixXcd::Zero(1, 1)};
     }
 
-    virtual Eigen::MatrixXcd derivative(const Eigen::MatrixXcd&,
+    virtual Eigen::MatrixXcd derivative(const spin_state& state,
                                         const rbm_context&) const override {
         return Eigen::MatrixXcd::Zero(1, 1);
     }
 
-    virtual void update_context(const Eigen::MatrixXcd& state,
+    virtual void update_context(const spin_state& state,
                                 const std::vector<size_t>& flips,
                                 rbm_context& thetas) const override {}
 
-    virtual std::complex<double> psi(const Eigen::MatrixXcd& state,
+    virtual std::complex<double> psi(const spin_state& state,
                                      rbm_context& context) override;
-    virtual std::complex<double> psi_over_psi(const Eigen::MatrixXcd& state,
+    virtual std::complex<double> psi_over_psi(const spin_state& state,
                                               const std::vector<size_t>& flips,
                                               rbm_context& context,
                                               rbm_context& updated_context,

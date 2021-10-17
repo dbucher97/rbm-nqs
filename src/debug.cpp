@@ -4,6 +4,7 @@
 //
 #include <lattice/honeycomb.hpp>
 #include <machine/file_psi.hpp>
+#include <machine/spin_state.hpp>
 #include <math.hpp>
 #include <model/abstract_model.hpp>
 #include <model/isingS3.hpp>
@@ -134,10 +135,10 @@ void debug1() {
 void debug_pfaffian() {
     lattice::honeycomb lat{2};
     machine::pfaffian pfaff{lat};
-    Eigen::MatrixXcd state = Eigen::MatrixXd::Random(lat.n_total, 1);
-    state.array() /= state.array().abs();
 
     std::mt19937 rng{static_cast<std::mt19937::result_type>(ini::seed)};
+    machine::spin_state state(lat.n_total);
+    state.set_random(rng);
     pfaff.init_weights(rng, 0.1, false);
 
     auto context = pfaff.get_context(state);
@@ -156,7 +157,7 @@ void debug_pfaffian() {
             }
         }
         pfaff.update_context(state, flips, context);
-        for (auto& f : flips) state(f) *= -1;
+        state.flip(flips);
         Eigen::MatrixXcd mat(pfaff.get_n_params(), 1);
         size_t o = 0;
         pfaff.derivative(state, context, mat, o);
@@ -180,10 +181,10 @@ void debug_pfaffian() {
 void debug_pfaffian2() {
     lattice::honeycomb lat{2};
     machine::pfaffian pfaff{lat};
-    Eigen::MatrixXcd state = Eigen::MatrixXd::Random(lat.n_total, 1);
-    state.array() /= state.array().abs();
 
     std::mt19937 rng{static_cast<std::mt19937::result_type>(ini::seed)};
+    machine::spin_state state(lat.n_total);
+    state.set_random(rng);
     pfaff.init_weights(rng, 0.1, false);
 
     auto context = pfaff.get_context(state);

@@ -152,11 +152,11 @@ class abstract_sampler {
      */
     void set_n_samples(size_t samples);
 
-    void evaluate_and_aggregate(const Eigen::MatrixXcd& state,
+    void evaluate_and_aggregate(const machine::spin_state& state,
                                 machine::rbm_context& context,
                                 double p = 1.) const;
 
-    bool pfaffian_refresh(const Eigen::MatrixXcd& state,
+    bool pfaffian_refresh(const machine::spin_state& state,
                           machine::pfaff_context& context, int i,
                           const std::vector<size_t>& flips) const;
 

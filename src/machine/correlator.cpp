@@ -62,13 +62,13 @@ correlator::correlator(const std::vector<std::vector<size_t>>& corr,
     }
 }
 
-std::complex<double> correlator::evaluate(const Eigen::MatrixXcd& state,
-                                          size_t cidx, size_t sidx) const {
-    std::complex<double> ret = 1;
+std::complex<double> correlator::evaluate(const spin_state& state, size_t cidx,
+                                          size_t sidx) const {
+    bool ret = 0;
     for (auto i : corr_[symm_[sidx][cidx]]) {
-        ret *= state(i);
+        ret ^= state[i];
     }
-    return ret;
+    return ret ? -1. : 1.;
 }
 
 void correlator::initialize_weights(std::mt19937& rng, double std_dev,
@@ -110,15 +110,14 @@ void correlator::update_weights(const Eigen::MatrixXcd& dw, size_t& offset) {
     offset += weights_.size();
 }
 
-void correlator::psi(const Eigen::MatrixXcd& state,
-                     std::complex<double>& res) const {
+void correlator::psi(const spin_state& state, std::complex<double>& res) const {
     for (size_t i = 0; i < cmax; i++) {
         res *= std::exp(bias_(i % bias_.size()) * evaluate(state, i));
     }
 }
 
-void correlator::add_thetas(const Eigen::MatrixXcd& state,
-                            Eigen::MatrixXcd& thetas, size_t sidx) const {
+void correlator::add_thetas(const spin_state& state, Eigen::MatrixXcd& thetas,
+                            size_t sidx) const {
     for (size_t i = 0; i < cmax; i++) {
         thetas.col(sidx) +=
             weights_.row(i).transpose() * evaluate(state, i, sidx);
@@ -144,7 +143,7 @@ void correlator::get_cidxs_from_flips(
     cidxsa.push_back(cidxs);
 }
 
-void correlator::update_thetas(const Eigen::MatrixXcd& state,
+void correlator::update_thetas(const spin_state& state,
                                const std::vector<size_t>& cidxs,
                                Eigen::MatrixXcd& thetas, size_t sidx) const {
     for (auto& i : cidxs) {
@@ -155,7 +154,7 @@ void correlator::update_thetas(const Eigen::MatrixXcd& state,
 }
 
 std::complex<double> correlator::log_psi_over_psi(
-    const Eigen::MatrixXcd& state, const std::vector<size_t>& cidxs) const {
+    const spin_state& state, const std::vector<size_t>& cidxs) const {
     std::complex<double> ret = 0;
     for (auto& i : cidxs) {
         ret -= 2. * bias_(i % bias_.size()) * evaluate(state, i);
@@ -163,7 +162,7 @@ std::complex<double> correlator::log_psi_over_psi(
     return ret;
 }
 
-void correlator::derivative(const Eigen::MatrixXcd& state,
+void correlator::derivative(const spin_state& state,
                             const Eigen::MatrixXcd& tanh,
                             Eigen::MatrixXcd& result, size_t& offset) const {
     result.block(offset, 0, bias_.size(), 1).setZero();

@@ -24,6 +24,7 @@
 #include <random>
 //
 
+#include <machine/spin_state.hpp>
 #include <operators/base_op.hpp>
 #include <sampler/metropolis_sampler.hpp>
 #include <tools/ini.hpp>
@@ -93,7 +94,7 @@ void metropolis_sampler::sample() {
     // size_t m_size = sampled_.size();
     // MPI_Allgather(&m_size, 1, MPI_UNSIGNED_LONG, &sizes[0], 1,
     //               MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
-    Eigen::MatrixXcd state;
+    // Eigen::MatrixXcd state;
     // for (auto& s : sampled_) {
     //     std::cout << s << ", " << n_lut_[s] << std::endl;
 
@@ -117,12 +118,8 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
     size_t ar = 0;
 
     // Initilaize random state
-    Eigen::MatrixXcd state(rbm_.n_visible, 1);
-    size_t ups = 0;
-    for (size_t i = 0; i < rbm_.n_visible; i++) {
-        state(i) = u_dist_(rng_) < 0.5 ? 1. : -1.;
-        ups += (state(i) == 1.);
-    }
+    machine::spin_state state(rbm_.n_visible);
+    state.set_random(rng_);
 
     // if (ini::lattice_type == "hex") {
     //     if (u_dist_(rng_) < 0.5) {
@@ -188,7 +185,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
                 // Refresh pfaffian context if demanded
                 pfaffian_refresh(state, context.pfaff(), ar, flips);
 
-                for (auto& flip : flips) state(flip) *= -1;
+                state.flip(flips);
             }
         }
 

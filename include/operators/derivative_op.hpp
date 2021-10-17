@@ -40,7 +40,8 @@ class derivative_op : public base_op {
      */
     derivative_op(size_t n_params);
 
-    virtual void evaluate(machine::abstract_machine&, const Eigen::MatrixXcd&,
+    virtual void evaluate(machine::abstract_machine&,
+                          const machine::spin_state&,
                           machine::rbm_context&) override;
 };
 

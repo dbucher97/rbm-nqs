@@ -18,6 +18,7 @@
 
 #include <vector>
 //
+#include <machine/spin_state.hpp>
 #include <operators/base_op.hpp>
 #include <sampler/abstract_sampler.hpp>
 #include <tools/time_keeper.hpp>
@@ -74,7 +75,7 @@ void abstract_sampler::clear_aggs() { aggs_.clear(); }
 size_t abstract_sampler::get_n_samples() const { return n_samples_; }
 void abstract_sampler::set_n_samples(size_t samples) { n_samples_ = samples; }
 
-void abstract_sampler::evaluate_and_aggregate(const Eigen::MatrixXcd& state,
+void abstract_sampler::evaluate_and_aggregate(const machine::spin_state& state,
                                               machine::rbm_context& context,
                                               double p) const {
     time_keeper::start("Evaluate");
@@ -96,11 +97,11 @@ void abstract_sampler::evaluate_and_aggregate(const Eigen::MatrixXcd& state,
 }
 
 bool abstract_sampler::pfaffian_refresh(
-    const Eigen::MatrixXcd& state, machine::pfaff_context& context, int i,
+    const machine::spin_state& state, machine::pfaff_context& context, int i,
     const std::vector<size_t>& flips) const {
     if (rbm_.has_pfaffian() && pfaff_refresh_ && i % pfaff_refresh_ == 0) {
-        Eigen::MatrixXcd state2 = state;
-        for (const auto& f : flips) state2(f) *= -1.;
+        machine::spin_state state2 = state;
+        state2.flip(flips);
         context = rbm_.get_pfaffian().get_context(state2);
         return true;
     }
