@@ -14,7 +14,7 @@ SX = sp.csr_matrix([[0, 1], [1, 0]])
 
 
 def construct_op(bonds : List[Tuple], bond_ops : List[Tuple], N : int , J :
-        List[int] = [1], log: bool = False) -> sp.csr_matrix:
+        List[float] = [1], log: bool = False) -> sp.csr_matrix:
     ret = sp.csr_matrix((2**N, 2**N), dtype=complex)
     c = 0
     for sites, t in bonds:
@@ -74,14 +74,15 @@ def get_bonds(n : int, model : str = "kitaev", args : List = []) -> Tuple[List, 
     return bonds, midx + 1
 
 
-def get_hamiltonian(n : int, model : str = "kitaev", log : bool = False, args : List = []) -> sp.csr_matrix:
+def get_hamiltonian(n : int, model : str = "kitaev", log : bool = False, args :
+        List = [], J : List[float] =[-1.] ) -> sp.csr_matrix:
     bonds, N = get_bonds(n, model, args)
     bond_ops = get_bonds_ops(model)
 
     if log:
         print(f'Building Kitaev Hamiltonian ({n})')
 
-    return construct_op(bonds, bond_ops, N=N, J=[-1], log=log)
+    return construct_op(bonds, bond_ops, N=N, J=J, log=log)
 
 def get_hex(n : int, log : bool = False, args : List = []) -> List[sp.csr_matrix]:
     prstr = ''
