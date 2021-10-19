@@ -27,10 +27,13 @@ namespace machine {
 class file_psi : public abstract_machine {
     using Base = abstract_machine;
 
-    Eigen::MatrixXcd state_vec_;
+    Eigen::MatrixXcd* state_vec_;
+    bool created_;
 
    public:
     file_psi(lattice::bravais& lattice, const std::string& filename);
+    ~file_psi();
+    file_psi(lattice::bravais& lattice, Eigen::MatrixXcd& state);
 
     virtual rbm_context get_context(const spin_state& state) const override {
         return {Eigen::MatrixXcd::Zero(1, 1)};
@@ -51,6 +54,7 @@ class file_psi : public abstract_machine {
                                               const std::vector<size_t>& flips,
                                               rbm_context& context,
                                               rbm_context& updated_context,
+                                              bool discard = false,
                                               bool* didupdate = 0) override;
 };
 

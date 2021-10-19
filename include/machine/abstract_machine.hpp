@@ -198,6 +198,7 @@ class abstract_machine {
                                               const std::vector<size_t>& flips,
                                               rbm_context& context,
                                               rbm_context& updated_context,
+                                              bool discard = false,
                                               bool* did_update = 0) = 0;
 
     /**
@@ -214,7 +215,7 @@ class abstract_machine {
                                              const std::vector<size_t>& flips,
                                              rbm_context& context) {
         rbm_context updated_context = context;
-        return psi_over_psi(state, flips, context, updated_context);
+        return psi_over_psi(state, flips, context, updated_context, true);
     }
 
     /**

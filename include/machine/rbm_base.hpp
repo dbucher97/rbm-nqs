@@ -44,7 +44,7 @@ class rbm_base : public abstract_machine {
     std::complex<double> (rbm_base::*psi_over_psi_)(const spin_state&,
                                                     const std::vector<size_t>&,
                                                     rbm_context&, rbm_context&,
-                                                    bool*);
+                                                    bool, bool*);
 
     size_t
         cosh_mode_;  ///< Cosh mode 0 for default 1 for approximate 2 for lncosh
@@ -52,8 +52,9 @@ class rbm_base : public abstract_machine {
     std::complex<double> (*lncosh_)(const Eigen::MatrixXcd&);
     void (*tanh_)(const Eigen::MatrixXcd&, Eigen::ArrayXXcd&);
 
+    bool exchange_luts_;
     std::unordered_map<spin_state, std::complex<double>> lut_;
-    std::vector<spin_state> lut_update_nums_;
+    std::vector<size_t> lut_update_nums_;
     std::vector<std::complex<double>> lut_update_vals_;
 
     /**
@@ -125,7 +126,8 @@ class rbm_base : public abstract_machine {
                                               const std::vector<size_t>& flips,
                                               rbm_context& context,
                                               rbm_context& updated_context,
-                                              bool* didupdate) override;
+                                              bool discard = false,
+                                              bool* didupdate = 0) override;
 
     virtual bool save(const std::string& name, bool silent = false) final;
 
@@ -170,7 +172,7 @@ class rbm_base : public abstract_machine {
     virtual std::complex<double> log_psi_over_psi(
         const spin_state& state, const std::vector<size_t>& flips,
         rbm_context& context, rbm_context& updated_context,
-        bool* didupdate = 0);
+        bool discard = false, bool* didupdate = 0);
 
     /**
      * @brief Computes the ratio of \psi with some spins
@@ -188,9 +190,9 @@ class rbm_base : public abstract_machine {
     inline std::complex<double> psi_over_psi_default(
         const spin_state& state, const std::vector<size_t>& flips,
         rbm_context& context, rbm_context& updated_context,
-        bool* didupdate = 0) {
+        bool discard = false, bool* didupdate = 0) {
         return std::exp(log_psi_over_psi(state, flips, context, updated_context,
-                                         didupdate));
+                                         discard, didupdate));
     }
 
     /**
@@ -209,7 +211,7 @@ class rbm_base : public abstract_machine {
     virtual std::complex<double> psi_over_psi_alt(
         const spin_state& state, const std::vector<size_t>& flips,
         rbm_context& context, rbm_context& updated_context,
-        bool* didupdate = 0);
+        bool discard = false, bool* didupdate = 0);
 
     std::complex<double> cosh(rbm_context& context, const spin_state& state);
     std::complex<double> lncosh(rbm_context& context, const spin_state& state);

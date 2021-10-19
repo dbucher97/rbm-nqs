@@ -27,6 +27,7 @@
 #include <machine/rbm_base.hpp>
 #include <math.hpp>
 #include <tools/eigen_fstream.hpp>
+#include <tools/ini.hpp>
 #include <tools/mpi.hpp>
 #include <tools/state.hpp>
 #include <tools/time_keeper.hpp>
@@ -46,7 +47,8 @@ rbm_base::rbm_base(size_t n_alpha, size_t n_v_bias, lattice::bravais& l,
       cosh_mode_{cosh_mode},
       cosh_{(cosh_mode == 0) ? &math::cosh1 : &math::cosh2},
       lncosh_{&math::lncosh},
-      tanh_{(cosh_mode != 1) ? &math::tanh1 : &math::tanh2} {}
+      tanh_{(cosh_mode != 1) ? &math::tanh1 : &math::tanh2},
+      exchange_luts_{ini::sa_lut_exchange > 0} {}
 
 rbm_base::rbm_base(size_t n_alpha, lattice::bravais& l, size_t pop_mode,
                    size_t cosh_mode)
@@ -117,8 +119,10 @@ void rbm_base::update_weights(const Eigen::MatrixXcd& dw) {
     // Increment updates tracker.
     n_updates_++;
     lut_.clear();
-    lut_update_nums_.clear();
-    lut_update_vals_.clear();
+    if (exchange_luts_) {
+        lut_update_nums_.clear();
+        lut_update_vals_.clear();
+    }
     // mpi::cout << "\n" << (double)g_lut / (double)g_tot << mpi::endl;
     g_lut = 0;
     g_tot = 0;
@@ -128,10 +132,10 @@ std::complex<double> rbm_base::psi_over_psi(const spin_state& state,
                                             const std::vector<size_t>& flips,
                                             rbm_context& context,
                                             rbm_context& updated_context,
-                                            bool* didupdate) {
+                                            bool discard, bool* didupdate) {
     time_keeper::start("PoP");
     std::complex<double> ret = (this->*psi_over_psi_)(
-        state, flips, context, updated_context, didupdate);
+        state, flips, context, updated_context, discard, didupdate);
     if (pfaffian_) {
         ret *= pfaffian_->psi_over_psi(state, flips, context.pfaff(),
                                        updated_context.pfaff());
@@ -296,18 +300,19 @@ std::complex<double> rbm_base::log_psi_over_psi_bias(
 
 std::complex<double> rbm_base::log_psi_over_psi(
     const spin_state& state, const std::vector<size_t>& flips,
-    rbm_context& context, rbm_context& updated_context, bool* didupdate) {
+    rbm_context& context, rbm_context& updated_context, bool discard,
+    bool* didupdate) {
     if (flips.empty()) return 0.;
 
     std::complex<double> ret = log_psi_over_psi_bias(state, flips);
 
     spin_state state2 = state;
     state2.flip(flips);
-    if (true || lut_.find(state2) != lut_.end()) {
+    if (discard && lut_.find(state2) != lut_.end()) {
+        if (didupdate) *didupdate = false;
+    } else {
         // Update the thetas with the flips
         update_context(state, flips, updated_context);
-    } else {
-        if (didupdate) *didupdate = false;
     }
 
     // Caclulate the diffrenece of the lncoshs, which is the same as the log
@@ -319,18 +324,19 @@ std::complex<double> rbm_base::log_psi_over_psi(
 
 std::complex<double> rbm_base::psi_over_psi_alt(
     const spin_state& state, const std::vector<size_t>& flips,
-    rbm_context& context, rbm_context& updated_context, bool* didupdate) {
+    rbm_context& context, rbm_context& updated_context, bool discard,
+    bool* didupdate) {
     if (flips.empty()) return 1.;
 
     std::complex<double> ret = std::exp(log_psi_over_psi_bias(state, flips));
 
     spin_state state2 = state;
     state2.flip(flips);
-    if (true || lut_.find(state2) != lut_.end()) {
+    if (discard && lut_.find(state2) != lut_.end()) {
+        if (didupdate) *didupdate = false;
+    } else {
         // Update the thetas with the flips
         update_context(state, flips, updated_context);
-    } else {
-        if (didupdate) *didupdate = false;
     }
 
     ret *= cosh(updated_context, state2) / cosh(context, state);
@@ -348,10 +354,11 @@ std::complex<double> rbm_base::psi_over_psi_alt(
         time_keeper::start("evaluation");                \
         std::complex<double> ret = func(context.thetas); \
         time_keeper::end("evaluation");                  \
-        /*lut_update_nums_.push_back(statenum);*/        \
-        /*lut_update_vals_.push_back(ret);       */      \
-_Pragma("omp critical")                                  \
-        lut_[state] = ret;                               \
+        if (exchange_luts_) {                            \
+            lut_update_nums_.push_back(state.to_num());  \
+            lut_update_vals_.push_back(ret);             \
+        }                                                \
+        _Pragma("omp critical") lut_[state] = ret;       \
         return ret;                                      \
     }
 
@@ -369,7 +376,6 @@ std::complex<double> rbm_base::lncosh(rbm_context& context,
 #undef COSH_LUT
 
 void rbm_base::exchange_luts() {
-    throw std::runtime_error("Not yet implemented with new state");
     std::vector<int> update_sizes(mpi::n_proc);
     std::vector<int> starts(mpi::n_proc);
     int m_size = lut_update_nums_.size();
@@ -395,7 +401,8 @@ void rbm_base::exchange_luts() {
         if (i != mpi::rank) {
             int stop = (i == mpi::n_proc - 1) ? total : starts[i + 1];
             for (int j = starts[i]; j < stop; j++) {
-                lut_[all_update_nums[j]] = all_update_vals[j];
+                lut_[spin_state(n_visible, all_update_nums[j])] =
+                    all_update_vals[j];
             }
         }
     }

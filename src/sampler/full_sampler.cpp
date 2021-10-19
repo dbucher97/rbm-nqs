@@ -22,6 +22,7 @@
 #include <cmath>
 #include <fstream>
 //
+#include <machine/file_psi.hpp>
 #include <sampler/full_sampler.hpp>
 #include <tools/eigen_fstream.hpp>
 #include <tools/ini.hpp>
@@ -47,7 +48,7 @@ void full_sampler::sample(bool keep_state) {
     // Number of parallel gray code runs
     size_t b_len = (size_t)std::pow(2, bits_parallel_);
 
-    // Number of total pit flips
+    // Number of total bit flips
     size_t max = (size_t)std::pow(2, rbm_.n_visible - bits_parallel_);
 
     double p_tot = 0;
@@ -56,11 +57,9 @@ void full_sampler::sample(bool keep_state) {
     Eigen::MatrixXcd vec;
     Eigen::MatrixXcd local_vec;
     Eigen::MatrixXi local_vec_idx;
-    if (keep_state) {
-        if (mpi::master) vec = Eigen::MatrixXcd((int)(1 << rbm_.n_visible), 1);
-        local_vec = Eigen::MatrixXcd(max, 1);
-        local_vec_idx = Eigen::MatrixXi(max, 1);
-    }
+    vec = Eigen::MatrixXcd((int)(1 << rbm_.n_visible), 1);
+    local_vec = Eigen::MatrixXcd(max, 1);
+    local_vec_idx = Eigen::MatrixXi(max, 1);
 
     // Start the parallel runs
     for (size_t b = mpi::rank; b < b_len; b += mpi::n_proc) {
@@ -98,21 +97,19 @@ void full_sampler::sample(bool keep_state) {
             //     psi = rbm_.psi(state, context);
             // }
             double p = std::pow(std::abs(psi), 2);
-            if (!std::isnan(p)) {
-                // std::cout << psi << ", " << tools::state_to_num(state)
-                //           << std::endl;
-                // std::vector<size_t> ones;
-                // for (size_t i = 0; i < rbm_.n_visible; i++) {
-                //     if (std::real(state(i)) > 0) ones.push_back(i);
-                // }
-                // rbm_.get_lattice().print_lattice(ones);
-            }
+            // if (!std::isnan(p)) {
+            // std::cout << psi << ", " << tools::state_to_num(state)
+            //           << std::endl;
+            // std::vector<size_t> ones;
+            // for (size_t i = 0; i < rbm_.n_visible; i++) {
+            //     if (std::real(state(i)) > 0) ones.push_back(i);
+            // }
+            // rbm_.get_lattice().print_lattice(ones);
+            // }
 
             // If keep state store \psi into the state vector
-            if (keep_state) {
-                local_vec(i - 1) = psi;
-                local_vec_idx(i - 1) = state.to_num();
-            }
+            local_vec(i - 1) = psi;
+            local_vec_idx(i - 1) = state.to_num();
 
             // Cumulate probability for normalization
             p_tot += p;
@@ -140,30 +137,27 @@ void full_sampler::sample(bool keep_state) {
             // "==================================================="
             //           << std::endl;
         }
-        if (keep_state) {
-            if (mpi::master) {
+        if (mpi::master) {
+            for (size_t i = 0; i < max; i++) {
+                vec(local_vec_idx(i)) = local_vec(i);
+            }
+
+            int pi = 1;
+            for (size_t p = b + 1; p < b + mpi::n_proc && p < b_len; p++) {
+                MPI_Recv(local_vec_idx.data(), local_vec_idx.size(), MPI_INT,
+                         pi, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                MPI_Recv(local_vec.data(), local_vec.size(), MPI_DOUBLE_COMPLEX,
+                         pi, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 for (size_t i = 0; i < max; i++) {
                     vec(local_vec_idx(i)) = local_vec(i);
                 }
-
-                int pi = 1;
-                for (size_t p = b + 1; p < b + mpi::n_proc && p < b_len; p++) {
-                    MPI_Recv(local_vec_idx.data(), local_vec_idx.size(),
-                             MPI_INT, pi, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    MPI_Recv(local_vec.data(), local_vec.size(),
-                             MPI_DOUBLE_COMPLEX, pi, 1, MPI_COMM_WORLD,
-                             MPI_STATUS_IGNORE);
-                    for (size_t i = 0; i < max; i++) {
-                        vec(local_vec_idx(i)) = local_vec(i);
-                    }
-                    pi++;
-                }
-            } else {
-                MPI_Send(local_vec_idx.data(), local_vec_idx.size(), MPI_INT, 0,
-                         0, MPI_COMM_WORLD);
-                MPI_Send(local_vec.data(), local_vec.size(), MPI_DOUBLE_COMPLEX,
-                         0, 1, MPI_COMM_WORLD);
+                pi++;
             }
+        } else {
+            MPI_Send(local_vec_idx.data(), local_vec_idx.size(), MPI_INT, 0, 0,
+                     MPI_COMM_WORLD);
+            MPI_Send(local_vec.data(), local_vec.size(), MPI_DOUBLE_COMPLEX, 0,
+                     1, MPI_COMM_WORLD);
         }
     }
     MPI_Allreduce(MPI_IN_PLACE, &p_tot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -177,6 +171,7 @@ void full_sampler::sample(bool keep_state) {
         std::cout << "State stored to '" << ini::name + ".state"
                   << "'" << std::endl;
     }
+
     for (auto agg : aggs_) {
         agg->finalize(p_tot);
     }
