@@ -51,15 +51,17 @@ void full_sampler::sample(bool keep_state) {
     // Number of total bit flips
     size_t max = (size_t)std::pow(2, rbm_.n_visible - bits_parallel_);
 
-    double p_tot = 0;
+    p_tot_ = 0;
 
     // The state vector if state should be kept
     Eigen::MatrixXcd vec;
     Eigen::MatrixXcd local_vec;
     Eigen::MatrixXi local_vec_idx;
-    vec = Eigen::MatrixXcd((int)(1 << rbm_.n_visible), 1);
     local_vec = Eigen::MatrixXcd(max, 1);
     local_vec_idx = Eigen::MatrixXi(max, 1);
+    if (mpi::master && keep_state) {
+        vec = Eigen::MatrixXcd((int)(1 << rbm_.n_visible), 1);
+    }
 
     // Start the parallel runs
     for (size_t b = mpi::rank; b < b_len; b += mpi::n_proc) {
@@ -108,11 +110,13 @@ void full_sampler::sample(bool keep_state) {
             // }
 
             // If keep state store \psi into the state vector
-            local_vec(i - 1) = psi;
-            local_vec_idx(i - 1) = state.to_num();
+            if (keep_state) {
+                local_vec(i - 1) = psi;
+                local_vec_idx(i - 1) = state.to_num();
+            }
 
             // Cumulate probability for normalization
-            p_tot += p;
+            p_tot_ += p;
 
             evaluate_and_aggregate(state, context, p);
 
@@ -137,34 +141,38 @@ void full_sampler::sample(bool keep_state) {
             // "==================================================="
             //           << std::endl;
         }
-        if (mpi::master) {
-            for (size_t i = 0; i < max; i++) {
-                vec(local_vec_idx(i)) = local_vec(i);
-            }
-
-            int pi = 1;
-            for (size_t p = b + 1; p < b + mpi::n_proc && p < b_len; p++) {
-                MPI_Recv(local_vec_idx.data(), local_vec_idx.size(), MPI_INT,
-                         pi, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                MPI_Recv(local_vec.data(), local_vec.size(), MPI_DOUBLE_COMPLEX,
-                         pi, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        if (keep_state) {
+            if (mpi::master) {
                 for (size_t i = 0; i < max; i++) {
                     vec(local_vec_idx(i)) = local_vec(i);
                 }
-                pi++;
+
+                int pi = 1;
+                for (size_t p = b + 1; p < b + mpi::n_proc && p < b_len; p++) {
+                    MPI_Recv(local_vec_idx.data(), local_vec_idx.size(),
+                             MPI_INT, pi, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    MPI_Recv(local_vec.data(), local_vec.size(),
+                             MPI_DOUBLE_COMPLEX, pi, 1, MPI_COMM_WORLD,
+                             MPI_STATUS_IGNORE);
+                    for (size_t i = 0; i < max; i++) {
+                        vec(local_vec_idx(i)) = local_vec(i);
+                    }
+                    pi++;
+                }
+            } else {
+                MPI_Send(local_vec_idx.data(), local_vec_idx.size(), MPI_INT, 0,
+                         0, MPI_COMM_WORLD);
+                MPI_Send(local_vec.data(), local_vec.size(), MPI_DOUBLE_COMPLEX,
+                         0, 1, MPI_COMM_WORLD);
             }
-        } else {
-            MPI_Send(local_vec_idx.data(), local_vec_idx.size(), MPI_INT, 0, 0,
-                     MPI_COMM_WORLD);
-            MPI_Send(local_vec.data(), local_vec.size(), MPI_DOUBLE_COMPLEX, 0,
-                     1, MPI_COMM_WORLD);
         }
     }
-    MPI_Allreduce(MPI_IN_PLACE, &p_tot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &p_tot_, 1, MPI_DOUBLE, MPI_SUM,
+                  MPI_COMM_WORLD);
 
     // Print the state vector if `keep_state`
     if (keep_state && mpi::master) {
-        vec /= std::sqrt(p_tot);
+        vec /= std::sqrt(p_tot_);
         std::ofstream statefile{ini::name + ".state", std::ios::binary};
         statefile << vec;
         statefile.close();
@@ -173,7 +181,7 @@ void full_sampler::sample(bool keep_state) {
     }
 
     for (auto agg : aggs_) {
-        agg->finalize(p_tot);
+        agg->finalize(p_tot_);
     }
 }
 
@@ -186,3 +194,5 @@ size_t full_sampler::get_my_n_samples() const {
     }
     return ret;
 }
+
+double full_sampler::get_p_tot() const { return p_tot_; }

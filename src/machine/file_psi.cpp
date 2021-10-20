@@ -34,6 +34,7 @@ file_psi::file_psi(lattice::bravais& lattice, const std::string& filename)
     if (lattice.n_total > 64) {
         throw std::runtime_error("File psi not possible for N > 64.");
     }
+    std::cout << state_vec_->rows() << ", " << state_vec_->cols() << std::endl;
     std::ifstream file{filename};
     std::complex<double> line;
     size_t c = 0;

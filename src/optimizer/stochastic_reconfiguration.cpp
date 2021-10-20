@@ -30,6 +30,7 @@
 #include <optimizer/outer_matrix.hpp>
 #include <optimizer/plugin.hpp>
 #include <optimizer/stochastic_reconfiguration.hpp>
+#include <sampler/full_sampler.hpp>
 
 using namespace optimizer;
 
@@ -87,7 +88,21 @@ Eigen::VectorXcd& stochastic_reconfiguration::gradient(bool log) {
         logger::log(std::real(h(0)) / rbm_.n_visible, "Energy");
         logger::log(std::real(a_h_.get_variance()(0)) / rbm_.n_visible,
                     "Energy Variance");
-        // logger::log(std::abs(std::imag(h(0))), "EnergyImag");
+
+        // sampler::full_sampler smp{rbm_, 2};
+        // smp.register_op(&hamiltonian_);
+        // operators::aggregator ah(hamiltonian_);
+        // ah.track_variance();
+        // smp.register_agg(&ah);
+        // smp.sample();
+        // auto x = ah.get_result();
+        // logger::log(std::real(x(0)) / rbm_.n_visible, "Perfect Energy");
+        // double var1 = std::real(a_h_.get_variance()(0));
+        // double var2 = std::real(ah.get_variance()(0));
+        // logger::log(var2 / rbm_.n_visible, "tau");
+        // double tau = (var2 / var1 - 1) / 2;
+        // logger::log(tau, "tau");
+        // logger::log(smp.get_p_tot(), "partition");
         sampler_.log();
     }
 

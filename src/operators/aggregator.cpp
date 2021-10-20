@@ -37,6 +37,7 @@ void aggregator::set_zero() {
     result_.setZero();
     if (track_variance_) {
         variance_.setZero();
+        resultx_.clear();
     }
 }
 
@@ -81,9 +82,20 @@ void aggregator::aggregate(double weight) {
     // if (result_.size() == 1 && std::real(x(0)) > 0)
     //     std::cout << x << ", " << mpi::rank << std::endl;
     result_.noalias() += weight * x;
+
+    // if (did_last) {
+    //     did_last = false;
+    //     result2_.noalias() +=
+    //         (last_weight * last_res + weight * x) / (last_weight + weight);
+    // } else {
+    //     did_last = true;
+    //     last_weight = weight;
+    //     last_res = x;
+    // }
     // Safly aggeregte the result
 
     if (track_variance_) {
+        resultx_.push_back(weight * x(0));
         // Calculate the resul of the squared observable
         variance_.noalias() += weight * x.cwiseAbs2();
     }

@@ -44,8 +44,7 @@ metropolis_sampler::metropolis_sampler(machine::abstract_machine& rbm,
       rng_{rng},
       n_chains_{n_chains},
       step_size_{step_size},
-      // n_sweeps_{rbm.n_visible},
-      n_sweeps_{1},
+      n_sweeps_{rbm.n_visible},
       warmup_steps_{warmup_steps},
       bond_flips_{bond_flips},
       f_dist_{0, rbm.n_visible - 1} {}
@@ -151,6 +150,8 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
 
     std::vector<size_t> flips;
 
+    std::uniform_real_distribution<double> rdist(0, 1);
+
     // Do the Metropolis sampling
     for (size_t step = 0; step < total_steps; step++) {
         // Get the flips vector by randomly selecting one site.
@@ -161,8 +162,23 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
             // With probability 1/2 flip a second site.
             double x = u_dist_(rng_);
             if (x < bond_flips_) {
-                auto& b = bonds[b_dist(rng_)];
-                flips = {b.a, b.b};
+                // int type = -1, des;
+                // double r = rdist(rng_);
+                // if (r < 0.7) {
+                //     des = 2;
+                // } else if (r < 0.85) {
+                //     des = 1;
+                // } else {
+                //     des = 0;
+                // }
+                lattice::bond* b;
+                // while (type != des) {
+                //     b = &bonds[b_dist(rng_)];
+                //     type = b->type;
+                // }
+                b = &bonds[b_dist(rng_)];
+
+                flips = {b->a, b->b};
                 sweep++;
             } else {
                 flips.push_back(f_dist_(rng_));
@@ -170,15 +186,15 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
 
             machine::rbm_context new_context = context;
             // Calculate the probability of changing to new configuration
-            bool didupdate = true;
             double acc =
                 std::pow(std::abs(rbm_.psi_over_psi(state, flips, context,
-                                                    new_context, &didupdate)),
+                                                    new_context, false)),
                          2);
 
             // Accept new configuration with given probability
             if (u_dist_(rng_) < acc) {
-                if (!didupdate) rbm_.update_context(state, flips, new_context);
+                // if (!didupdate) rbm_.update_context(state, flips,
+                // new_context);
                 context = new_context;
                 ar++;
 

@@ -309,13 +309,15 @@ std::complex<double> rbm_base::log_psi_over_psi(
     spin_state state2 = state;
     state2.flip(flips);
     if (discard && lut_.find(state2) != lut_.end()) {
-        if (didupdate) *didupdate = false;
+        if (pfaffian_) {
+            pfaffian_->update_context(state, flips, context.pfaff());
+        }
     } else {
         // Update the thetas with the flips
         update_context(state, flips, updated_context);
     }
 
-    // Caclulate the diffrenece of the lncoshs, which is the same as the log
+    // Calculate the diffrenece of the lncoshs, which is the same as the log
     // of the ratio of coshes.
     ret += lncosh(updated_context, state2) - lncosh(context, state);
 
@@ -332,8 +334,10 @@ std::complex<double> rbm_base::psi_over_psi_alt(
 
     spin_state state2 = state;
     state2.flip(flips);
-    if (discard && lut_.find(state2) != lut_.end()) {
-        if (didupdate) *didupdate = false;
+    if (false && lut_.find(state2) != lut_.end()) {
+        if (pfaffian_) {
+            pfaffian_->update_context(state, flips, context.pfaff());
+        }
     } else {
         // Update the thetas with the flips
         update_context(state, flips, updated_context);

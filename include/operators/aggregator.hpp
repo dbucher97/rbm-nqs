@@ -39,6 +39,8 @@ class aggregator {
     Eigen::MatrixXcd result_;   ///< The result Matrix
     Eigen::MatrixXd variance_;  ///< The variance Matrix
 
+    std::vector<std::complex<double>> resultx_;  ///< The result Matrix
+
     const base_op&
         op_;  ///< Operator, for which the results should be accumulated.
 
@@ -107,6 +109,8 @@ class aggregator {
      * @brief Sets result to zero.
      */
     virtual void set_zero();
+
+    std::vector<std::complex<double>>& get_resx() { return resultx_; };
 };
 
 /**
