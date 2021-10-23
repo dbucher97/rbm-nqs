@@ -566,7 +566,8 @@ int main(int argc, char* argv[]) {
             // std::cout << std::endl;
 
             operators::local_op* op = new operators::local_op(h, plaq_op);
-            operators::aggregator* agg = new operators::aggregator(*op);
+            operators::aggregator* agg =
+                new operators::aggregator(*op, sampler->get_my_n_samples());
             ops.push_back(op);
             aggs.push_back(agg);
         }
@@ -576,7 +577,7 @@ int main(int argc, char* argv[]) {
 
         model->remove_helper_hamiltoian();
         auto& h = model->get_hamiltonian();
-        operators::aggregator ah(h);
+        operators::aggregator ah(h, sampler->get_my_n_samples());
         ah.track_variance();
         sampler->register_op(&h);
         sampler->register_agg(&ah);
@@ -608,80 +609,83 @@ int main(int argc, char* argv[]) {
 
     mpi::end();
     return 0;
-    size_t nch = 100;
-    auto samples = {1 << 9, 1 << 10, 1 << 11, 1 << 12};
-    for (auto& s : samples) {
-        size_t k = std::log2l(s) - 2;
-        std::vector<double> varxs(k);
-        std::vector<double> taus(k);
-        std::vector<double> varvarxs(k);
-        std::vector<double> vartaus(k);
-        for (size_t i = 0; i < k; i++) {
-            varxs[i] = 0;
-            taus[i] = 0;
-            varvarxs[i] = 0;
-            vartaus[i] = 0;
-        }
-        for (size_t ch = 0; ch < nch; ch++) {
-            sampler->clear_ops();
-            sampler->clear_aggs();
+    // size_t nch = 100;
+    // auto samples = {1 << 9, 1 << 10, 1 << 11, 1 << 12};
+    // for (auto& s : samples) {
+    //     size_t k = std::log2l(s) - 2;
+    //     std::vector<double> varxs(k);
+    //     std::vector<double> taus(k);
+    //     std::vector<double> varvarxs(k);
+    //     std::vector<double> vartaus(k);
+    //     for (size_t i = 0; i < k; i++) {
+    //         varxs[i] = 0;
+    //         taus[i] = 0;
+    //         varvarxs[i] = 0;
+    //         vartaus[i] = 0;
+    //     }
+    //     for (size_t ch = 0; ch < nch; ch++) {
+    //         sampler->clear_ops();
+    //         sampler->clear_aggs();
 
-            sampler->set_n_samples(s);
+    //         sampler->set_n_samples(s);
 
-            auto& h = model->get_hamiltonian();
-            operators::aggregator ah(h);
-            ah.track_variance();
-            sampler->register_op(&h);
-            sampler->register_agg(&ah);
+    //         auto& h = model->get_hamiltonian();
+    //         operators::aggregator ah(h);
+    //         ah.track_variance();
+    //         sampler->register_op(&h);
+    //         sampler->register_agg(&ah);
 
-            sampler->sample();
+    //         sampler->sample();
 
-            std::cout << s << ", ";
-            std::cout << std::real(ah.get_result()(0)) / rbm->n_visible << ", ";
-            std::cout << ah.get_variance()(0) / rbm->n_visible << std::endl;
+    //         std::cout << s << ", ";
+    //         std::cout << std::real(ah.get_result()(0)) / rbm->n_visible << ",
+    //         "; std::cout << ah.get_variance()(0) / rbm->n_visible <<
+    //         std::endl;
 
-            double E0 = std::abs(ah.get_result()(0));
+    //         double E0 = std::abs(ah.get_result()(0));
 
-            auto es = ah.get_resx();
+    //         auto es = ah.get_resx();
 
-            std::vector<std::complex<double>> locals(k);
-            std::vector<double> vars(k);
-            for (size_t j = 0; j < k; j++) {
-                locals[j] = 0;
-                vars[j] = 0;
-            }
-            for (size_t i = 0; i < es.size(); i++) {
-                for (size_t j = 0; j < k; j++) {
-                    locals[j] += es[i];
-                    if (i % (1 << j) == (size_t)((1 << j) - 1)) {
-                        vars[j] +=
-                            std::pow(std::abs(locals[j] / (double)(1 << j)), 2);
-                        locals[j] = 0;
-                    }
-                }
-            }
-            for (size_t j = 0; j < k; j++) {
-                vars[j] /= ((double)s / (1 << j));
-                vars[j] -= std::pow(E0, 2);
-                double std = std::sqrt(vars[j] / ((double)s / (1 << j)));
-                double tau = 0.5 * ((1 << j) * vars[j] / vars[0] - 1);
-                varxs[j] += std;
-                varvarxs[j] += std::pow(std, 2);
-                taus[j] += tau;
-                vartaus[j] += std::pow(tau, 2);
-            }
-        }
-        for (size_t i = 0; i < k; i++) {
-            varxs[i] /= nch;
-            taus[i] /= nch;
-            varvarxs[i] /= nch;
-            vartaus[i] /= nch;
-            varvarxs[i] -= std::pow(varxs[i], 2);
-            vartaus[i] -= std::pow(taus[i], 2);
-            std::cout << (1 << i) << ": \t" << varxs[i] << ", " << varvarxs[i]
-                      << " \t" << taus[i] << ", " << vartaus[i] << std::endl;
-        }
-    }
+    //         std::vector<std::complex<double>> locals(k);
+    //         std::vector<double> vars(k);
+    //         for (size_t j = 0; j < k; j++) {
+    //             locals[j] = 0;
+    //             vars[j] = 0;
+    //         }
+    //         for (size_t i = 0; i < es.size(); i++) {
+    //             for (size_t j = 0; j < k; j++) {
+    //                 locals[j] += es[i];
+    //                 if (i % (1 << j) == (size_t)((1 << j) - 1)) {
+    //                     vars[j] +=
+    //                         std::pow(std::abs(locals[j] / (double)(1 << j)),
+    //                         2);
+    //                     locals[j] = 0;
+    //                 }
+    //             }
+    //         }
+    //         for (size_t j = 0; j < k; j++) {
+    //             vars[j] /= ((double)s / (1 << j));
+    //             vars[j] -= std::pow(E0, 2);
+    //             double std = std::sqrt(vars[j] / ((double)s / (1 << j)));
+    //             double tau = 0.5 * ((1 << j) * vars[j] / vars[0] - 1);
+    //             varxs[j] += std;
+    //             varvarxs[j] += std::pow(std, 2);
+    //             taus[j] += tau;
+    //             vartaus[j] += std::pow(tau, 2);
+    //         }
+    //     }
+    //     for (size_t i = 0; i < k; i++) {
+    //         varxs[i] /= nch;
+    //         taus[i] /= nch;
+    //         varvarxs[i] /= nch;
+    //         vartaus[i] /= nch;
+    //         varvarxs[i] -= std::pow(varxs[i], 2);
+    //         vartaus[i] -= std::pow(taus[i], 2);
+    //         std::cout << (1 << i) << ": \t" << varxs[i] << ", " <<
+    //         varvarxs[i]
+    //                   << " \t" << taus[i] << ", " << vartaus[i] << std::endl;
+    //     }
+    // }
 
     mpi::end();
 

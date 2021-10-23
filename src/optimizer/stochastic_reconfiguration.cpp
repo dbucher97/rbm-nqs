@@ -45,7 +45,7 @@ stochastic_reconfiguration::stochastic_reconfiguration(
       method_{method},
       max_iterations_{max_iterations},
       rtol_{rtol},
-      a_dh_{derivative_, hamiltonian_},
+      a_dh_{derivative_, hamiltonian_, sampler.get_my_n_samples()},
       a_dd_{derivative_, sampler.get_my_n_samples()},
       // Initialize the regularization.
       kp1_{kp1, rbm_.get_n_updates()},
@@ -86,8 +86,8 @@ Eigen::VectorXcd& stochastic_reconfiguration::gradient(bool log) {
     if (log) {
         // Log energy, energy variance and sampler properties.
         logger::log(std::real(h(0)) / rbm_.n_visible, "Energy");
-        logger::log(std::real(a_h_.get_variance()(0)) / rbm_.n_visible,
-                    "Energy Variance");
+        logger::log(a_h_.get_stddev()(0) / rbm_.n_visible, "Energy Stddev");
+        std::cout << a_h_.get_tau()(0) << std::endl;
 
         // sampler::full_sampler smp{rbm_, 2};
         // smp.register_op(&hamiltonian_);

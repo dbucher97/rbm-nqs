@@ -65,8 +65,8 @@ abstract_optimizer::abstract_optimizer(machine::abstract_machine& rbm,
       // Initialze derivative operator.
       derivative_{rbm.get_n_params()},
       // Initialize the aggregators.
-      a_h_{hamiltonian_},
-      a_d_{derivative_},
+      a_h_{hamiltonian_, sampler.get_my_n_samples()},
+      a_d_{derivative_, sampler.get_my_n_samples()},
       lr_{learning_rate, rbm_.get_n_updates()},
       resample_{resample},
       alpha1_{alpha1},

@@ -148,7 +148,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
     // Retrieve context for state
     auto context = rbm_.get_context(state);
 
-    std::vector<size_t> flips;
+    std::vector<size_t> flips(1);
 
     std::uniform_real_distribution<double> rdist(0, 1);
 
@@ -157,7 +157,16 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
         // Get the flips vector by randomly selecting one site.
         time_keeper::start("Metropolis sweep");
 
+        std::vector<size_t> idxs(rbm_.n_visible);
+        std::iota(idxs.begin(), idxs.end(), 0);
+        std::shuffle(idxs.begin(), idxs.end(), rng_);
         for (size_t sweep = 0; sweep < n_sweeps_; sweep++) {
+            // flips.clear();
+            // flips.push_back(idxs[sweep]);
+            // if (u_dist_(rng_) < bond_flips_) {
+            //     sweep++;
+            //     if (sweep < n_sweeps_) flips.push_back(idxs[sweep]);
+            // }
             flips.clear();
             // With probability 1/2 flip a second site.
             double x = u_dist_(rng_);

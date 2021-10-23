@@ -60,7 +60,7 @@ void test_S3() {
     machine::file_psi m{km.get_lattice(), "isingS3.state"};
     sampler::full_sampler sampler{m, 3};
     auto& h = km.get_hamiltonian();
-    operators::aggregator agg{h};
+    operators::aggregator agg{h, sampler.get_my_n_samples()};
     sampler.register_op(&h);
     sampler.register_agg(&agg);
     sampler.sample(false);
@@ -85,7 +85,7 @@ void debug() {
     sampler::full_sampler sampler{rbm, 3};
     sampler::metropolis_sampler msampler{
         rbm, n_samples, rng, n_chains, step_size, warmup_steps, bond_flips};
-    operators::aggregator agg{m.get_hamiltonian()};
+    operators::aggregator agg{m.get_hamiltonian(), sampler.get_my_n_samples()};
     agg.track_variance();
     sampler.register_op(&(m.get_hamiltonian()));
     sampler.register_agg(&agg);

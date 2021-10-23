@@ -24,27 +24,47 @@
 
 using namespace operators;
 
-aggregator::aggregator(const base_op& op, size_t r, size_t c)
-    : result_(r, c), variance_(r, c), op_{op} {
+aggregator::aggregator(const base_op& op, size_t samples, size_t r, size_t c)
+    : n_samples_{samples}, result_(r, c), op_{op} {
     // Initialize result as zero.
     set_zero();
 }
 
-aggregator::aggregator(const base_op& op)
-    : aggregator{op, op.rows(), op.cols()} {}
+aggregator::aggregator(const base_op& op, size_t samples)
+    : aggregator{op, samples, op.rows(), op.cols()} {}
 
 void aggregator::set_zero() {
     result_.setZero();
+    cur_n_ = 0;
     if (track_variance_) {
         variance_.setZero();
-        resultx_.clear();
+        bin_.setZero();
+        variance_binned_.setZero();
+        result_binned_.setZero();
+        cur_n_bin_ = 0;
     }
 }
 
-void aggregator::finalize(double num) {
+void aggregator::track_variance(size_t n_bins) {
+    track_variance_ = true;
+    n_bins_ = n_bins;
+    if (n_samples_ % n_bins != 0) {
+        throw std::runtime_error("n_samples not divisable by n_bins!");
+    }
+    bin_size_ = n_samples_ / n_bins_;
+
+    bin_ = Eigen::MatrixXcd(result_.rows(), result_.cols());
+    result_binned_ = Eigen::MatrixXcd(result_.rows(), result_.cols());
+    variance_ = Eigen::MatrixXd(result_.rows(), result_.cols());
+    variance_binned_ = Eigen::MatrixXd(result_.rows(), result_.cols());
+}
+
+void aggregator::finalize(double ptotal) {
     // Normalize result
 
-    result_ /= num;
+    double norm_factor = ptotal / n_samples_;
+
+    result_ /= norm_factor;
     // std::complex<double> r1 = result_(0);
 
     MPI_Allreduce(MPI_IN_PLACE, result_.data(), result_.size(),
@@ -57,14 +77,20 @@ void aggregator::finalize(double num) {
     //         throw std::runtime_error("XXXXX");
     //     }
     // }
+    // result_ = result2_;
 
     if (track_variance_) {
-        variance_ /= num;
         // Calculate variance <0^2> - <0>^2
+        variance_ /= (n_samples_ - 1) * norm_factor;
+        //
+        result_binned_ /= norm_factor;
+        variance_binned_ /= (n_bins_ - 1) * norm_factor;
 
         MPI_Allreduce(MPI_IN_PLACE, variance_.data(), variance_.size(),
                       MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        variance_ -= result_.cwiseAbs2();
+        MPI_Allreduce(MPI_IN_PLACE, variance_binned_.data(),
+                      variance_binned_.size(), MPI_DOUBLE, MPI_SUM,
+                      MPI_COMM_WORLD);
     }
 }
 
@@ -77,32 +103,44 @@ Eigen::MatrixXcd aggregator::aggregate_() {
 }
 
 void aggregator::aggregate(double weight) {
-    // Calculate the weight * observable
-    Eigen::MatrixXcd x = aggregate_();
-    // if (result_.size() == 1 && std::real(x(0)) > 0)
-    //     std::cout << x << ", " << mpi::rank << std::endl;
-    result_.noalias() += weight * x;
+    cur_n_++;
+    cur_n_bin_++;
 
-    // if (did_last) {
-    //     did_last = false;
-    //     result2_.noalias() +=
-    //         (last_weight * last_res + weight * x) / (last_weight + weight);
-    // } else {
-    //     did_last = true;
-    //     last_weight = weight;
-    //     last_res = x;
-    // }
-    // Safly aggeregte the result
+    Eigen::MatrixXcd x = weight * aggregate_();
+    Eigen::MatrixXcd delta = x - result_;
+    result_.noalias() += delta / cur_n_;
 
     if (track_variance_) {
-        resultx_.push_back(weight * x(0));
         // Calculate the resul of the squared observable
-        variance_.noalias() += weight * x.cwiseAbs2();
+
+        variance_.array() +=
+            (x - result_).real().array() * delta.real().array();
+
+        bin_.noalias() += x;
+
+        if (cur_n_bin_ == bin_size_) {
+            cur_n_bin_ = 0;
+            size_t i = cur_n_ / bin_size_;
+            bin_ /= bin_size_;
+            delta = bin_ - result_binned_;
+            result_binned_ += delta / i;
+            variance_binned_.array() +=
+                delta.real().array() * (bin_ - result_binned_).real().array();
+            bin_.setZero();
+        }
     }
 }
 
-prod_aggregator::prod_aggregator(const base_op& op, const base_op& scalar)
-    : Base{op}, scalar_{scalar} {
+Eigen::MatrixXd aggregator::get_stddev() const {
+    return (variance_binned_ / n_bins_).array().sqrt();
+}
+Eigen::MatrixXd aggregator::get_tau() const {
+    return 0.5 * bin_size_ * variance_binned_.array() / variance_.array();
+}
+
+prod_aggregator::prod_aggregator(const base_op& op, const base_op& scalar,
+                                 size_t samples)
+    : Base{op, samples}, scalar_{scalar} {
     if (scalar_.rows() != 1 || scalar_.cols() != 1) {
         throw std::runtime_error("scalar operator must have size (1, 1).");
     }
@@ -113,8 +151,8 @@ Eigen::MatrixXcd prod_aggregator::aggregate_() {
     return scalar_.get_result()(0) * op_.get_result().conjugate();
 }
 
-outer_aggregator::outer_aggregator(const base_op& op)
-    : Base{op, op.rows(), op.rows()} {
+outer_aggregator::outer_aggregator(const base_op& op, size_t samples)
+    : Base{op, samples, op.rows(), op.rows()} {
     // Guard operator to be vector.
     if (op_.cols() != 1) {
         throw std::runtime_error(
@@ -128,7 +166,8 @@ Eigen::MatrixXcd outer_aggregator::aggregate_() {
 }
 
 outer_aggregator_lazy::outer_aggregator_lazy(const base_op& op, size_t samples)
-    : Base{op, op.rows() * op.cols(), samples}, diag_(op.rows() * op.cols()) {}
+    : Base{op, samples, op.rows() * op.cols(), samples},
+      diag_(op.rows() * op.cols()) {}
 
 void outer_aggregator_lazy::aggregate(double weight) {
     result_.col(current_index_) =
