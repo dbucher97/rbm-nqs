@@ -67,6 +67,7 @@ void minresqlp_solver::solve(const Eigen::MatrixXcd& mat,
 
         minresqlp_adapter min(mat_, vec_, r1, r2, rd, norm, n_neural_, diag_,
                               tmp_);
+
         if (max_iterations_) min.itnlim = max_iterations_;
         if (rtol_ > 0.0) min.rtol = rtol_;
         min.apply(b, x);

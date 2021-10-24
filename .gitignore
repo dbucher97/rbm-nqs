@@ -24,4 +24,5 @@ notebooks/Plots/
 *.a
 
 # Symlink Makefile to cluster/mac
-Makefile
+/Makefile
+

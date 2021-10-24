@@ -28,6 +28,7 @@
 #include <complex>
 #include <cstdio>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <random>
@@ -100,9 +101,11 @@ void init_seed(size_t g_seed, std::unique_ptr<std::mt19937>& rng) {
         MPI_Recv(&seed, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD,
                  MPI_STATUS_IGNORE);
     }
-    if (!mpi::master)
+    if (!mpi::master) {
+        std::cout << seed << std::endl;
         rng = std::make_unique<std::mt19937>(
             static_cast<std::mt19937::result_type>(seed));
+    }
 }
 
 int init_model(std::unique_ptr<model::abstract_model>& model) {
@@ -316,9 +319,19 @@ int main(int argc, char* argv[]) {
     if (ini::print_bonds && mpi::master) {
         std::unique_ptr<model::abstract_model> model;
         init_model(model);
-        auto bonds = model->get_lattice().get_bonds();
-        for (const auto& b : bonds) {
-            std::cout << b.a << "," << b.b << "," << b.type << std::endl;
+        if (ini::model == ini::TORIC) {
+            auto plaq =
+                dynamic_cast<lattice::toric_lattice*>(&model->get_lattice())
+                    ->construct_plaqs();
+            for (auto& p : plaq) {
+                for (auto& i : p.idxs) std::cout << i << ",";
+                std::cout << p.type << std::endl;
+            }
+        } else {
+            auto bonds = model->get_lattice().get_bonds();
+            for (const auto& b : bonds) {
+                std::cout << b.a << "," << b.b << "," << b.type << std::endl;
+            }
         }
         mpi::end();
         return 0;
@@ -492,6 +505,7 @@ int main(int argc, char* argv[]) {
             progress_bar(0, ini::n_epochs, -1, 'S');
         }
 
+        time_keeper::clear();
         int ch = 0;
         for (int i = rbm->get_n_updates(); i < (int)ini::n_epochs && ch != '';
              i++) {
@@ -553,7 +567,8 @@ int main(int argc, char* argv[]) {
             // std::cout << std::endl;
 
             operators::local_op* op = new operators::local_op(h, plaq_op);
-            operators::aggregator* agg = new operators::aggregator(*op);
+            operators::aggregator* agg =
+                new operators::aggregator(*op, sampler->get_my_n_samples());
             ops.push_back(op);
             aggs.push_back(agg);
         }
@@ -563,54 +578,130 @@ int main(int argc, char* argv[]) {
 
         model->remove_helper_hamiltoian();
         auto& h = model->get_hamiltonian();
-        operators::aggregator ah(h);
+        operators::aggregator ah(h, sampler->get_my_n_samples());
         ah.track_variance();
         sampler->register_op(&h);
         sampler->register_agg(&ah);
 
-        sampler->sample();
+        for (size_t i = 0; i < 100; i++) {
+            sampler->sample();
 
-        if (mpi::master) {
-            std::cout << "BEGIN OUTPUT" << std::endl;
-            std::cout.precision(16);
-            // for (size_t i = 0; i < hex.size(); i++) {
-            //     std::cout << aggs[i]->get_result() << std::endl;
-            // }
+            if (mpi::master) {
+                std::cout << "BEGIN OUTPUT" << std::endl;
+                std::cout.precision(16);
+                // for (size_t i = 0; i < hex.size(); i++) {
+                //     std::cout << aggs[i]->get_result() << std::endl;
+                // }
 
-            std::cout << ah.get_result() / rbm->n_visible << std::endl;
-            std::cout << std::sqrt(ah.get_variance()(0)) / rbm->n_visible
-                      << std::endl;
-            if (ini::sa_type == ini::sampler_t::METROPOLIS) {
-                std::cout << dynamic_cast<sampler::metropolis_sampler*>(
-                                 sampler.get())
-                                 ->get_acceptance_rate()
-                          << std::endl;
+                // std::cout << ah.get_result() / rbm->n_visible << std::endl;
+                std::cout << "Var: " << ah.get_variance()(0) << std::endl;
+                std::cout << "Std: " << ah.get_stddev() << std::endl;
+                std::cout << "Tau: " << ah.get_tau() << std::endl;
+                if (ini::sa_type == ini::sampler_t::METROPOLIS) {
+                    std::cout << "Acc: "
+                              << dynamic_cast<sampler::metropolis_sampler*>(
+                                     sampler.get())
+                                     ->get_acceptance_rate()
+                              << std::endl;
+                }
+                double std = ah.get_stddev()(0) / rbm->n_visible;
+                double ene = std::real(ah.get_result()(0)) / rbm->n_visible;
+                int ndigits = std::log10(std);
+                if (ndigits < 0) {
+                    ndigits = -ndigits + 2;
+                } else {
+                    ndigits = 0;
+                }
+                std::cout << "E:   " << std::scientific
+                          << std::setprecision(ndigits) << ene;
+                std::cout << " ± " << std::setprecision(0) << std << std::endl;
+
+                // std::cout << rbm->get_pfaffian().get_weights() << std::endl;
+                std::cout << "END OUTPUT" << std::endl;
             }
-
-            // std::cout << rbm->get_pfaffian().get_weights() << std::endl;
-            std::cout << "END OUTPUT" << std::endl;
         }
     }
 
-    // std::ofstream ws{"weights/weights_" + ini::name + ".txt"};
-    // ws << "# Weights\n";
-    // ws << rbm->get_weights();
-    // ws << "\n\n# Hidden Bias\n";
-    // ws << rbm->get_h_bias();
-    // ws << "\n\n# Visible Bias\n";
-    // ws << rbm->get_v_bias();
-    // ws.close();
+    mpi::end();
+    return 0;
+    // size_t nch = 100;
+    // auto samples = {1 << 9, 1 << 10, 1 << 11, 1 << 12};
+    // for (auto& s : samples) {
+    //     size_t k = std::log2l(s) - 2;
+    //     std::vector<double> varxs(k);
+    //     std::vector<double> taus(k);
+    //     std::vector<double> varvarxs(k);
+    //     std::vector<double> vartaus(k);
+    //     for (size_t i = 0; i < k; i++) {
+    //         varxs[i] = 0;
+    //         taus[i] = 0;
+    //         varvarxs[i] = 0;
+    //         vartaus[i] = 0;
+    //     }
+    //     for (size_t ch = 0; ch < nch; ch++) {
+    //         sampler->clear_ops();
+    //         sampler->clear_aggs();
 
-    // model->remove_helper_hamiltoian();
-    // machine::full_sampler samp{*rbm, 3};
-    // operators::aggregator agg{model->get_hamiltonian()};
-    // samp.register_op(&(model->get_hamiltonian()));
-    // samp.register_agg(&agg);
-    // samp.sample(true);
-    // std::cout.precision(17);
-    // std::cout << std::real(agg.get_result()(0)) / rbm->n_visible <<
-    // std::endl;
-    //
+    //         sampler->set_n_samples(s);
+
+    //         auto& h = model->get_hamiltonian();
+    //         operators::aggregator ah(h);
+    //         ah.track_variance();
+    //         sampler->register_op(&h);
+    //         sampler->register_agg(&ah);
+
+    //         sampler->sample();
+
+    //         std::cout << s << ", ";
+    //         std::cout << std::real(ah.get_result()(0)) / rbm->n_visible << ",
+    //         "; std::cout << ah.get_variance()(0) / rbm->n_visible <<
+    //         std::endl;
+
+    //         double E0 = std::abs(ah.get_result()(0));
+
+    //         auto es = ah.get_resx();
+
+    //         std::vector<std::complex<double>> locals(k);
+    //         std::vector<double> vars(k);
+    //         for (size_t j = 0; j < k; j++) {
+    //             locals[j] = 0;
+    //             vars[j] = 0;
+    //         }
+    //         for (size_t i = 0; i < es.size(); i++) {
+    //             for (size_t j = 0; j < k; j++) {
+    //                 locals[j] += es[i];
+    //                 if (i % (1 << j) == (size_t)((1 << j) - 1)) {
+    //                     vars[j] +=
+    //                         std::pow(std::abs(locals[j] / (double)(1 << j)),
+    //                         2);
+    //                     locals[j] = 0;
+    //                 }
+    //             }
+    //         }
+    //         for (size_t j = 0; j < k; j++) {
+    //             vars[j] /= ((double)s / (1 << j));
+    //             vars[j] -= std::pow(E0, 2);
+    //             double std = std::sqrt(vars[j] / ((double)s / (1 << j)));
+    //             double tau = 0.5 * ((1 << j) * vars[j] / vars[0] - 1);
+    //             varxs[j] += std;
+    //             varvarxs[j] += std::pow(std, 2);
+    //             taus[j] += tau;
+    //             vartaus[j] += std::pow(tau, 2);
+    //         }
+    //     }
+    //     for (size_t i = 0; i < k; i++) {
+    //         varxs[i] /= nch;
+    //         taus[i] /= nch;
+    //         varvarxs[i] /= nch;
+    //         vartaus[i] /= nch;
+    //         varvarxs[i] -= std::pow(varxs[i], 2);
+    //         vartaus[i] -= std::pow(taus[i], 2);
+    //         std::cout << (1 << i) << ": \t" << varxs[i] << ", " <<
+    //         varvarxs[i]
+    //                   << " \t" << taus[i] << ", " << vartaus[i] << std::endl;
+    //     }
+    // }
+
     mpi::end();
 
     return rc;

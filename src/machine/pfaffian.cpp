@@ -28,15 +28,6 @@
 
 using namespace machine;
 
-size_t pfaffian::calc_n_params(size_t ns,
-                               const std::vector<size_t>& symm_basis) {
-    int ret = 0;
-    for (auto& s : symm_basis) {
-        ret += ns - s - 1;
-    }
-    return ret;
-}
-
 pfaffian::pfaffian(const lattice::bravais& lattice,
                    const std::vector<double>& symm, bool no_updating)
     : lattice_{lattice},
@@ -88,6 +79,7 @@ pfaffian::pfaffian(const lattice::bravais& lattice,
         }
     }
 
+    // Check symmetry constraints due to transposition
     // bs_.triangularView<Eigen::StrictlyUpper>() *= -1;
 
     fs_.resize(bs_.maxCoeff(), 4);
@@ -117,11 +109,11 @@ pfaffian::pfaffian(const lattice::bravais& lattice,
     // mpi::cout << bs_ << mpi::endl;
 }
 
-bool pfaffian::spidx(size_t i, const Eigen::MatrixXcd& state, bool flip) const {
-    return (std::real(state(i)) < 0) ^ flip;
+bool pfaffian::spidx(size_t i, const spin_state& state, bool flip) const {
+    return state[i] ^ flip;
 }
-int pfaffian::spidx(size_t i, size_t j, const Eigen::MatrixXcd& state,
-                    bool flipi, bool flipj) const {
+int pfaffian::spidx(size_t i, size_t j, const spin_state& state, bool flipi,
+                    bool flipj) const {
     return (spidx(i, state, flipi) << 1) + spidx(j, state, flipj);
 }
 size_t pfaffian::idx(size_t i, size_t j) const {
@@ -132,9 +124,8 @@ size_t pfaffian::idx(size_t i, size_t j) const {
     }
 }
 
-std::complex<double> pfaffian::a(size_t i, size_t j,
-                                 const Eigen::MatrixXcd& state, bool flipi,
-                                 bool flipj) const {
+std::complex<double> pfaffian::a(size_t i, size_t j, const spin_state& state,
+                                 bool flipi, bool flipj) const {
     int bs = bs_(i, j);
     double sgn = bs < 0 ? -1. : 1.;
     int sp = (j < i) ? spidx(i, j, state, flipi, flipj)
@@ -154,7 +145,7 @@ void pfaffian::init_weights(std::mt19937& rng, double std, bool normalize) {
         }
 
         if (normalize) {
-            Eigen::MatrixXcd mat = get_mat(Eigen::MatrixXcd::Ones(ns_, 1));
+            Eigen::MatrixXcd mat = get_mat(spin_state(ns_));
             int exp;
             math::pfaffian10(mat, exp);
             fs_ /= std::pow(10, (2.0 * exp) / ns_);
@@ -276,7 +267,7 @@ void pfaffian::init_weights_hf(
     bcast(0); */
 }
 
-Eigen::MatrixXcd pfaffian::get_mat(const Eigen::MatrixXcd& state) const {
+Eigen::MatrixXcd pfaffian::get_mat(const spin_state& state) const {
     Eigen::MatrixXcd mat(ns_, ns_);
     mat.setZero();
     for (size_t i = 0; i < ns_; i++) {
@@ -290,7 +281,7 @@ Eigen::MatrixXcd pfaffian::get_mat(const Eigen::MatrixXcd& state) const {
     return mat;
 }
 
-pfaff_context pfaffian::get_context(const Eigen::MatrixXcd& state) const {
+pfaff_context pfaffian::get_context(const spin_state& state) const {
     pfaff_context ret;
 
     Eigen::MatrixXcd mat = get_mat(state);
@@ -304,14 +295,15 @@ pfaff_context pfaffian::get_context(const Eigen::MatrixXcd& state) const {
     return ret;
 }
 
-void pfaffian::update_context(const Eigen::MatrixXcd& state,
+void pfaffian::update_context(const spin_state& state,
                               const std::vector<size_t>& flips,
                               pfaff_context& context) const {
     if (flips.size() == 0) return;
     time_keeper::start("Pfaff Context");
     if (no_updating_) {
-        Eigen::MatrixXcd state2 = state;
-        for (auto& f : flips) state2(f) *= -1;
+        spin_state state2 = state;
+        state2.flip(flips);
+        ;
         std::complex<double> pfaff = context.pfaff;
         int exp = context.exp;
         context = get_context(state2);
@@ -403,8 +395,7 @@ void pfaffian::update_context(const Eigen::MatrixXcd& state,
     time_keeper::end("Pfaff Context");
 }
 
-void pfaffian::derivative(const Eigen::MatrixXcd& state,
-                          const pfaff_context& context,
+void pfaffian::derivative(const spin_state& state, const pfaff_context& context,
                           Eigen::MatrixXcd& result, size_t& offset) const {
     Eigen::MatrixXcd d(fs_.rows(), fs_.cols());
     d.setZero();

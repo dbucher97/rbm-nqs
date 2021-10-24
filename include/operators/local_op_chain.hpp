@@ -39,7 +39,8 @@ class local_op_chain : public base_op {
      */
     local_op_chain(const std::vector<local_op>& ops = std::vector<local_op>{});
 
-    virtual void evaluate(machine::abstract_machine&, const Eigen::MatrixXcd&,
+    virtual void evaluate(machine::abstract_machine&,
+                          const machine::spin_state&,
                           machine::rbm_context&) override;
 
     /**

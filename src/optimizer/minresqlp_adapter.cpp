@@ -51,15 +51,15 @@ void Aprod(int* n, std::complex<double>* x, std::complex<double>* y) {
     (*g_dot) = -(*g_dot);
     cblas_zaxpy(*n, g_dot, g_vec, 1, y, 1);
 
-    // diagonal scaling
-#pragma omp parallel for
-    for (int i = 0; i < g_nn; i++) {
-        y[i] += g_reg[0] * g_diag[i] * x[i];
-    }
-#pragma omp parallel for
-    for (int i = g_nn; i < *n; i++) {
-        y[i] += g_reg[1] * g_diag[i] * x[i];
-    }
+    //     // diagonal scaling
+    // #pragma omp parallel for simd
+    //     for (int i = 0; i < g_nn; i++) {
+    //         y[i] += g_reg[0] * g_diag[i] * x[i];
+    //     }
+    // #pragma omp parallel for simd
+    //     for (int i = g_nn; i < *n; i++) {
+    //         y[i] += g_reg[1] * g_diag[i] * x[i];
+    //     }
 }
 
 void Msolve(int* n, std::complex<double>* x, std::complex<double>* y) {

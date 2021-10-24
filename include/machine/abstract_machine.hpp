@@ -27,6 +27,7 @@
 #include <machine/context.hpp>
 #include <machine/correlator.hpp>
 #include <machine/pfaffian.hpp>
+#include <machine/spin_state.hpp>
 
 namespace machine {
 
@@ -143,7 +144,7 @@ class abstract_machine {
      *
      * @return A new RBM context, including the thetas.
      */
-    virtual rbm_context get_context(const Eigen::MatrixXcd& state) const = 0;
+    virtual rbm_context get_context(const spin_state& state) const = 0;
 
     /**
      * @brief Updates the context if a number of particular spins are flipped.
@@ -154,7 +155,7 @@ class abstract_machine {
      * @param flips A vector if indices, which spins are going to be flipped.
      * @param context The precalculated context.
      */
-    virtual void update_context(const Eigen::MatrixXcd& state,
+    virtual void update_context(const spin_state& state,
                                 const std::vector<size_t>& flips,
                                 rbm_context& context) const = 0;
 
@@ -167,7 +168,7 @@ class abstract_machine {
      *
      * @return MatrixXcd vector of size `n_params`.
      */
-    virtual Eigen::MatrixXcd derivative(const Eigen::MatrixXcd& state,
+    virtual Eigen::MatrixXcd derivative(const spin_state& state,
                                         const rbm_context& context) const = 0;
 
     /**
@@ -178,7 +179,7 @@ class abstract_machine {
      *
      * @return \psi(\sigma)
      */
-    virtual std::complex<double> psi(const Eigen::MatrixXcd& state,
+    virtual std::complex<double> psi(const spin_state& state,
                                      rbm_context& context) = 0;
 
     /**
@@ -193,10 +194,11 @@ class abstract_machine {
      *
      * @return returns the ratio \psi(\sigma')/\psi(\sigma)
      */
-    virtual std::complex<double> psi_over_psi(const Eigen::MatrixXcd& state,
+    virtual std::complex<double> psi_over_psi(const spin_state& state,
                                               const std::vector<size_t>& flips,
                                               rbm_context& context,
                                               rbm_context& updated_context,
+                                              bool discard = false,
                                               bool* did_update = 0) = 0;
 
     /**
@@ -209,11 +211,11 @@ class abstract_machine {
      *
      * @return returns the ratio \psi(\sigma')/\psi(\sigma)
      */
-    inline std::complex<double> psi_over_psi(const Eigen::MatrixXcd& state,
+    inline std::complex<double> psi_over_psi(const spin_state& state,
                                              const std::vector<size_t>& flips,
                                              rbm_context& context) {
         rbm_context updated_context = context;
-        return psi_over_psi(state, flips, context, updated_context);
+        return psi_over_psi(state, flips, context, updated_context, true);
     }
 
     /**

@@ -44,7 +44,7 @@ class overlap_op : public base_op {
      *
      * @return \psi(\sigma) of the loaded quantum state.
      */
-    std::complex<double> get_psi(const Eigen::MatrixXcd& state);
+    std::complex<double> get_psi(const machine::spin_state& state);
 
     /**
      * @brief Fills the `state_vec_` from a file.
@@ -63,7 +63,8 @@ class overlap_op : public base_op {
      */
     overlap_op(const std::string& file, size_t n_visible);
 
-    virtual void evaluate(machine::abstract_machine&, const Eigen::MatrixXcd&,
+    virtual void evaluate(machine::abstract_machine&,
+                          const machine::spin_state&,
                           machine::rbm_context&) override;
 };
 

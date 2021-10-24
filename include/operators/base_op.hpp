@@ -71,7 +71,7 @@ class base_op {
      * @param context Reference to the precalculated context.
      */
     virtual void evaluate(machine::abstract_machine& rbm,
-                          const Eigen::MatrixXcd& state,
+                          const machine::spin_state& state,
                           machine::rbm_context& context){};
 
     /**

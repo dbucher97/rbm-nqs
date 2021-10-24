@@ -22,6 +22,7 @@
 #include <cmath>
 #include <fstream>
 //
+#include <machine/file_psi.hpp>
 #include <sampler/full_sampler.hpp>
 #include <tools/eigen_fstream.hpp>
 #include <tools/ini.hpp>
@@ -33,7 +34,11 @@ using namespace sampler;
 full_sampler::full_sampler(machine::abstract_machine& rbm_, size_t bp,
                            int pfaff_refresh, int lut_exchange)
     : Base{rbm_, (size_t)(1 << rbm_.n_visible), pfaff_refresh, lut_exchange},
-      bits_parallel_{bp} {}
+      bits_parallel_{bp} {
+    if (rbm_.n_visible > 64) {
+        throw std::runtime_error("Perfect sampling not possible for N > 64.");
+    }
+}
 
 void full_sampler::sample(bool keep_state) {
     // Initialize aggregators
@@ -43,19 +48,19 @@ void full_sampler::sample(bool keep_state) {
     // Number of parallel gray code runs
     size_t b_len = (size_t)std::pow(2, bits_parallel_);
 
-    // Number of total pit flips
+    // Number of total bit flips
     size_t max = (size_t)std::pow(2, rbm_.n_visible - bits_parallel_);
 
-    double p_tot = 0;
+    p_tot_ = 0;
 
     // The state vector if state should be kept
     Eigen::MatrixXcd vec;
     Eigen::MatrixXcd local_vec;
     Eigen::MatrixXi local_vec_idx;
-    if (keep_state) {
-        if (mpi::master) vec = Eigen::MatrixXcd((int)(1 << rbm_.n_visible), 1);
-        local_vec = Eigen::MatrixXcd(max, 1);
-        local_vec_idx = Eigen::MatrixXi(max, 1);
+    local_vec = Eigen::MatrixXcd(max, 1);
+    local_vec_idx = Eigen::MatrixXi(max, 1);
+    if (mpi::master && keep_state) {
+        vec = Eigen::MatrixXcd((int)(1 << rbm_.n_visible), 1);
     }
 
     // Start the parallel runs
@@ -65,8 +70,7 @@ void full_sampler::sample(bool keep_state) {
         size_t flip;
 
         // Get the state for `b`
-        Eigen::MatrixXcd state(rbm_.n_visible, 1);
-        tools::num_to_state(b, state);
+        machine::spin_state state(rbm_.n_visible, b);
 
         // Precalculate context
         auto context = rbm_.get_context(state);
@@ -95,24 +99,24 @@ void full_sampler::sample(bool keep_state) {
             //     psi = rbm_.psi(state, context);
             // }
             double p = std::pow(std::abs(psi), 2);
-            if (!std::isnan(p)) {
-                // std::cout << psi << ", " << tools::state_to_num(state)
-                //           << std::endl;
-                // std::vector<size_t> ones;
-                // for (size_t i = 0; i < rbm_.n_visible; i++) {
-                //     if (std::real(state(i)) > 0) ones.push_back(i);
-                // }
-                // rbm_.get_lattice().print_lattice(ones);
-            }
+            // if (!std::isnan(p)) {
+            // std::cout << psi << ", " << tools::state_to_num(state)
+            //           << std::endl;
+            // std::vector<size_t> ones;
+            // for (size_t i = 0; i < rbm_.n_visible; i++) {
+            //     if (std::real(state(i)) > 0) ones.push_back(i);
+            // }
+            // rbm_.get_lattice().print_lattice(ones);
+            // }
 
             // If keep state store \psi into the state vector
             if (keep_state) {
                 local_vec(i - 1) = psi;
-                local_vec_idx(i - 1) = tools::state_to_num(state);
+                local_vec_idx(i - 1) = state.to_num();
             }
 
             // Cumulate probability for normalization
-            p_tot += p;
+            p_tot_ += p;
 
             evaluate_and_aggregate(state, context, p);
 
@@ -129,7 +133,7 @@ void full_sampler::sample(bool keep_state) {
 
                 rbm_.update_context(state, {flip}, context);
                 pfaffian_refresh(state, context.pfaff(), i, {flip});
-                state(flip) *= -1;
+                state.flip(flip);
 
                 exchange_luts(i);
             }
@@ -163,19 +167,21 @@ void full_sampler::sample(bool keep_state) {
             }
         }
     }
-    MPI_Allreduce(MPI_IN_PLACE, &p_tot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &p_tot_, 1, MPI_DOUBLE, MPI_SUM,
+                  MPI_COMM_WORLD);
 
     // Print the state vector if `keep_state`
     if (keep_state && mpi::master) {
-        vec /= std::sqrt(p_tot);
+        vec /= std::sqrt(p_tot_);
         std::ofstream statefile{ini::name + ".state", std::ios::binary};
         statefile << vec;
         statefile.close();
         std::cout << "State stored to '" << ini::name + ".state"
                   << "'" << std::endl;
     }
+
     for (auto agg : aggs_) {
-        agg->finalize(p_tot);
+        agg->finalize(p_tot_);
     }
 }
 
@@ -188,3 +194,5 @@ size_t full_sampler::get_my_n_samples() const {
     }
     return ret;
 }
+
+double full_sampler::get_p_tot() const { return p_tot_; }

@@ -93,7 +93,7 @@ int sa_lut_exchange = 0;
 // Optimizer
 optimizer_t opt_type = SR;
 std::string opt_plugin = "";
-decay_t opt_lr = {0.001, 0.001, 1.};
+decay_t opt_lr = {1e-2};
 decay_t opt_sr_reg1 = {1e-4};
 decay_t opt_sr_reg2 = {1e-3, 1e-6, 0.9};
 decay_t opt_sr_deltareg1 = {1e-2};
@@ -103,6 +103,7 @@ double opt_adam_beta2 = 0.999;
 double opt_adam_eps = 1e-8;
 double opt_mom_alpha = 0.3;
 std::string opt_sr_method = "minresqlp";
+bool opt_sr_iterative = false;
 size_t opt_sr_max_iterations = 0;
 double opt_sr_rtol = 0.;
 double opt_heun_eps = 1e-3;
@@ -207,6 +208,7 @@ int ini::load(int argc, char* argv[]) {
     ("optimizer.sr.reg2",                     po::value(&opt_sr_reg2)->multitoken(),         "set regularization diagonal shift decay rate optionally with decay factor")
     ("optimizer.sr.deltareg1",                po::value(&opt_sr_deltareg1)->multitoken(),   "diagonal scaling offset for pfaffian parameters")
     ("optimizer.sr.method",                   po::value(&opt_sr_method),                    "the method for the sr solver either: direct, minresqlp, cg")
+    ("optimizer.sr.iterative",                po::value(&opt_sr_iterative),                 "backwards compatibility for non mpi version (dummy parameter, uses default sr_method)")
     ("optimizer.sr.max_iterations",           po::value(&opt_sr_max_iterations),            "set number of max iterations for iterative method")
     ("optimizer.sr.rtol",                     po::value(&opt_sr_rtol),                      "set residue tolerance for the iterative method")
     ("optimizer.sgd.real_factor",             po::value(&opt_sgd_real_factor),              "set the factor the real part of the update vector is divided by (default 1.)")

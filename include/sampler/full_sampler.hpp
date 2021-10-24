@@ -46,6 +46,7 @@ class full_sampler : public abstract_sampler {
      * of the first three bits, so 2^3 = 8 parrallel runs.
      */
     size_t bits_parallel_;
+    double p_tot_;
 
    public:
     /**
@@ -67,6 +68,8 @@ class full_sampler : public abstract_sampler {
     virtual void sample(bool keep_state);
 
     virtual size_t get_my_n_samples() const override;
+
+    double get_p_tot() const;
 };
 
 }  // namespace sampler

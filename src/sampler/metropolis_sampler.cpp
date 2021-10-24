@@ -24,6 +24,7 @@
 #include <random>
 //
 
+#include <machine/spin_state.hpp>
 #include <operators/base_op.hpp>
 #include <sampler/metropolis_sampler.hpp>
 #include <tools/ini.hpp>
@@ -43,7 +44,7 @@ metropolis_sampler::metropolis_sampler(machine::abstract_machine& rbm,
       rng_{rng},
       n_chains_{n_chains},
       step_size_{step_size},
-      n_sweeps_(rbm.n_visible),
+      n_sweeps_{rbm.n_visible},
       warmup_steps_{warmup_steps},
       bond_flips_{bond_flips},
       f_dist_{0, rbm.n_visible - 1} {}
@@ -92,7 +93,7 @@ void metropolis_sampler::sample() {
     // size_t m_size = sampled_.size();
     // MPI_Allgather(&m_size, 1, MPI_UNSIGNED_LONG, &sizes[0], 1,
     //               MPI_UNSIGNED_LONG, MPI_COMM_WORLD);
-    Eigen::MatrixXcd state;
+    // Eigen::MatrixXcd state;
     // for (auto& s : sampled_) {
     //     std::cout << s << ", " << n_lut_[s] << std::endl;
 
@@ -116,12 +117,8 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
     size_t ar = 0;
 
     // Initilaize random state
-    Eigen::MatrixXcd state(rbm_.n_visible, 1);
-    size_t ups = 0;
-    for (size_t i = 0; i < rbm_.n_visible; i++) {
-        state(i) = u_dist_(rng_) < 0.5 ? 1. : -1.;
-        ups += (state(i) == 1.);
-    }
+    machine::spin_state state(rbm_.n_visible);
+    state.set_random(rng_);
 
     // if (ini::lattice_type == "hex") {
     //     if (u_dist_(rng_) < 0.5) {
@@ -151,20 +148,46 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
     // Retrieve context for state
     auto context = rbm_.get_context(state);
 
-    std::vector<size_t> flips;
+    std::vector<size_t> flips(1);
+
+    std::uniform_real_distribution<double> rdist(0, 1);
 
     // Do the Metropolis sampling
     for (size_t step = 0; step < total_steps; step++) {
         // Get the flips vector by randomly selecting one site.
         time_keeper::start("Metropolis sweep");
 
+        std::vector<size_t> idxs(rbm_.n_visible);
+        std::iota(idxs.begin(), idxs.end(), 0);
+        std::shuffle(idxs.begin(), idxs.end(), rng_);
         for (size_t sweep = 0; sweep < n_sweeps_; sweep++) {
+            // flips.clear();
+            // flips.push_back(idxs[sweep]);
+            // if (u_dist_(rng_) < bond_flips_) {
+            //     sweep++;
+            //     if (sweep < n_sweeps_) flips.push_back(idxs[sweep]);
+            // }
             flips.clear();
             // With probability 1/2 flip a second site.
             double x = u_dist_(rng_);
             if (x < bond_flips_) {
-                auto& b = bonds[b_dist(rng_)];
-                flips = {b.a, b.b};
+                // int type = -1, des;
+                // double r = rdist(rng_);
+                // if (r < 0.7) {
+                //     des = 2;
+                // } else if (r < 0.85) {
+                //     des = 1;
+                // } else {
+                //     des = 0;
+                // }
+                lattice::bond* b;
+                // while (type != des) {
+                //     b = &bonds[b_dist(rng_)];
+                //     type = b->type;
+                // }
+                b = &bonds[b_dist(rng_)];
+
+                flips = {b->a, b->b};
                 sweep++;
             } else {
                 flips.push_back(f_dist_(rng_));
@@ -172,22 +195,22 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
 
             machine::rbm_context new_context = context;
             // Calculate the probability of changing to new configuration
-            bool didupdate = true;
             double acc =
                 std::pow(std::abs(rbm_.psi_over_psi(state, flips, context,
-                                                    new_context, &didupdate)),
+                                                    new_context, false)),
                          2);
 
             // Accept new configuration with given probability
             if (u_dist_(rng_) < acc) {
-                if (!didupdate) rbm_.update_context(state, flips, new_context);
+                // if (!didupdate) rbm_.update_context(state, flips,
+                // new_context);
                 context = new_context;
                 ar++;
 
                 // Refresh pfaffian context if demanded
                 pfaffian_refresh(state, context.pfaff(), ar, flips);
 
-                for (auto& flip : flips) state(flip) *= -1;
+                state.flip(flips);
             }
         }
 

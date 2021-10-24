@@ -32,33 +32,44 @@
 using namespace math;
 
 std::complex<double> math::lncosh(const Eigen::MatrixXcd& x) {
-    double reabs, lncoshre, sinim, cosim;
     const std::complex<double>* xd = x.data();
-    std::complex<double> ret = 0;
+    double gretre = 0;
+    double gretim = 0;
 
-    /*int n_chunks = 1; //omp_get_max_threads();
-    int chunk_size = x.size(); // / n_chunks;
+    int n_chunks = omp_get_max_threads();  // omp_get_max_threads();
+    int chunk_size = x.size() / n_chunks;
 
-// #pragma omp parallel for
+#pragma omp parallel for
     for (int j = 0; j < n_chunks; j++) {
+        double reabs, lncoshre, sinim, cosim;
+        double retre = 0;
+        double retim = 0;
         int end = (j + 1) * chunk_size;
-        if(j == n_chunks - 1)
-            end = x.size(); */
-    for (int i = 0; i < x.size(); i++) {
-        reabs = std::abs(std::real(xd[i]));
+        if (j == n_chunks - 1) end = x.size();
+        // #pragma omp parallel for reduction(+ : retre, retim)
+        for (int i = j * chunk_size; i < end; i++) {
+            reabs = std::abs(std::real(xd[i]));
 
-        lncoshre = reabs - M_LN2;
-        reabs = std::exp(-2. * reabs);
+            lncoshre = reabs - M_LN2;
+            reabs = std::exp(-2. * reabs);
 
-        lncoshre += LOG1P(reabs);
-        sinim = std::sin(std::imag(xd[i]));
-        cosim = std::cos(std::imag(xd[i]));
-        sinim *= std::copysign((1. - reabs) / (1. + reabs), std::real(xd[i]));
+            lncoshre += LOG1P(reabs);
+            sinim = std::sin(std::imag(xd[i]));
+            cosim = std::cos(std::imag(xd[i]));
+            sinim *=
+                std::copysign((1. - reabs) / (1. + reabs), std::real(xd[i]));
 
-        lncoshre += 0.5 * std::log(std::pow(sinim, 2.) + std::pow(cosim, 2.));
-        ret += std::complex<double>(lncoshre, std::atan2(sinim, cosim));
+            lncoshre +=
+                0.5 * std::log(std::pow(sinim, 2.) + std::pow(cosim, 2.));
+            retre += lncoshre;
+            retim += std::atan2(sinim, cosim);
+        }
+#pragma omp critical
+        {
+            gretre += retre;
+            gretim += retim;
+        }
     }
-
     //}
-    return ret;
+    return {gretre, gretim};
 }

@@ -27,8 +27,8 @@
 using namespace model;
 
 toric::toric(size_t size, double J = -1.)
-    : plaq_{J * kron({sx(), sx(), sx(), sx()})},
-      vertex_{J * kron({sz(), sz(), sz(), sz()})} {
+    : plaq_{J * kron({sz(), sz(), sz(), sz()})},
+      vertex_{J * kron({sx(), sx(), sx(), sx()})} {
     auto lat = new lattice::toric_lattice(size);
     auto ham = new operators::local_op_chain();
     auto plaqs = lat->construct_plaqs();

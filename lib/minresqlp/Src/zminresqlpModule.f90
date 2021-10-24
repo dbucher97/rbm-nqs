@@ -511,11 +511,13 @@ contains
 
     checkA_ = .true.
 
-    if (present(disable)) then
-       disable_ = disable
-    else
-       disable_ = .false.
-    end if
+    ! if (present(disable)) then
+    !    disable_ = disable
+    ! else
+    !    disable_ = .false.
+    ! end if
+    ! disable did not work for me!
+    disable_ = .false.
 
     if (present(itnlim)) then
        itnlim_ = itnlim

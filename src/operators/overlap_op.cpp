@@ -46,7 +46,7 @@ void overlap_op::fill_vec(const std::string& file) {
 }
 
 void overlap_op::evaluate(machine::abstract_machine& rbm,
-                          const Eigen::MatrixXcd& state,
+                          const machine::spin_state& state,
                           machine::rbm_context& context) {
     auto& result = get_result_();
     // Get the loaded psi for the state.
@@ -59,6 +59,6 @@ void overlap_op::evaluate(machine::abstract_machine& rbm,
     result(1) = 1 / std::pow(std::abs(psi), 2);
 }
 
-std::complex<double> overlap_op::get_psi(const Eigen::MatrixXcd& s) {
-    return state_vec_(tools::state_to_num(s));
+std::complex<double> overlap_op::get_psi(const machine::spin_state& s) {
+    return state_vec_(s.to_num());
 }

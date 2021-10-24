@@ -30,6 +30,7 @@
 #include <optimizer/outer_matrix.hpp>
 #include <optimizer/plugin.hpp>
 #include <optimizer/stochastic_reconfiguration.hpp>
+#include <sampler/full_sampler.hpp>
 
 using namespace optimizer;
 
@@ -44,7 +45,7 @@ stochastic_reconfiguration::stochastic_reconfiguration(
       method_{method},
       max_iterations_{max_iterations},
       rtol_{rtol},
-      a_dh_{derivative_, hamiltonian_},
+      a_dh_{derivative_, hamiltonian_, sampler.get_my_n_samples()},
       a_dd_{derivative_, sampler.get_my_n_samples()},
       // Initialize the regularization.
       kp1_{kp1, rbm_.get_n_updates()},
@@ -85,14 +86,23 @@ Eigen::VectorXcd& stochastic_reconfiguration::gradient(bool log) {
     if (log) {
         // Log energy, energy variance and sampler properties.
         logger::log(std::real(h(0)) / rbm_.n_visible, "Energy");
-        logger::log(std::real(a_h_.get_variance()(0)) / rbm_.n_visible,
-                    "Energy Variance");
-        // logger::log(std::abs(std::imag(h(0))), "EnergyImag");
+        logger::log(a_h_.get_stddev()(0) / rbm_.n_visible, "Energy Stddev");
+        // std::cout << "\n" << a_h_.get_tau()(0) << ", ";
+
+        sampler::full_sampler smp{rbm_, 2};
+        smp.register_op(&hamiltonian_);
+        operators::aggregator ah(hamiltonian_, smp.get_my_n_samples());
+        ah.track_variance(32);
+        smp.register_agg(&ah);
+        smp.sample();
+        auto x = ah.get_result();
+        logger::log(std::real(x(0)) / rbm_.n_visible, "Perfect Energy");
         sampler_.log();
     }
 
     double reg1 = kp1_.get();
     double reg2 = kp2_.get();
+    // std::cout << reg1 << ", " << reg2 << std::endl;
     double reg1delta = kp1d_.get();
 
     // Calculate Gradient

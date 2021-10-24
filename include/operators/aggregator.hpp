@@ -34,10 +34,25 @@ namespace operators {
  */
 class aggregator {
    protected:
+    const size_t n_samples_;
+    size_t n_bins_ = 50;
+    double wsum_ = 0;
+    double wsum2_ = 0;
+    double wsum_bin_ = 0;
+    size_t bin_size_;
+    size_t cur_n_ = 0;
+    size_t cur_n_bin_ = 0;
+
     bool track_variance_ =
         false;  ///< If is set, track the variance of a observable
-    Eigen::MatrixXcd result_;   ///< The result Matrix
-    Eigen::MatrixXd variance_;  ///< The variance Matrix
+    Eigen::MatrixXcd result_;          ///< The result Matrix
+    Eigen::MatrixXcd result_binned_;   ///< The result Matrix
+    Eigen::MatrixXcd bin_;             ///< The result Matrix
+    Eigen::MatrixXd variance_;         ///< The variance Matrix
+    Eigen::MatrixXd variance_binned_;  ///< The variance Matrix
+    Eigen::MatrixXd tau_;              ///< The variance Matrix
+
+    Eigen::MatrixXcd resultx_;  ///< The result Matrix
 
     const base_op&
         op_;  ///< Operator, for which the results should be accumulated.
@@ -58,7 +73,7 @@ class aggregator {
      * @param rows Number of rows.
      * @param cols Number of cols.
      */
-    aggregator(const base_op&, size_t, size_t);
+    aggregator(const base_op&, size_t samples, size_t, size_t);
 
    public:
     /**
@@ -66,7 +81,7 @@ class aggregator {
      *
      * @param base_op Reference to the operator.
      */
-    aggregator(const base_op&);
+    aggregator(const base_op&, size_t samples);
     /**
      * @brief Default virtual destructor.
      */
@@ -82,7 +97,7 @@ class aggregator {
     /**
      * @brief Turn on `track_variance_`.
      */
-    void track_variance() { track_variance_ = true; }
+    void track_variance(size_t n_bins = 50);
 
     /**
      * @brief Result getter.
@@ -107,6 +122,9 @@ class aggregator {
      * @brief Sets result to zero.
      */
     virtual void set_zero();
+
+    Eigen::MatrixXd get_stddev() const;
+    Eigen::MatrixXd get_tau() const;
 };
 
 /**
@@ -127,7 +145,8 @@ class prod_aggregator : public aggregator {
      * @param matrix_op Matrix sized operator.
      * @param scalar_op Scalar operator.
      */
-    prod_aggregator(const base_op& matrix_op, const base_op& scalar_op);
+    prod_aggregator(const base_op& matrix_op, const base_op& scalar_op,
+                    size_t samples);
 };
 
 /**
@@ -145,7 +164,7 @@ class outer_aggregator : public aggregator {
      *
      * @param base_op Reference to the vector sized operator.
      */
-    outer_aggregator(const base_op&);
+    outer_aggregator(const base_op&, size_t samples);
 };
 
 /**

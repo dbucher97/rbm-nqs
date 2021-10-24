@@ -30,7 +30,7 @@ gradient_descent::gradient_descent(machine::abstract_machine& rbm,
                                    double alpha3)
     : Base{rbm, sampler, hamiltonian, lr, resample, alpha1, alpha2, alpha3},
       // Initialize SR aggregators
-      a_dh_{derivative_, hamiltonian_},
+      a_dh_{derivative_, hamiltonian_, sampler.get_my_n_samples()},
       real_factor_{real_factor} {}
 
 void gradient_descent::register_observables() {

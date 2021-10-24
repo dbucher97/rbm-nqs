@@ -48,30 +48,28 @@ class rbm_symmetry : public rbm_base {
 
     virtual size_t symmetry_size() const override { return symmetry_.size(); };
 
-    virtual rbm_context get_context(
-        const Eigen::MatrixXcd& state) const override;
+    virtual rbm_context get_context(const spin_state& state) const override;
 
-    virtual void update_context(const Eigen::MatrixXcd& state,
+    virtual void update_context(const spin_state& state,
                                 const std::vector<size_t>& flips,
                                 rbm_context& context) const override;
 
     virtual Eigen::MatrixXcd derivative(
-        const Eigen::MatrixXcd& state,
-        const rbm_context& context) const override;
+        const spin_state& state, const rbm_context& context) const override;
 
     virtual void add_correlator(
         const std::vector<std::vector<size_t>>& corr) override;
 
    protected:
     virtual std::complex<double> psi_notheta(
-        const Eigen::MatrixXcd& state) const override;
+        const spin_state& state) const override;
 
     // virtual std::complex<double> log_psi_over_psi(
-    //     const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+    //     const spin_state& state, const std::vector<size_t>& flips,
     //     rbm_context& context, rbm_context& updated_context) override;
 
     // virtual std::complex<double> psi_over_psi_alt(
-    //     const Eigen::MatrixXcd& state, const std::vector<size_t>& flips,
+    //     const spin_state& state, const std::vector<size_t>& flips,
     //     rbm_context& context, rbm_context& updated_context) override;
 };
 

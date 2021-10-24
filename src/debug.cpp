@@ -4,6 +4,7 @@
 //
 #include <lattice/honeycomb.hpp>
 #include <machine/file_psi.hpp>
+#include <machine/spin_state.hpp>
 #include <math.hpp>
 #include <model/abstract_model.hpp>
 #include <model/isingS3.hpp>
@@ -59,7 +60,7 @@ void test_S3() {
     machine::file_psi m{km.get_lattice(), "isingS3.state"};
     sampler::full_sampler sampler{m, 3};
     auto& h = km.get_hamiltonian();
-    operators::aggregator agg{h};
+    operators::aggregator agg{h, sampler.get_my_n_samples()};
     sampler.register_op(&h);
     sampler.register_agg(&agg);
     sampler.sample(false);
@@ -84,7 +85,7 @@ void debug() {
     sampler::full_sampler sampler{rbm, 3};
     sampler::metropolis_sampler msampler{
         rbm, n_samples, rng, n_chains, step_size, warmup_steps, bond_flips};
-    operators::aggregator agg{m.get_hamiltonian()};
+    operators::aggregator agg{m.get_hamiltonian(), sampler.get_my_n_samples()};
     agg.track_variance();
     sampler.register_op(&(m.get_hamiltonian()));
     sampler.register_agg(&agg);
@@ -134,10 +135,10 @@ void debug1() {
 void debug_pfaffian() {
     lattice::honeycomb lat{2};
     machine::pfaffian pfaff{lat};
-    Eigen::MatrixXcd state = Eigen::MatrixXd::Random(lat.n_total, 1);
-    state.array() /= state.array().abs();
 
     std::mt19937 rng{static_cast<std::mt19937::result_type>(ini::seed)};
+    machine::spin_state state(lat.n_total);
+    state.set_random(rng);
     pfaff.init_weights(rng, 0.1, false);
 
     auto context = pfaff.get_context(state);
@@ -156,7 +157,7 @@ void debug_pfaffian() {
             }
         }
         pfaff.update_context(state, flips, context);
-        for (auto& f : flips) state(f) *= -1;
+        state.flip(flips);
         Eigen::MatrixXcd mat(pfaff.get_n_params(), 1);
         size_t o = 0;
         pfaff.derivative(state, context, mat, o);
@@ -180,10 +181,10 @@ void debug_pfaffian() {
 void debug_pfaffian2() {
     lattice::honeycomb lat{2};
     machine::pfaffian pfaff{lat};
-    Eigen::MatrixXcd state = Eigen::MatrixXd::Random(lat.n_total, 1);
-    state.array() /= state.array().abs();
 
     std::mt19937 rng{static_cast<std::mt19937::result_type>(ini::seed)};
+    machine::spin_state state(lat.n_total);
+    state.set_random(rng);
     pfaff.init_weights(rng, 0.1, false);
 
     auto context = pfaff.get_context(state);

@@ -28,34 +28,44 @@
 using namespace machine;
 
 file_psi::file_psi(lattice::bravais& lattice, const std::string& filename)
-    : Base{lattice, 1}, state_vec_((size_t)(1 << lattice.n_total), 1) {
+    : Base{lattice, 1},
+      state_vec_{new Eigen::MatrixXcd((size_t)(1 << lattice.n_total), 1)},
+      created_{true} {
+    if (lattice.n_total > 64) {
+        throw std::runtime_error("File psi not possible for N > 64.");
+    }
+    std::cout << state_vec_->rows() << ", " << state_vec_->cols() << std::endl;
     std::ifstream file{filename};
     std::complex<double> line;
     size_t c = 0;
     while (file >> line) {
-        state_vec_(c) = line;
+        (*state_vec_)(c) = line;
         c++;
     }
-    std::cout << filename << std::endl;
-    std::cout << c << std::endl;
-    if (c != (size_t)state_vec_.size())
+    if (c != (size_t)state_vec_->size())
         throw std::runtime_error("File " + filename + " has wrong size!");
     std::cout << "Loaded state vec with norm: "
-              << (state_vec_.transpose().conjugate() * state_vec_).real()
+              << (state_vec_->transpose().conjugate() * *state_vec_).real()
               << std::endl;
 }
 
-std::complex<double> file_psi::psi(const Eigen::MatrixXcd& state,
-                                   rbm_context&) {
-    return state_vec_(tools::state_to_num(state));
+file_psi::~file_psi() {
+    if (created_) delete state_vec_;
 }
 
-std::complex<double> file_psi::psi_over_psi(const Eigen::MatrixXcd& state,
+file_psi::file_psi(lattice::bravais& lattice, Eigen::MatrixXcd& state)
+    : Base{lattice, 1}, state_vec_(&state), created_(false) {}
+
+std::complex<double> file_psi::psi(const spin_state& state, rbm_context&) {
+    return (*state_vec_)(state.to_num());
+}
+
+std::complex<double> file_psi::psi_over_psi(const spin_state& state,
                                             const std::vector<size_t>& flips,
                                             rbm_context& co, rbm_context&,
-                                            bool* didupdate) {
+                                            bool discard, bool* didupdate) {
     std::complex<double> ps1 = psi(state, co);
-    Eigen::MatrixXcd state2 = state;
-    for (auto& i : flips) state2(i) *= -1;
+    spin_state state2 = state;
+    state2.flip(flips);
     return psi(state2, co) / ps1;
 }

@@ -22,7 +22,6 @@
 #include <iostream>
 //
 #include <operators/local_op.hpp>
-#include <tools/state.hpp>
 
 using namespace operators;
 
@@ -30,7 +29,7 @@ local_op::local_op(const std::vector<size_t>& acts_on, const SparseXcd& op)
     : Base{}, acts_on_{acts_on}, op_{op} {}
 
 void local_op::evaluate(machine::abstract_machine& rbm,
-                        const Eigen::MatrixXcd& state,
+                        const machine::spin_state& state,
                         machine::rbm_context& context) {
     typedef Eigen::SparseVector<std::complex<double>> SpVec;
     // Get the result of the current thread
@@ -39,7 +38,7 @@ void local_op::evaluate(machine::abstract_machine& rbm,
 
     // The next two lines are basicelly <\psi| Op, since |\psi> has only one
     // non-zero element, which is one.
-    size_t loc = tools::state_to_num_loc(state, acts_on_);
+    size_t loc = state.to_num_loc(acts_on_);
     SpVec res = op_.row(loc);
 
     // Initialize the flips vector.
@@ -53,7 +52,8 @@ void local_op::evaluate(machine::abstract_machine& rbm,
             // Off diagonal elements.
             // Get the flips to get from `loc` to `i` and calculate the
             // `psi_over_psi` local weight.
-            tools::get_flips(it.index() ^ loc, flips, acts_on_);
+            machine::spin_state::flips_from_loc(it.index() ^ loc, flips,
+                                                acts_on_);
             result(0) += it.value() * rbm.psi_over_psi(state, flips, context);
         }
     }
