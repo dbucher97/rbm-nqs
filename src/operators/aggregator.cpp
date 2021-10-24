@@ -25,7 +25,7 @@
 using namespace operators;
 
 aggregator::aggregator(const base_op& op, size_t samples, size_t r, size_t c)
-    : n_samples_{samples}, result_(r, c), op_{op} {
+    : n_samples_{samples}, result_(r, c), resultx_(r, c), op_{op} {
     // Initialize result as zero.
     set_zero();
 }
@@ -35,6 +35,9 @@ aggregator::aggregator(const base_op& op, size_t samples)
 
 void aggregator::set_zero() {
     result_.setZero();
+    resultx_.setZero();
+    wsum_ = 0;
+    wsum2_ = 0;
     cur_n_ = 0;
     if (track_variance_) {
         variance_.setZero();
@@ -42,6 +45,7 @@ void aggregator::set_zero() {
         variance_binned_.setZero();
         result_binned_.setZero();
         cur_n_bin_ = 0;
+        wsum_bin_ = 0;
     }
 }
 
@@ -57,41 +61,67 @@ void aggregator::track_variance(size_t n_bins) {
     result_binned_ = Eigen::MatrixXcd(result_.rows(), result_.cols());
     variance_ = Eigen::MatrixXd(result_.rows(), result_.cols());
     variance_binned_ = Eigen::MatrixXd(result_.rows(), result_.cols());
+    tau_ = Eigen::MatrixXd(result_.rows(), result_.cols());
 }
 
 void aggregator::finalize(double ptotal) {
-    // Normalize result
-
-    double norm_factor = ptotal / n_samples_;
-
-    result_ /= norm_factor;
-    // std::complex<double> r1 = result_(0);
-
-    MPI_Allreduce(MPI_IN_PLACE, result_.data(), result_.size(),
+    resultx_ /= ptotal;
+    MPI_Allreduce(MPI_IN_PLACE, resultx_.data(), resultx_.size(),
                   MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
 
-    // if (result_.size() == 1) {
-    //     // mpi::cout << mpi::endl;
-    //     MPI_Barrier(MPI_COMM_WORLD);
-    //     if (std::abs((double)mpi::n_proc * r1 - result_(0)) > 1) {
-    //         throw std::runtime_error("XXXXX");
-    //     }
-    // }
-    // result_ = result2_;
-
     if (track_variance_) {
-        // Calculate variance <0^2> - <0>^2
-        variance_ /= (n_samples_ - 1) * norm_factor;
-        //
-        result_binned_ /= norm_factor;
-        variance_binned_ /= (n_bins_ - 1) * norm_factor;
+        Eigen::MatrixXcd results(result_.size(), mpi::n_proc);
+        Eigen::VectorXd weights(mpi::n_proc);
+        MPI_Allgather(result_.data(), result_.size(), MPI_DOUBLE_COMPLEX,
+                      results.data(), result_.size(), MPI_DOUBLE_COMPLEX,
+                      MPI_COMM_WORLD);
+        MPI_Allgather(&wsum_, 1, MPI_DOUBLE, weights.data(), 1, MPI_DOUBLE,
+                      MPI_COMM_WORLD);
+        Eigen::MatrixXd current = results.col(0).real();
+        Eigen::MatrixXd corr = Eigen::MatrixXd::Zero(result_.size(), 1);
+        double wsumx = weights(0);
+        double wsumlast = weights(0);
+        for (int i = 1; i < mpi::n_proc; i++) {
+            wsumx += weights(i);
+            Eigen::MatrixXd delta = current - results.col(i).real();
+            current += delta * weights(i) / wsumx;
+            corr += delta.cwiseAbs2() * wsumlast * weights(i) / wsumx;
+            wsumlast = wsumx;
+        }
+
+        tau_ = 0.5 * bin_size_ * variance_binned_.array() / variance_.array();
+
+        // Average taus
+        tau_ /= mpi::n_proc;
+        MPI_Allreduce(MPI_IN_PLACE, tau_.data(), tau_.size(), MPI_DOUBLE,
+                      MPI_SUM, MPI_COMM_WORLD);
 
         MPI_Allreduce(MPI_IN_PLACE, variance_.data(), variance_.size(),
                       MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
         MPI_Allreduce(MPI_IN_PLACE, variance_binned_.data(),
                       variance_binned_.size(), MPI_DOUBLE, MPI_SUM,
                       MPI_COMM_WORLD);
+
+        MPI_Allreduce(MPI_IN_PLACE, &wsum2_, 1, MPI_DOUBLE, MPI_SUM,
+                      MPI_COMM_WORLD);
+
+        variance_ += Eigen::Map<Eigen::MatrixXd>(corr.data(), variance_.rows(),
+                                                 variance_.cols());
+        variance_binned_ += Eigen::Map<Eigen::MatrixXd>(
+            corr.data(), variance_.rows(), variance_.cols());
+
+        variance_ /= ptotal - wsum2_ / ptotal;
+        variance_binned_ /= ptotal - wsum2_ / ptotal;
+
+        mpi::cout
+            << (variance_binned_ / (mpi::n_proc * n_samples_)).array().sqrt()
+            << mpi::endl;
     }
+
+    result_ *= wsum_ / ptotal;
+    MPI_Allreduce(MPI_IN_PLACE, result_.data(), result_.size(),
+                  MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
 }
 
 Eigen::MatrixXcd& aggregator::get_result() { return result_; }
@@ -104,39 +134,42 @@ Eigen::MatrixXcd aggregator::aggregate_() {
 
 void aggregator::aggregate(double weight) {
     cur_n_++;
-    cur_n_bin_++;
+    wsum_ += weight;
+    wsum2_ += weight * weight;
 
-    Eigen::MatrixXcd x = weight * aggregate_();
-    Eigen::MatrixXcd delta = x - result_;
-    result_.noalias() += delta / cur_n_;
+    Eigen::MatrixXcd x = aggregate_();
+    Eigen::MatrixXcd delta = weight * (x - result_);
+    result_.noalias() += delta / wsum_;
+
+    resultx_ += weight * x;
 
     if (track_variance_) {
+        cur_n_bin_++;
+        wsum_bin_ += weight;
         // Calculate the resul of the squared observable
 
         variance_.array() +=
             (x - result_).real().array() * delta.real().array();
 
-        bin_.noalias() += x;
+        bin_.noalias() += weight * x;
 
         if (cur_n_bin_ == bin_size_) {
             cur_n_bin_ = 0;
-            size_t i = cur_n_ / bin_size_;
-            bin_ /= bin_size_;
-            delta = bin_ - result_binned_;
-            result_binned_ += delta / i;
+            bin_ /= wsum_bin_;
+            delta = wsum_bin_ * (bin_ - result_binned_);
+            result_binned_ += delta / wsum_;
             variance_binned_.array() +=
                 delta.real().array() * (bin_ - result_binned_).real().array();
             bin_.setZero();
+            wsum_bin_ = 0;
         }
     }
 }
 
 Eigen::MatrixXd aggregator::get_stddev() const {
-    return (variance_binned_ / n_bins_).array().sqrt();
+    return (variance_binned_ / (mpi::n_proc * n_bins_)).array().sqrt();
 }
-Eigen::MatrixXd aggregator::get_tau() const {
-    return 0.5 * bin_size_ * variance_binned_.array() / variance_.array();
-}
+Eigen::MatrixXd aggregator::get_tau() const { return tau_; }
 
 prod_aggregator::prod_aggregator(const base_op& op, const base_op& scalar,
                                  size_t samples)

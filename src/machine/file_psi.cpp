@@ -41,7 +41,6 @@ file_psi::file_psi(lattice::bravais& lattice, const std::string& filename)
     while (file >> line) {
         (*state_vec_)(c) = line;
         c++;
-        if (c % 10000 == 0) std::cout << c << std::endl;
     }
     if (c != (size_t)state_vec_->size())
         throw std::runtime_error("File " + filename + " has wrong size!");

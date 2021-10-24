@@ -36,6 +36,9 @@ class aggregator {
    protected:
     const size_t n_samples_;
     size_t n_bins_ = 50;
+    double wsum_ = 0;
+    double wsum2_ = 0;
+    double wsum_bin_ = 0;
     size_t bin_size_;
     size_t cur_n_ = 0;
     size_t cur_n_bin_ = 0;
@@ -47,6 +50,9 @@ class aggregator {
     Eigen::MatrixXcd bin_;             ///< The result Matrix
     Eigen::MatrixXd variance_;         ///< The variance Matrix
     Eigen::MatrixXd variance_binned_;  ///< The variance Matrix
+    Eigen::MatrixXd tau_;              ///< The variance Matrix
+
+    Eigen::MatrixXcd resultx_;  ///< The result Matrix
 
     const base_op&
         op_;  ///< Operator, for which the results should be accumulated.

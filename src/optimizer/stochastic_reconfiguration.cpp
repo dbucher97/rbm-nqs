@@ -87,27 +87,22 @@ Eigen::VectorXcd& stochastic_reconfiguration::gradient(bool log) {
         // Log energy, energy variance and sampler properties.
         logger::log(std::real(h(0)) / rbm_.n_visible, "Energy");
         logger::log(a_h_.get_stddev()(0) / rbm_.n_visible, "Energy Stddev");
-        std::cout << a_h_.get_tau()(0) << std::endl;
+        // std::cout << "\n" << a_h_.get_tau()(0) << ", ";
 
-        // sampler::full_sampler smp{rbm_, 2};
-        // smp.register_op(&hamiltonian_);
-        // operators::aggregator ah(hamiltonian_);
-        // ah.track_variance();
-        // smp.register_agg(&ah);
-        // smp.sample();
-        // auto x = ah.get_result();
-        // logger::log(std::real(x(0)) / rbm_.n_visible, "Perfect Energy");
-        // double var1 = std::real(a_h_.get_variance()(0));
-        // double var2 = std::real(ah.get_variance()(0));
-        // logger::log(var2 / rbm_.n_visible, "tau");
-        // double tau = (var2 / var1 - 1) / 2;
-        // logger::log(tau, "tau");
-        // logger::log(smp.get_p_tot(), "partition");
+        sampler::full_sampler smp{rbm_, 2};
+        smp.register_op(&hamiltonian_);
+        operators::aggregator ah(hamiltonian_, smp.get_my_n_samples());
+        ah.track_variance(32);
+        smp.register_agg(&ah);
+        smp.sample();
+        auto x = ah.get_result();
+        logger::log(std::real(x(0)) / rbm_.n_visible, "Perfect Energy");
         sampler_.log();
     }
 
     double reg1 = kp1_.get();
     double reg2 = kp2_.get();
+    // std::cout << reg1 << ", " << reg2 << std::endl;
     double reg1delta = kp1d_.get();
 
     // Calculate Gradient

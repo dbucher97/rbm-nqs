@@ -28,6 +28,7 @@
 #include <complex>
 #include <cstdio>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <random>
@@ -582,28 +583,42 @@ int main(int argc, char* argv[]) {
         sampler->register_op(&h);
         sampler->register_agg(&ah);
 
-        sampler->sample();
+        for (size_t i = 0; i < 100; i++) {
+            sampler->sample();
 
-        if (mpi::master) {
-            std::cout << "BEGIN OUTPUT" << std::endl;
-            std::cout.precision(16);
-            // for (size_t i = 0; i < hex.size(); i++) {
-            //     std::cout << aggs[i]->get_result() << std::endl;
-            // }
+            if (mpi::master) {
+                std::cout << "BEGIN OUTPUT" << std::endl;
+                std::cout.precision(16);
+                // for (size_t i = 0; i < hex.size(); i++) {
+                //     std::cout << aggs[i]->get_result() << std::endl;
+                // }
 
-            std::cout << ah.get_result() / rbm->n_visible << std::endl;
-            std::cout << ah.get_variance()(0) << std::endl;
-            std::cout << std::sqrt(ah.get_variance()(0)) / rbm->n_visible
-                      << std::endl;
-            if (ini::sa_type == ini::sampler_t::METROPOLIS) {
-                std::cout << dynamic_cast<sampler::metropolis_sampler*>(
-                                 sampler.get())
-                                 ->get_acceptance_rate()
-                          << std::endl;
+                // std::cout << ah.get_result() / rbm->n_visible << std::endl;
+                std::cout << "Var: " << ah.get_variance()(0) << std::endl;
+                std::cout << "Std: " << ah.get_stddev() << std::endl;
+                std::cout << "Tau: " << ah.get_tau() << std::endl;
+                if (ini::sa_type == ini::sampler_t::METROPOLIS) {
+                    std::cout << "Acc: "
+                              << dynamic_cast<sampler::metropolis_sampler*>(
+                                     sampler.get())
+                                     ->get_acceptance_rate()
+                              << std::endl;
+                }
+                double std = ah.get_stddev()(0) / rbm->n_visible;
+                double ene = std::real(ah.get_result()(0)) / rbm->n_visible;
+                int ndigits = std::log10(std);
+                if (ndigits < 0) {
+                    ndigits = -ndigits + 2;
+                } else {
+                    ndigits = 0;
+                }
+                std::cout << "E:   " << std::scientific
+                          << std::setprecision(ndigits) << ene;
+                std::cout << " ± " << std::setprecision(0) << std << std::endl;
+
+                // std::cout << rbm->get_pfaffian().get_weights() << std::endl;
+                std::cout << "END OUTPUT" << std::endl;
             }
-
-            // std::cout << rbm->get_pfaffian().get_weights() << std::endl;
-            std::cout << "END OUTPUT" << std::endl;
         }
     }
 
