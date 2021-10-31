@@ -39,6 +39,7 @@ class rbm_symmetry : public rbm_base {
      * translational symmetry of the lattice.
      */
     std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>> symmetry_;
+    std::vector<size_t> basis_;
 
     std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>> reverse_symm_;
 

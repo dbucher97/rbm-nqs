@@ -227,7 +227,8 @@ int init_sampler(std::unique_ptr<sampler::abstract_sampler>& sampler,
 int init_optimizer(std::unique_ptr<optimizer::abstract_optimizer>& optimizer,
                    std::unique_ptr<model::abstract_model>& model,
                    std::unique_ptr<machine::abstract_machine>& rbm,
-                   std::unique_ptr<sampler::abstract_sampler>& sampler) {
+                   std::unique_ptr<sampler::abstract_sampler>& sampler,
+                   std::unique_ptr<optimizer::base_plugin>& plug) {
     switch (ini::opt_type) {
         case ini::optimizer_t::SR:
             optimizer = std::make_unique<optimizer::stochastic_reconfiguration>(
@@ -249,17 +250,16 @@ int init_optimizer(std::unique_ptr<optimizer::abstract_optimizer>& optimizer,
     }
 
     optimizer->register_observables();
-    std::unique_ptr<optimizer::base_plugin> p;
     if (ini ::opt_plugin.length() > 0) {
         if (ini::opt_plugin == "adam") {
-            p = std::make_unique<optimizer::adam_plugin>(
+            plug = std::make_unique<optimizer::adam_plugin>(
                 rbm->get_n_params(), ini::opt_adam_beta1, ini::opt_adam_beta2,
                 ini::opt_adam_eps);
         } else if (ini::opt_plugin == "momentum") {
-            p = std::make_unique<optimizer::momentum_plugin>(
+            plug = std::make_unique<optimizer::momentum_plugin>(
                 rbm->get_n_params());
         } else if (ini::opt_plugin == "heun") {
-            p = std::make_unique<optimizer::heun_plugin>(
+            plug = std::make_unique<optimizer::heun_plugin>(
                 [&optimizer]() -> Eigen::VectorXcd& {
                     return optimizer->gradient(false);
                 },
@@ -267,7 +267,7 @@ int init_optimizer(std::unique_ptr<optimizer::abstract_optimizer>& optimizer,
         } else {
             return 16;
         }
-        optimizer->set_plugin(p.get());
+        optimizer->set_plugin(plug.get());
     }
     return 0;
 }
@@ -361,6 +361,7 @@ int main(int argc, char* argv[]) {
     machine::pfaffian* pfaff = 0;
     std::unique_ptr<sampler::abstract_sampler> sampler;
     std::unique_ptr<optimizer::abstract_optimizer> optimizer;
+    std::unique_ptr<optimizer::base_plugin> plug;
 
     size_t seed = ini::seed;
     // Init Model
@@ -394,6 +395,7 @@ int main(int argc, char* argv[]) {
         std::unique_ptr<machine::abstract_machine> best_rbm;
         std::unique_ptr<sampler::abstract_sampler> best_sampler;
         std::unique_ptr<optimizer::abstract_optimizer> best_optimizer;
+        std::unique_ptr<optimizer::base_plugin> best_plug;
         std::uniform_int_distribution<unsigned long> udist(0, ULONG_MAX);
         for (int i = 0; i < ini::seed_search; i++) {
             init_seed(seed, rng);
@@ -405,7 +407,7 @@ int main(int argc, char* argv[]) {
             init_weights(rbm, pfaff, model, true, *rng);
             // Init Sampler
             rc |= init_sampler(sampler, rbm, *rng);
-            rc |= init_optimizer(optimizer, model, rbm, sampler);
+            rc |= init_optimizer(optimizer, model, rbm, sampler, plug);
 
             double energy = 0;
 
@@ -423,6 +425,7 @@ int main(int argc, char* argv[]) {
                 best_rbm = std::move(rbm);
                 best_sampler = std::move(sampler);
                 best_optimizer = std::move(optimizer);
+                best_plug = std::move(plug);
                 best_seed = seed;
             }
 
@@ -430,6 +433,7 @@ int main(int argc, char* argv[]) {
             rbm.reset(0);
             sampler.reset(0);
             optimizer.reset(0);
+            plug.reset(0);
         }
         if (best_energy == DBL_MAX) {
             rc = 65;
@@ -444,6 +448,7 @@ int main(int argc, char* argv[]) {
         rbm = std::move(best_rbm);
         sampler = std::move(best_sampler);
         optimizer = std::move(best_optimizer);
+        plug = std::move(best_plug);
         time_keeper::clear();
     } else {
         init_seed(seed, rng);
@@ -455,7 +460,7 @@ int main(int argc, char* argv[]) {
         // Init Sampler
         rc |= init_sampler(sampler, rbm, *rng);
         if (ini::train) {
-            rc |= init_optimizer(optimizer, model, rbm, sampler);
+            rc |= init_optimizer(optimizer, model, rbm, sampler, plug);
         }
     }
 

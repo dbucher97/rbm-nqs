@@ -44,7 +44,8 @@ class aggregator {
     size_t cur_n_bin_ = 0;
 
     bool track_variance_ =
-        false;  ///< If is set, track the variance of a observable
+        false;              ///< If is set, track the variance of a observable
+    bool binning_ = false;  ///< If is set, track the variance of a observable
     Eigen::MatrixXcd result_;          ///< The result Matrix
     Eigen::MatrixXcd result_binned_;   ///< The result Matrix
     Eigen::MatrixXcd bin_;             ///< The result Matrix
@@ -97,7 +98,7 @@ class aggregator {
     /**
      * @brief Turn on `track_variance_`.
      */
-    void track_variance(size_t n_bins = 50);
+    void track_variance(size_t n_bins = 0);
 
     /**
      * @brief Result getter.

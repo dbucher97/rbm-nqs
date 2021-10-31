@@ -157,7 +157,7 @@ void honeycomb_hex::print_lattice(const std::vector<size_t>& highlights) const {
 
 std::vector<std::vector<size_t>> honeycomb_hex::construct_uc_symmetry(
     const std::vector<double>& symm) const {
-    if (symm.size() == 1 && symm[0] == 2.) {
+    if (symm.size() == 1 && std::abs(symm[0] - 0.6) < 1e-10) {
         std::vector<std::vector<size_t>> ret(n_total_uc / 3);
         size_t n = std::sqrt(n_total_uc / 3);
         for (size_t y = 0; y < n; y++) {
@@ -194,7 +194,7 @@ std::vector<std::vector<size_t>> honeycomb_hex::construct_uc_symmetry(
 
 std::vector<size_t> honeycomb_hex::construct_symm_basis(
     const std::vector<double>& symm) const {
-    if (symm.size() == 1 && symm[0] == 2.) {
+    if (symm.size() == 1 && std::abs(symm[0] - 0.6) < 1e-10) {
         const size_t uc = 0;
         return {idx(down(uc, 1), 1),
                 idx(uc, 0),

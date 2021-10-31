@@ -32,6 +32,7 @@ rbm_symmetry::rbm_symmetry(size_t n_alpha, lattice::bravais& l, size_t pop_mode,
                            size_t cosh_mode)
     : Base{n_alpha, l.n_total / l.symmetry_size(), l, pop_mode, cosh_mode},
       symmetry_{lattice_.construct_symmetry()},
+      basis_{lattice_.construct_symm_basis()},
       reverse_symm_(n_visible) {
     // std::cout << l.symmetry_size() << std::endl;
     for (size_t f = 0; f < n_visible; f++) {
@@ -97,10 +98,15 @@ Eigen::MatrixXcd rbm_symmetry::derivative(const spin_state& state,
                                           const rbm_context& context) const {
     Eigen::MatrixXcd vstate = state.to_vec();
     Eigen::MatrixXcd result = Eigen::MatrixXcd::Zero(get_n_params(), 1);
-    result.block(0, 0, n_vb_, 1) =
-        Eigen::Map<Eigen::MatrixXcd>(vstate.data(), n_vb_, symmetry_size())
-            .rowwise()
-            .sum();
+    for (size_t i = 0; i < n_vb_; i++) {
+        for (auto& s : symmetry_) {
+            result(i) += vstate(s.indices()(basis_[i]));
+        }
+    }
+    // result.block(0, 0, n_vb_, 1) =
+    //     Eigen::Map<Eigen::MatrixXcd>(vstate.data(), n_vb_, symmetry_size())
+    //         .rowwise()
+    //         .sum();
     // Same as baseclass
     // Eigen::MatrixXcd tanh = thetas.array().tanh();
     Eigen::ArrayXXcd tanh(context.thetas.rows(), context.thetas.cols());
@@ -131,13 +137,13 @@ void rbm_symmetry::add_correlator(
 
 std::complex<double> rbm_symmetry::psi_notheta(const spin_state& state) const {
     Eigen::MatrixXcd vstate = state.to_vec();
-    auto vbias_part =
-        v_bias_.array() * Eigen::Map<const Eigen::MatrixXcd>(
-                              vstate.data(), n_vb_, symmetry_size())
-                              .rowwise()
-                              .sum()
-                              .array();
-    return std::exp(vbias_part.sum());
+    std::complex<double> result;
+    for (size_t i = 0; i < n_vb_; i++) {
+        for (auto& s : symmetry_) {
+            result += v_bias_(i) * vstate(s.indices()(basis_[i]));
+        }
+    }
+    return std::exp(result);
 }
 
 // std::complex<double> rbm_symmetry::log_psi_over_psi(

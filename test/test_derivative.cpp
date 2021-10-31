@@ -7,19 +7,45 @@
 #include <machine/pfaffian.hpp>
 #include <machine/rbm_base.hpp>
 #include <machine/rbm_symmetry.hpp>
+#include <machine/spin_state.hpp>
+#include <tools/mpi.hpp>
 
 #define SEED 52391500
+
+using namespace ::testing;
+
+// This class deals with the MPI context,
+// it shall be done globally for the test program.
+// see
+// https://github.com/google/googletest/blob/master/googletest/docs/AdvancedGuide.md#global-set-up-and-tear-down
+class TestEnvironment : public Environment {
+   protected:
+    virtual void SetUp() {
+        char** argv;
+        int argc = 0;
+        int mpiError = MPI_Init(&argc, &argv);
+        ASSERT_FALSE(mpiError);
+    }
+
+    virtual void TearDown() {
+        int mpiError = MPI_Finalize();
+        ASSERT_FALSE(mpiError);
+    }
+
+    virtual ~TestEnvironment(){};
+};
+
+Environment* const foo_env = AddGlobalTestEnvironment(new TestEnvironment);
 
 #define SETUP(MACHINE)                                                \
     std::mt19937 rng(SEED);                                           \
     lattice::honeycomb lat{5};                                        \
-    MACHINE rbm{10, lat};                                             \
-    rbm.initialize_weights(rng, 0.1);                                 \
+    MACHINE rbm{10, lat, 0, 2};                                       \
+    rbm.initialize_weights(rng, 0.2);                                 \
     std::uniform_int_distribution<size_t> f_dist(0, lat.n_total - 1); \
     std::uniform_int_distribution<size_t> u_dist(0, 1);               \
-    Eigen::MatrixXcd state = Eigen::MatrixXd::Ones(lat.n_total, 1);   \
-    for (size_t i = 0; i < lat.n_total; i++)                          \
-        if (u_dist(rng)) state(i) *= -1;                              \
+    machine::spin_state state(lat.n_total);                           \
+    state.set_random(rng);                                            \
     auto context = rbm.get_context(state);
 
 using namespace machine;
@@ -39,7 +65,7 @@ void test_update() {
 
         rbm.update_context(state, flips, context);
 
-        for (auto& f : flips) state(f) *= -1;
+        state.flip(flips);
     }
 
     auto context2 = rbm.get_context(state);
@@ -55,23 +81,25 @@ void test_derivative() {
 
     std::normal_distribution<double> n_dist;
 
-    for (size_t i = 0; i < 1; i++) {
+    for (size_t i = 0; i < 100; i++) {
         Eigen::MatrixXcd dw(rbm.get_n_params(), 1);
         for (int j = 0; j < dw.size(); j++) {
             dw(j) = std::complex<double>(n_dist(rng), n_dist(rng));
         }
 
-        dw *= 1e-8;
+        dw *= 1e-7;
 
         Eigen::MatrixXcd drbm = rbm.derivative(state, context);
 
         std::complex<double> psi1 = rbm.psi(state, context);
+        std::cout << psi1 << std::endl;
         psi1 += psi1 * (dw.transpose() * drbm)(0);
         rbm.update_weights(-dw);
         auto context2 = rbm.get_context(state);
         std::complex<double> psi2 = rbm.psi(state, context2);
+        std::cout << psi1 << ", " << psi2 << std::endl;
 
-        EXPECT_NEAR(std::abs(psi1 - psi2) / abs(psi2) / rbm.get_n_params(), 0,
+        ASSERT_NEAR(std::abs(psi1 - psi2) / abs(psi2) / rbm.get_n_params(), 0,
                     1e-15);
         // std::cout << psi1 << ", " << psi2 << ": " << std::abs(psi1 - psi2)
         //           << std::endl;
@@ -79,7 +107,7 @@ void test_derivative() {
 
         size_t f = f_dist(rng);
         rbm.update_context(state, {f}, context);
-        state(f) *= -1;
+        state.flip(f);
     }
 }
 
@@ -96,9 +124,8 @@ TEST(pfaffian, update_context) {
     pfaff.init_weights(rng, 0.1);
     std::uniform_int_distribution<size_t> f_dist(0, lat.n_total - 1);
     std::uniform_int_distribution<size_t> u_dist(0, 1);
-    Eigen::MatrixXcd state = Eigen::MatrixXd::Ones(lat.n_total, 1);
-    for (size_t i = 0; i < lat.n_total; i++)
-        if (u_dist(rng)) state(i) *= -1;
+    machine::spin_state state(lat.n_total);
+    state.set_random(rng);
     auto context = pfaff.get_context(state);
 
     for (size_t i = 0; i < 100; i++) {
@@ -112,7 +139,7 @@ TEST(pfaffian, update_context) {
 
         pfaff.update_context(state, flips, context);
 
-        for (auto& f : flips) state(f) *= -1;
+        state.flip(flips);
     }
 
     auto context2 = pfaff.get_context(state);
@@ -133,9 +160,8 @@ TEST(pfaffian, test_derivative) {
     pfaff.init_weights(rng, 0.1);
     std::uniform_int_distribution<size_t> f_dist(0, lat.n_total - 1);
     std::uniform_int_distribution<size_t> u_dist(0, 1);
-    Eigen::MatrixXcd state = Eigen::MatrixXd::Ones(lat.n_total, 1);
-    for (size_t i = 0; i < lat.n_total; i++)
-        if (u_dist(rng)) state(i) *= -1;
+    machine::spin_state state(lat.n_total);
+    state.set_random(rng);
     auto context = pfaff.get_context(state);
 
     std::normal_distribution<double> n_dist;
@@ -164,7 +190,7 @@ TEST(pfaffian, test_derivative) {
 
         size_t f = f_dist(rng);
         pfaff.update_context(state, {f}, context);
-        state(f) *= -1;
+        state.flip(f);
     }
 }
 
@@ -210,3 +236,4 @@ TEST(pfaffian, test_derivative) {
 // }
 
 #undef SETUP
+#undef END

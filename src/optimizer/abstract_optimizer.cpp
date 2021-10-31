@@ -132,7 +132,7 @@ void abstract_optimizer::optimize() {
 
     std::complex<double> e = a_h_.get_result()(0) / (double)rbm_.n_visible;
     if (std::real(e - last_energy_) > 0.05 && rbm_.get_n_updates() > 10) {
-        mpi::cout << "whee" << mpi::endl;
+        // mpi::cout << "whee" << mpi::endl;
         // sampler::full_sampler sa{rbm_, 2};
         // sa.register_op(&hamiltonian_);
         // sa.register_agg(&a_h_);
@@ -175,6 +175,6 @@ void abstract_optimizer::register_observables() {
     // Register operators and aggregators
     sampler_.register_op(&hamiltonian_);
     sampler_.register_op(&derivative_);
-    a_h_.track_variance(32);
+    a_h_.track_variance();
     sampler_.register_aggs({&a_h_, &a_d_});
 }

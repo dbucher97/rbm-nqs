@@ -50,12 +50,14 @@ void aggregator::set_zero() {
 }
 
 void aggregator::track_variance(size_t n_bins) {
+    if (n_bins > 1) binning_ = true;
     track_variance_ = true;
     n_bins_ = n_bins;
-    if (n_samples_ % n_bins != 0) {
+    if (binning_ && n_samples_ % n_bins != 0) {
         throw std::runtime_error("n_samples not divisable by n_bins!");
     }
-    bin_size_ = n_samples_ / n_bins_;
+
+    if (binning_) bin_size_ = n_samples_ / n_bins_;
 
     bin_ = Eigen::MatrixXcd(result_.rows(), result_.cols());
     result_binned_ = Eigen::MatrixXcd(result_.rows(), result_.cols());
@@ -89,34 +91,32 @@ void aggregator::finalize(double ptotal) {
             wsumlast = wsumx;
         }
 
-        tau_ = 0.5 * bin_size_ * variance_binned_.array() / variance_.array();
+        MPI_Allreduce(MPI_IN_PLACE, &wsum2_, 1, MPI_DOUBLE, MPI_SUM,
+                      MPI_COMM_WORLD);
+        if (binning_) {
+            tau_ =
+                0.5 * bin_size_ * variance_binned_.array() / variance_.array();
 
-        // Average taus
-        tau_ /= mpi::n_proc;
-        MPI_Allreduce(MPI_IN_PLACE, tau_.data(), tau_.size(), MPI_DOUBLE,
-                      MPI_SUM, MPI_COMM_WORLD);
+            // Average taus
+            tau_ /= mpi::n_proc;
+            MPI_Allreduce(MPI_IN_PLACE, tau_.data(), tau_.size(), MPI_DOUBLE,
+                          MPI_SUM, MPI_COMM_WORLD);
+
+            MPI_Allreduce(MPI_IN_PLACE, variance_binned_.data(),
+                          variance_binned_.size(), MPI_DOUBLE, MPI_SUM,
+                          MPI_COMM_WORLD);
+            variance_binned_ += Eigen::Map<Eigen::MatrixXd>(
+                corr.data(), variance_binned_.rows(), variance_binned_.cols());
+            variance_binned_ /= ptotal - wsum2_ / ptotal;
+        }
 
         MPI_Allreduce(MPI_IN_PLACE, variance_.data(), variance_.size(),
                       MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-        MPI_Allreduce(MPI_IN_PLACE, variance_binned_.data(),
-                      variance_binned_.size(), MPI_DOUBLE, MPI_SUM,
-                      MPI_COMM_WORLD);
-
-        MPI_Allreduce(MPI_IN_PLACE, &wsum2_, 1, MPI_DOUBLE, MPI_SUM,
-                      MPI_COMM_WORLD);
-
         variance_ += Eigen::Map<Eigen::MatrixXd>(corr.data(), variance_.rows(),
                                                  variance_.cols());
-        variance_binned_ += Eigen::Map<Eigen::MatrixXd>(
-            corr.data(), variance_.rows(), variance_.cols());
 
         variance_ /= ptotal - wsum2_ / ptotal;
-        variance_binned_ /= ptotal - wsum2_ / ptotal;
-
-        mpi::cout
-            << (variance_binned_ / (mpi::n_proc * n_samples_)).array().sqrt()
-            << mpi::endl;
     }
 
     result_ *= wsum_ / ptotal;
@@ -145,30 +145,38 @@ void aggregator::aggregate(double weight) {
 
     if (track_variance_) {
         cur_n_bin_++;
-        wsum_bin_ += weight;
         // Calculate the resul of the squared observable
 
         variance_.array() +=
             (x - result_).real().array() * delta.real().array();
 
-        bin_.noalias() += weight * x;
+        if (binning_) {
+            wsum_bin_ += weight;
+            bin_.noalias() += weight * x;
 
-        if (cur_n_bin_ == bin_size_) {
-            cur_n_bin_ = 0;
-            bin_ /= wsum_bin_;
-            delta = wsum_bin_ * (bin_ - result_binned_);
-            result_binned_ += delta / wsum_;
-            variance_binned_.array() +=
-                delta.real().array() * (bin_ - result_binned_).real().array();
-            bin_.setZero();
-            wsum_bin_ = 0;
+            if (cur_n_bin_ == bin_size_) {
+                cur_n_bin_ = 0;
+                bin_ /= wsum_bin_;
+                delta = wsum_bin_ * (bin_ - result_binned_);
+                result_binned_ += delta / wsum_;
+                variance_binned_.array() +=
+                    delta.real().array() *
+                    (bin_ - result_binned_).real().array();
+                bin_.setZero();
+                wsum_bin_ = 0;
+            }
         }
     }
 }
 
 Eigen::MatrixXd aggregator::get_stddev() const {
-    return (variance_binned_ / (mpi::n_proc * n_bins_)).array().sqrt();
+    if (binning_) {
+        return (variance_binned_ / (mpi::n_proc * n_bins_)).array().sqrt();
+    } else {
+        return (variance_ / (mpi::n_proc * n_samples_)).array().sqrt();
+    }
 }
+
 Eigen::MatrixXd aggregator::get_tau() const { return tau_; }
 
 prod_aggregator::prod_aggregator(const base_op& op, const base_op& scalar,
