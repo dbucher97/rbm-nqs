@@ -44,8 +44,8 @@ class bravais_test : public bravais {
 
     std::vector<size_t> nns(size_t idx) const override { return {}; }
 
-    std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>> construct_symmetry(
-        const std::vector<double>& symm) const override {
+    std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>> construct_symmetry()
+        const  {
         return {};
     }
 };

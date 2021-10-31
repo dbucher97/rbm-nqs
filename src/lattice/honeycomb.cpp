@@ -56,6 +56,31 @@ void honeycomb::construct_bonds() {
 
 size_t honeycomb::rot180(size_t idx) const { return n_total - 1 - idx; }
 
+std::vector<std::vector<size_t>> honeycomb::construct_uc_symmetry(
+    const std::vector<double>& symm) const {
+    if (symm.size() == 1 && std::abs(symm[0] - 0.6) < 1e-10) {
+        if (n_total % 6 != 0) {
+            throw std::runtime_error("Hex symmetry requires N_s % 6 = 0");
+        }
+        size_t na = n_uc_b;
+        size_t nb = n_uc / 3;
+        std::vector<std::vector<size_t>> ret(n_total_uc / 3);
+        for (size_t i = 0; i < na; i++) {
+            for (size_t j = 0; j < nb; j++) {
+                for (size_t uc = 0; uc < n_total_uc; uc++) {
+                    size_t u = uc;
+                    u = up(up(u, 1, i), 0, i);
+                    u = down(up(u, 1, 2 * j), 0, j);
+                    ret[i + na * j].push_back(u);
+                }
+            }
+        }
+        return ret;
+    } else {
+        return Base::construct_uc_symmetry(symm);
+    }
+}
+
 std::vector<Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic>>
 honeycomb::construct_symmetry(const std::vector<double>& symm) const {
     if (symm.size() == 1 && symm[0] == 0.5) {
@@ -67,8 +92,8 @@ honeycomb::construct_symmetry(const std::vector<double>& symm) const {
         // `Eigen::PermutationMatrix` by a respective amount.
         //
         // The Honeycomb lattice is translationally symmetry by translations
-        // about the unitcells and also is symmetric by 180° rotations and shift 
-        // o the other basis index.
+        // about the unitcells and also is symmetric by 180° rotations and 
+        // hift  o the other basis index.
         auto permute = [this](const std::vector<size_t>& ucs, bool s,
                               p_mat& p) {
             auto& indices = p.indices();
@@ -77,8 +102,8 @@ honeycomb::construct_symmetry(const std::vector<double>& symm) const {
             for (size_t i = 0; i < n_total; i++) {
                 size_t uc = ucs[uc_idx(i)];
 
-                // If s == true do the 180° rotation. otherwise just return the 
-                // ew site_index
+                // If s == true do the 180° rotation. otherwise just return 
+                // he  ew site_index
                 if (s) {
                     indices(i) = rot180(idx(uc, b_idx(i)));
                 } else {
@@ -112,6 +137,8 @@ std::vector<size_t> honeycomb::construct_symm_basis(
     const std::vector<double>& symm) const {
     if (symm.size() == 1 && symm[0] == 0.5) {
         return {0};
+    } else if (std::abs(symm[0] - 0.6) < 1e-10) {
+        return get_hexagons()[0];
     } else {
         return Base::construct_symm_basis(symm);
     }

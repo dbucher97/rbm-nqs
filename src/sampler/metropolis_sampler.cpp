@@ -23,7 +23,7 @@
 #include <memory>
 #include <random>
 //
-
+#include <lattice/toric_lattice.hpp>
 #include <machine/spin_state.hpp>
 #include <operators/base_op.hpp>
 #include <sampler/metropolis_sampler.hpp>
@@ -115,6 +115,10 @@ void metropolis_sampler::sample() {
 double metropolis_sampler::sample_chain(size_t total_samples) {
     size_t total_steps = total_samples * step_size_ + warmup_steps_;
     size_t ar = 0;
+    Eigen::ArrayXd accs(2);
+    accs.setZero();
+    Eigen::ArrayXd tries(2);
+    tries.setZero();
 
     // Initilaize random state
     machine::spin_state state(rbm_.n_visible);
@@ -144,6 +148,9 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
 
     auto bonds = rbm_.get_lattice().get_bonds();
     std::uniform_int_distribution<size_t> b_dist(0, bonds.size() - 1);
+    // auto plaq = dynamic_cast<lattice::toric_lattice*>(&rbm_.get_lattice())
+    //                 ->construct_plaqs();
+    // std::uniform_int_distribution<size_t> b_dist(0, plaq.size() - 1);
 
     // Retrieve context for state
     auto context = rbm_.get_context(state);
@@ -170,35 +177,29 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
             flips.clear();
             // With probability 1/2 flip a second site.
             double x = u_dist_(rng_);
+            int type;
             if (x < bond_flips_) {
-                // int type = -1, des;
-                // double r = rdist(rng_);
-                // if (r < 0.7) {
-                //     des = 2;
-                // } else if (r < 0.85) {
-                //     des = 1;
-                // } else {
-                //     des = 0;
-                // }
+                type = 1;
+                // auto p = plaq[b_dist(rng_)];
+                // flips = {p.idxs[0], p.idxs[1], p.idxs[2], p.idxs[3]};
                 lattice::bond* b;
-                // while (type != des) {
-                //     b = &bonds[b_dist(rng_)];
-                //     type = b->type;
-                // }
                 b = &bonds[b_dist(rng_)];
 
                 flips = {b->a, b->b};
                 sweep++;
             } else {
                 flips.push_back(f_dist_(rng_));
+                type = 0;
             }
+            tries(type)++;
 
             machine::rbm_context new_context = context;
             // Calculate the probability of changing to new configuration
+            const double T = 1;
             double acc =
                 std::pow(std::abs(rbm_.psi_over_psi(state, flips, context,
                                                     new_context, false)),
-                         2);
+                         2 / T);
 
             // Accept new configuration with given probability
             if (u_dist_(rng_) < acc) {
@@ -206,6 +207,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
                 // new_context);
                 context = new_context;
                 ar++;
+                accs(type)++;
 
                 // Refresh pfaffian context if demanded
                 pfaffian_refresh(state, context.pfaff(), ar, flips);
@@ -240,6 +242,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
     // }
 
     // Normalize acceptance rate
+    std::cout << accs.transpose() / tries.transpose() << std::endl;
     return ar / (double)total_steps / n_sweeps_;
 }
 

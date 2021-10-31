@@ -21,7 +21,10 @@
 
 using namespace machine;
 
-spin_state::spin_state(size_t n, size_t v) : n{n}, bitset(v) {}
+spin_state::spin_state(size_t n, size_t v) : n{n}, bitset(v) {
+    if (n > MAX_SPIN_SITES)
+        throw std::runtime_error("n must be smaller than MAX_SPIN_SITES!");
+}
 spin_state::spin_state(const spin_state& other)
     : n{other.n}, bitset(other.bitset) {}
 spin_state& spin_state::operator=(const spin_state& other) {

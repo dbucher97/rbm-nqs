@@ -31,6 +31,7 @@ TEST_OBJS += $(filter-out $(BUILD_DIR)/src/main.cpp.o,$(OBJS))
 INC_DIRS += /usr/local/include/eigen3/
 INC_DIRS += /usr/local/opt/openblas/include/
 INC_DIRS += /usr/local/include/
+INC_DIRS += $(HOME)/googletest/googletest/include/
 INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
 CPPFLAGS += $(INC_FLAGS) -MMD -MP -Wall -std=c++14 -O3 -march=native
@@ -72,7 +73,7 @@ LDFLAGS += -lboost_program_options
 
 LDFLAGS += $(PFAPACK) $(PFAPACKC) $(MINRESQLP) -lgfortran
 
-TEST_LDFLAGS = /usr/local/lib/libgtest.a /usr/local/lib/libgtest_main.a
+TEST_LDFLAGS = $(HOME)/googletest/build/lib/libgtest.a $(HOME)/googletest/build/lib/libgtest_main.a
 
 # USE MPI
 MPI = $(shell mpic++ -show | cut -d' ' -f2-)

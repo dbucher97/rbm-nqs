@@ -70,10 +70,15 @@ class honeycomb : public bravais {
     virtual std::vector<size_t> construct_symm_basis(
         const std::vector<double>& symm) const override;
 
+    virtual std::vector<std::vector<size_t>> construct_uc_symmetry(
+        const std::vector<double>& symm) const override;
+
     virtual size_t symmetry_size(
         const std::vector<double>& symm) const override {
         if (symm.size() == 1 && symm[0] == 0.5) {
             return n_total;
+        } else if (symm.size() == 1 && std::abs(symm[0] - 0.6) < 1e-10) {
+            return n_total / 6;
         } else {
             return Base::symmetry_size(symm);
         }
