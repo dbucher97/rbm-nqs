@@ -175,6 +175,6 @@ void abstract_optimizer::register_observables() {
     // Register operators and aggregators
     sampler_.register_op(&hamiltonian_);
     sampler_.register_op(&derivative_);
-    a_h_.track_variance(32);
+    a_h_.track_variance(10);
     sampler_.register_aggs({&a_h_, &a_d_});
 }

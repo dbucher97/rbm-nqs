@@ -89,15 +89,15 @@ Eigen::VectorXcd& stochastic_reconfiguration::gradient(bool log) {
         logger::log(a_h_.get_stddev()(0) / rbm_.n_visible, "Energy Stddev");
         // std::cout << "\n" << a_h_.get_tau()(0) << ", ";
 
-        sampler::full_sampler smp{rbm_, 2};
-        smp.register_op(&hamiltonian_);
-        operators::aggregator ah(hamiltonian_, smp.get_my_n_samples());
-        ah.track_variance(32);
-        smp.register_agg(&ah);
-        smp.sample();
-        auto x = ah.get_result();
-        logger::log(std::real(x(0)) / rbm_.n_visible, "Perfect Energy");
-        sampler_.log();
+//        sampler::full_sampler smp{rbm_, 2};
+//        smp.register_op(&hamiltonian_);
+//        operators::aggregator ah(hamiltonian_, smp.get_my_n_samples());
+//        ah.track_variance(32);
+//        smp.register_agg(&ah);
+//        smp.sample();
+//        auto x = ah.get_result();
+//        logger::log(std::real(x(0)) / rbm_.n_visible, "Perfect Energy");
+//        sampler_.log();
     }
 
     double reg1 = kp1_.get();

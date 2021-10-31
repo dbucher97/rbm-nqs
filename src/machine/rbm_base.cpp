@@ -308,7 +308,7 @@ std::complex<double> rbm_base::log_psi_over_psi(
 
     spin_state state2 = state;
     state2.flip(flips);
-    if (discard && lut_.find(state2) != lut_.end()) {
+    if (false && lut_.find(state2) != lut_.end()) {
         if (pfaffian_) {
             pfaffian_->update_context(state, flips, context.pfaff());
         }

@@ -17,7 +17,7 @@
  */
 
 #ifndef MAX_SPIN_SITES
-#define MAX_SPIN_SITES 32
+#define MAX_SPIN_SITES 72
 #endif
 
 #pragma once

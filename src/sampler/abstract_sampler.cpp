@@ -80,8 +80,9 @@ void abstract_sampler::evaluate_and_aggregate(const machine::spin_state& state,
                                               double p) const {
     time_keeper::start("Evaluate");
     // Evaluate operators
-    for (auto& op : ops_) {
-        op->evaluate(rbm_, state, context);
+#pragma omp parallel for
+    for (size_t i = 0; i < ops_.size(); i++) {
+        ops_[i]->evaluate(rbm_, state, context);
     }
 
     for (auto& chain : chains_) {
@@ -90,8 +91,9 @@ void abstract_sampler::evaluate_and_aggregate(const machine::spin_state& state,
     time_keeper::end("Evaluate");
     // Evaluate aggregators
     time_keeper::start("Aggregate");
-    for (auto& agg : aggs_) {
-        agg->aggregate(p);
+#pragma omp parallel for
+    for (size_t i = 0; i < aggs_.size(); i++) {
+        aggs_[i]->aggregate(p);
     }
     time_keeper::end("Aggregate");
 }

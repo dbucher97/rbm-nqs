@@ -1,0 +1,3 @@
+install:
+	source $(HOME)/venv/py38/bin/activate; python setup.py sdist && pip install dist/rbm_adapter-0.0.1.tar.gz --user
+

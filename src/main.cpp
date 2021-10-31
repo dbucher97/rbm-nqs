@@ -316,6 +316,9 @@ int main(int argc, char* argv[]) {
         return rc;
     }
 
+
+    omp_set_num_threads(omp_get_max_threads());
+
     if (ini::print_bonds && mpi::master) {
         std::unique_ptr<model::abstract_model> model;
         init_model(model);
@@ -583,7 +586,7 @@ int main(int argc, char* argv[]) {
         sampler->register_op(&h);
         sampler->register_agg(&ah);
 
-        for (size_t i = 0; i < 100; i++) {
+        for (size_t i = 0; i < 1; i++) {
             sampler->sample();
 
             if (mpi::master) {
