@@ -42,6 +42,7 @@ class aggregator {
     size_t bin_size_;
     size_t cur_n_ = 0;
     size_t cur_n_bin_ = 0;
+    double sample_factor_;
 
     bool track_variance_ =
         false;              ///< If is set, track the variance of a observable
@@ -50,6 +51,7 @@ class aggregator {
     Eigen::MatrixXcd result_binned_;   ///< The result Matrix
     Eigen::MatrixXcd bin_;             ///< The result Matrix
     Eigen::MatrixXd variance_;         ///< The variance Matrix
+    Eigen::MatrixXd variancex_;        ///< The variance Matrix
     Eigen::MatrixXd variance_binned_;  ///< The variance Matrix
     Eigen::MatrixXd tau_;              ///< The variance Matrix
 
@@ -111,7 +113,7 @@ class aggregator {
      *
      * @return The reference to the variance.
      */
-    Eigen::MatrixXd& get_variance();
+    Eigen::MatrixXd& get_variance(bool sample_variance = true);
     /**
      * @brief Finalize the Aggregation.
      *

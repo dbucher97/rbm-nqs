@@ -62,7 +62,7 @@ def plot_routine(vals, othervals, args, run_event):
     ax2 = ax1.twinx()
     plt.show()
 
-    shps = ['green', 'orange', 'gray']
+    shps = ['green', 'orange', 'gray', 'blue', 'gray', 'gray']
 
     while run_event.wait():
         run_event.clear()

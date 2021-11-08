@@ -34,28 +34,27 @@
 
 using namespace math;
 
-std::complex<double> lncosh_(const std::complex<double>* xd, const size_t start, const size_t end) {
+std::complex<double> lncosh_(const std::complex<double>* xd, const size_t start,
+                             const size_t end) {
     double reabs, lncoshre, sinim, cosim, gretre = 0, gretim = 0;
     for (size_t i = start; i < end; i++) {
-            reabs = std::abs(std::real(xd[i]));
+        reabs = std::abs(std::real(xd[i]));
 
-            lncoshre = reabs - M_LN2;
-            reabs = std::exp(-2. * reabs);
+        lncoshre = reabs - M_LN2;
+        reabs = std::exp(-2. * reabs);
 
-            lncoshre += LOG1P(reabs);
-            sinim = std::sin(std::imag(xd[i]));
-            cosim = std::cos(std::imag(xd[i]));
-            sinim *=
-                std::copysign((1. - reabs) / (1. + reabs), std::real(xd[i]));
+        lncoshre += LOG1P(reabs);
+        sinim = std::sin(std::imag(xd[i]));
+        cosim = std::cos(std::imag(xd[i]));
+        sinim *= std::copysign((1. - reabs) / (1. + reabs), std::real(xd[i]));
 
-            lncoshre +=
-                0.5 * std::log(std::pow(sinim, 2.) + std::pow(cosim, 2.));
-            gretre += lncoshre;
-            gretim += std::atan2(sinim, cosim);
+        lncoshre += 0.5 * std::log(std::pow(sinim, 2.) + std::pow(cosim, 2.));
+        gretre += lncoshre;
+        gretim += std::atan2(sinim, cosim);
     }
     return {gretre, gretim};
 }
- 
+
 std::complex<double> math::lncosh(const Eigen::MatrixXcd& x) {
     const std::complex<double>* xd = x.data();
     double reres = 0;
@@ -64,17 +63,17 @@ std::complex<double> math::lncosh(const Eigen::MatrixXcd& x) {
     const size_t n_chunks = omp_get_max_threads();
     const size_t chunk_size = x.size() / n_chunks;
 
-#pragma omp parallel for reduction(+:reres) reduction(+:imres)
+#pragma omp parallel for reduction(+ : reres) reduction(+ : imres)
     for (size_t j = 0; j < n_chunks; j++) {
         std::complex<double> lres;
-        const size_t end = ((j + 1) == n_chunks) ? x.size() : (j + 1) * chunk_size; 
+        const size_t end =
+            ((j + 1) == n_chunks) ? x.size() : (j + 1) * chunk_size;
 
-        lres = lncosh_(xd, j * chunk_size, end); 
+        lres = lncosh_(xd, j * chunk_size, end);
 
         reres += std::real(lres);
         imres += std::imag(lres);
     }
-
 
     //}
     return {reres, imres};

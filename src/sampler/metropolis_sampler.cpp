@@ -242,7 +242,6 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
     // }
 
     // Normalize acceptance rate
-    std::cout << accs.transpose() / tries.transpose() << std::endl;
     return ar / (double)total_steps / n_sweeps_;
 }
 

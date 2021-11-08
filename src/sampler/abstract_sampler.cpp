@@ -79,9 +79,11 @@ void abstract_sampler::evaluate_and_aggregate(const machine::spin_state& state,
                                               machine::rbm_context& context,
                                               double p) const {
     time_keeper::start("Evaluate");
-    // Evaluate operators
-#pragma omp parallel for
+// Evaluate operators
+#pragma omp parallel for ordered
     for (size_t i = 0; i < ops_.size(); i++) {
+        // #pragma omp critical
+        //         std::cout << omp_get_thread_num() << ", " << i << std::endl;
         ops_[i]->evaluate(rbm_, state, context);
     }
 

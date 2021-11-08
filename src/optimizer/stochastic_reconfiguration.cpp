@@ -32,6 +32,8 @@
 #include <optimizer/stochastic_reconfiguration.hpp>
 #include <sampler/full_sampler.hpp>
 
+#include "machine/rbm_base.hpp"
+
 using namespace optimizer;
 
 stochastic_reconfiguration::stochastic_reconfiguration(
@@ -72,6 +74,7 @@ void stochastic_reconfiguration::register_observables() {
     // Register operators and aggregators
     Base::register_observables();
     sampler_.register_aggs({&a_dh_, &a_dd_});
+    a_d_.track_variance();
 }
 
 Eigen::VectorXcd& stochastic_reconfiguration::gradient(bool log) {
@@ -79,17 +82,14 @@ Eigen::VectorXcd& stochastic_reconfiguration::gradient(bool log) {
     auto& h = a_h_.get_result();
     auto& d = a_d_.get_result();
     auto& dh = a_dh_.get_result();
-    a_dd_.finalize_diag(d);
-    double x = a_dd_.get_diag().minCoeff();
-    if (x < 0) mpi::cout << x << mpi::endl;
 
     if (log) {
         // Log energy, energy variance and sampler properties.
         logger::log(std::real(h(0)) / rbm_.n_visible, "Energy");
         logger::log(a_h_.get_stddev()(0) / rbm_.n_visible, "Energy Stddev");
-        // std::cout << "\n" << a_h_.get_tau()(0) << ", ";
-
         sampler_.log();
+        // logger::log(a_h_.get_tau()(0) / rbm_.n_visible, "Autocorrelation");
+        // std::cout << "\n" << a_h_.get_tau()(0) << ", ";
     }
 
     double reg1 = kp1_.get();
@@ -100,9 +100,12 @@ Eigen::VectorXcd& stochastic_reconfiguration::gradient(bool log) {
     // Calculate Gradient
     F_ = dh - h(0) * d.conjugate();
 
+    machine::rbm_base* rbm = dynamic_cast<machine::rbm_base*>(&rbm_);
+    logger::log(rbm->get_weights().real().maxCoeff(), "weights");
+    logger::log(rbm->get_weights().imag().maxCoeff(), "iweights");
     dw_.setZero();
     solver_->solve(a_dd_.get_result(), d, a_dd_.get_norm(), F_, dw_, reg1, reg2,
-                   reg1delta, a_dd_.get_diag());
+                   reg1delta, a_d_.get_variance());
 
     // mpi::cout << a_dd_.get_diag().minCoeff() << ", "
     //           << a_dd_.get_diag().maxCoeff() << mpi::endl;
@@ -110,6 +113,6 @@ Eigen::VectorXcd& stochastic_reconfiguration::gradient(bool log) {
     if (plug_) {
         plug_->add_metric(&(a_dd_.get_result()), &a_d_.get_result());
     }
-    // logger::log(dw.norm() / dw.size(), "DW Norm");
+    // logger::log(dw_.cwiseAbs().mean(), "DW Norm");
     return dw_;
 }

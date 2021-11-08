@@ -102,7 +102,6 @@ void init_seed(size_t g_seed, std::unique_ptr<std::mt19937>& rng) {
                  MPI_STATUS_IGNORE);
     }
     if (!mpi::master) {
-        std::cout << seed << std::endl;
         rng = std::make_unique<std::mt19937>(
             static_cast<std::mt19937::result_type>(seed));
     }
@@ -316,7 +315,6 @@ int main(int argc, char* argv[]) {
         return rc;
     }
 
-
     omp_set_num_threads(omp_get_max_threads());
 
     if (ini::print_bonds && mpi::master) {
@@ -486,6 +484,32 @@ int main(int argc, char* argv[]) {
     //         l.print_lattice(ones);
     //     }
     // }
+    /* auto h = model->get_hamiltonian();
+    sampler->clear_aggs();
+    sampler->clear_ops();
+    operators::derivative_op d{rbm->get_n_params()};
+    operators::aggregator agg{d, sampler->get_my_n_samples()};
+    operators::outer_aggregator_lazy agl{d, sampler->get_my_n_samples()};
+    sampler->register_op(&d);
+    sampler->register_agg(&agg);
+    sampler->register_agg(&agl);
+    agg.track_variance();
+    sampler->sample();
+    mpi::cout << agg.get_variance() << mpi::endl;
+    std::cout << agg.get_result()(0) << std::endl;
+    agl.finalize_diag(d.get_result());
+    mpi::cout << agl.get_diag() << mpi::endl; */
+
+    // auto& lat = model->get_lattice();
+    // auto symm = lat.construct_symmetry({0.6});
+    // auto symm_basis = lat.construct_symm_basis({0.6});
+
+    // for (auto& sy : symm) {
+    //     std::vector<size_t> x;
+    //     for (auto i : symm_basis) x.push_back(sy.indices()(i));
+    //     lat.print_lattice(x);
+    // }
+
     // mpi::end();
     // return 0;
 

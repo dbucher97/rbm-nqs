@@ -348,22 +348,26 @@ std::complex<double> rbm_base::psi_over_psi_alt(
     return ret;
 }
 
-#define COSH_LUT(func)                                   \
-    g_tot++;                                             \
-    auto lx = lut_.find(state);                          \
-    if (lx != lut_.end()) {                              \
-        g_lut++;                                         \
-        return lx->second;                               \
-    } else {                                             \
-        time_keeper::start("evaluation");                \
-        std::complex<double> ret = func(context.thetas); \
-        time_keeper::end("evaluation");                  \
-        if (exchange_luts_) {                            \
-            lut_update_nums_.push_back(state.to_num());  \
-            lut_update_vals_.push_back(ret);             \
-        }                                                \
-        _Pragma("omp critical") lut_[state] = ret;       \
-        return ret;                                      \
+#define COSH_LUT(func)                                                       \
+    g_tot++;                                                                 \
+    std::unordered_map<spin_state, std::complex<double>>::iterator lx, lend; \
+    _Pragma("omp critical") {                                                \
+        lx = lut_.find(state);                                               \
+        lend = lut_.end();                                                   \
+    }                                                                        \
+    if (lx != lend) {                                                        \
+        g_lut++;                                                             \
+        return lx->second;                                                   \
+    } else {                                                                 \
+        time_keeper::start("evaluation");                                    \
+        std::complex<double> ret = func(context.thetas);                     \
+        time_keeper::end("evaluation");                                      \
+        if (exchange_luts_) {                                                \
+            lut_update_nums_.push_back(state.to_num());                      \
+            lut_update_vals_.push_back(ret);                                 \
+        }                                                                    \
+        _Pragma("omp critical") lut_[state] = ret;                           \
+        return ret;                                                          \
     }
 
 std::complex<double> rbm_base::cosh(rbm_context& context,

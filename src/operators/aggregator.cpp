@@ -41,6 +41,7 @@ void aggregator::set_zero() {
     cur_n_ = 0;
     if (track_variance_) {
         variance_.setZero();
+        variancex_.setZero();
         bin_.setZero();
         variance_binned_.setZero();
         result_binned_.setZero();
@@ -62,6 +63,7 @@ void aggregator::track_variance(size_t n_bins) {
     bin_ = Eigen::MatrixXcd(result_.rows(), result_.cols());
     result_binned_ = Eigen::MatrixXcd(result_.rows(), result_.cols());
     variance_ = Eigen::MatrixXd(result_.rows(), result_.cols());
+    variancex_ = Eigen::MatrixXd(result_.rows(), result_.cols());
     variance_binned_ = Eigen::MatrixXd(result_.rows(), result_.cols());
     tau_ = Eigen::MatrixXd(result_.rows(), result_.cols());
 }
@@ -72,6 +74,11 @@ void aggregator::finalize(double ptotal) {
                   MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
 
     if (track_variance_) {
+        variancex_ /= ptotal;
+        MPI_Allreduce(MPI_IN_PLACE, variancex_.data(), variancex_.size(),
+                      MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
+        variancex_.array() -= resultx_.cwiseAbs2().array();
+
         Eigen::MatrixXcd results(result_.size(), mpi::n_proc);
         Eigen::VectorXd weights(mpi::n_proc);
         MPI_Allgather(result_.data(), result_.size(), MPI_DOUBLE_COMPLEX,
@@ -79,13 +86,13 @@ void aggregator::finalize(double ptotal) {
                       MPI_COMM_WORLD);
         MPI_Allgather(&wsum_, 1, MPI_DOUBLE, weights.data(), 1, MPI_DOUBLE,
                       MPI_COMM_WORLD);
-        Eigen::MatrixXd current = results.col(0).real();
+        Eigen::MatrixXcd current = results.col(0);
         Eigen::MatrixXd corr = Eigen::MatrixXd::Zero(result_.size(), 1);
         double wsumx = weights(0);
         double wsumlast = weights(0);
         for (int i = 1; i < mpi::n_proc; i++) {
             wsumx += weights(i);
-            Eigen::MatrixXd delta = current - results.col(i).real();
+            Eigen::MatrixXcd delta = current - results.col(i);
             current += delta * weights(i) / wsumx;
             corr += delta.cwiseAbs2() * wsumlast * weights(i) / wsumx;
             wsumlast = wsumx;
@@ -116,7 +123,10 @@ void aggregator::finalize(double ptotal) {
         variance_ += Eigen::Map<Eigen::MatrixXd>(corr.data(), variance_.rows(),
                                                  variance_.cols());
 
-        variance_ /= ptotal - wsum2_ / ptotal;
+        variance_ /= (ptotal - wsum2_ / ptotal);
+
+        sample_factor_ = ptotal / (ptotal - wsum2_ / ptotal);
+        variancex_ *= sample_factor_;
     }
 
     result_ *= wsum_ / ptotal;
@@ -124,8 +134,24 @@ void aggregator::finalize(double ptotal) {
                   MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
 }
 
-Eigen::MatrixXcd& aggregator::get_result() { return result_; }
-Eigen::MatrixXd& aggregator::get_variance() { return variance_; }
+Eigen::MatrixXcd& aggregator::get_result() {
+    // mpi::cout << "res_diff(" << result_.cols() << ", " << result_.rows() <<
+    // ") "
+    //           << (result_ - resultx_).norm() << mpi::endl;
+    return result_;
+}
+Eigen::MatrixXd& aggregator::get_variance(bool sample_variance) {
+    // mpi::cout << "var_diff(" << result_.cols() << ", " << result_.rows() <<
+    // ") "
+    //           << (variance_ - variancex_).norm() << mpi::endl;
+    if (sample_variance) {
+        return variance_;
+    } else {
+        variance_ /= sample_factor_;
+        sample_factor_ = 1;
+        return variance_;
+    }
+}
 
 Eigen::MatrixXcd aggregator::aggregate_() {
     // By default, just forward the operator result.
@@ -140,6 +166,10 @@ void aggregator::aggregate(double weight) {
     Eigen::MatrixXcd x = aggregate_();
     Eigen::MatrixXcd delta = weight * (x - result_);
     result_.noalias() += delta / wsum_;
+    // if (mpi::master && result_.size() == 1) mpi::cout << result_ <<
+    // mpi::endl;
+    //
+    // if (x.hasNaN() && result_.size() == 1) mpi::cout << x << mpi::endl;
 
     resultx_ += weight * x;
 
@@ -148,7 +178,8 @@ void aggregator::aggregate(double weight) {
         // Calculate the resul of the squared observable
 
         variance_.array() +=
-            (x - result_).real().array() * delta.real().array();
+            ((x - result_).conjugate().array() * delta.array()).real();
+        variancex_.array() += x.cwiseAbs2().array() * weight;
 
         if (binning_) {
             wsum_bin_ += weight;
@@ -159,9 +190,9 @@ void aggregator::aggregate(double weight) {
                 bin_ /= wsum_bin_;
                 delta = wsum_bin_ * (bin_ - result_binned_);
                 result_binned_ += delta / wsum_;
-                variance_binned_.array() +=
-                    delta.real().array() *
-                    (bin_ - result_binned_).real().array();
+                variance_binned_.array() += (delta.conjugate().array() *
+                                             (bin_ - result_binned_).array())
+                                                .real();
                 bin_.setZero();
                 wsum_bin_ = 0;
             }
@@ -214,7 +245,7 @@ void outer_aggregator_lazy::aggregate(double weight) {
     result_.col(current_index_) =
         std::sqrt(weight) * Eigen::Map<const Eigen::MatrixXcd>(
                                 op_.get_result().data(), result_.rows(), 1);
-    diag_.noalias() += result_.col(current_index_).cwiseAbs2();
+    // diag_.noalias() += result_.col(current_index_).cwiseAbs2();
     current_index_++;
 }
 
