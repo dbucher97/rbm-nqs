@@ -100,9 +100,6 @@ Eigen::VectorXcd& stochastic_reconfiguration::gradient(bool log) {
     // Calculate Gradient
     F_ = dh - h(0) * d.conjugate();
 
-    machine::rbm_base* rbm = dynamic_cast<machine::rbm_base*>(&rbm_);
-    logger::log(rbm->get_weights().real().maxCoeff(), "weights");
-    logger::log(rbm->get_weights().imag().maxCoeff(), "iweights");
     dw_.setZero();
     solver_->solve(a_dd_.get_result(), d, a_dd_.get_norm(), F_, dw_, reg1, reg2,
                    reg1delta, a_d_.get_variance());
