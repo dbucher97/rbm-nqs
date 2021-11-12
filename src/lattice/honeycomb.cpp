@@ -137,7 +137,7 @@ std::vector<size_t> honeycomb::construct_symm_basis(
     const std::vector<double>& symm) const {
     if (symm.size() == 1 && symm[0] == 0.5) {
         return {0};
-    } else if (std::abs(symm[0] - 0.6) < 1e-10) {
+    } else if (symm.size() == 1 && std::abs(symm[0] - 0.6) < 1e-10) {
         return get_hexagons()[0];
     } else {
         return Base::construct_symm_basis(symm);
