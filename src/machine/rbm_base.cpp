@@ -203,7 +203,10 @@ Eigen::MatrixXcd rbm_base::derivative(const spin_state& state,
 }
 
 bool rbm_base::save(const std::string& name, bool silent) {
-    if (!mpi::master) return true;
+    if (!mpi::master) {
+        MPI_Barrier(MPI_COMM_WORLD);
+        return true;
+    }
     // Open the output stream
     std::ofstream output{name + ".rbm", std::ios::binary};
     if (output.is_open()) {
@@ -221,8 +224,10 @@ bool rbm_base::save(const std::string& name, bool silent) {
         // Give a status update.
         if (!silent)
             std::cout << "Saved RBM to '" << name << ".rbm'!" << std::endl;
+        MPI_Barrier(MPI_COMM_WORLD);
         return true;
     } else {
+        MPI_Barrier(MPI_COMM_WORLD);
         return false;
     }
 }

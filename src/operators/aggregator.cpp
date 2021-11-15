@@ -22,10 +22,17 @@
 #include <operators/aggregator.hpp>
 #include <tools/mpi.hpp>
 
+#define INCLUDE_DEFAULT
+
 using namespace operators;
 
 aggregator::aggregator(const base_op& op, size_t samples, size_t r, size_t c)
-    : n_samples_{samples}, result_(r, c), resultx_(r, c), op_{op} {
+    : n_samples_{samples},
+      result_(r, c),
+#ifdef INCLUDE_DEFAULT
+      resultx_(r, c),
+#endif
+      op_{op} {
     // Initialize result as zero.
     set_zero();
 }
@@ -35,13 +42,17 @@ aggregator::aggregator(const base_op& op, size_t samples)
 
 void aggregator::set_zero() {
     result_.setZero();
+#ifdef INCLUDE_DEFAULT
     resultx_.setZero();
+#endif
     wsum_ = 0;
     wsum2_ = 0;
     cur_n_ = 0;
     if (track_variance_) {
         variance_.setZero();
+#ifdef INCLUDE_DEFAULT
         variancex_.setZero();
+#endif
         bin_.setZero();
         variance_binned_.setZero();
         result_binned_.setZero();
@@ -63,21 +74,27 @@ void aggregator::track_variance(size_t n_bins) {
     bin_ = Eigen::MatrixXcd(result_.rows(), result_.cols());
     result_binned_ = Eigen::MatrixXcd(result_.rows(), result_.cols());
     variance_ = Eigen::MatrixXd(result_.rows(), result_.cols());
+#ifdef INCLUDE_DEFAULT
     variancex_ = Eigen::MatrixXd(result_.rows(), result_.cols());
+#endif
     variance_binned_ = Eigen::MatrixXd(result_.rows(), result_.cols());
     tau_ = Eigen::MatrixXd(result_.rows(), result_.cols());
 }
 
 void aggregator::finalize(double ptotal) {
+#ifdef INCLUDE_DEFAULT
     resultx_ /= ptotal;
     MPI_Allreduce(MPI_IN_PLACE, resultx_.data(), resultx_.size(),
                   MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
+#endif
 
     if (track_variance_) {
+#ifdef INCLUDE_DEFAULT
         variancex_ /= ptotal;
         MPI_Allreduce(MPI_IN_PLACE, variancex_.data(), variancex_.size(),
-                      MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
+                      MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
         variancex_.array() -= resultx_.cwiseAbs2().array();
+#endif
 
         Eigen::MatrixXcd results(result_.size(), mpi::n_proc);
         Eigen::VectorXd weights(mpi::n_proc);
@@ -126,7 +143,10 @@ void aggregator::finalize(double ptotal) {
         variance_ /= (ptotal - wsum2_ / ptotal);
 
         sample_factor_ = ptotal / (ptotal - wsum2_ / ptotal);
+
+#ifdef INCLUDE_DEFAULT
         variancex_ *= sample_factor_;
+#endif
     }
 
     result_ *= wsum_ / ptotal;
@@ -170,8 +190,9 @@ void aggregator::aggregate(double weight) {
     // mpi::endl;
     //
     // if (x.hasNaN() && result_.size() == 1) mpi::cout << x << mpi::endl;
-
+#ifdef INCLUDE_DEFAULT
     resultx_ += weight * x;
+#endif
 
     if (track_variance_) {
         cur_n_bin_++;
@@ -179,7 +200,10 @@ void aggregator::aggregate(double weight) {
 
         variance_.array() +=
             ((x - result_).conjugate().array() * delta.array()).real();
+
+#ifdef INCLUDE_DEFAULT
         variancex_.array() += x.cwiseAbs2().array() * weight;
+#endif
 
         if (binning_) {
             wsum_bin_ += weight;

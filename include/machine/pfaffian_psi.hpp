@@ -76,7 +76,10 @@ class pfaffian_psi : public abstract_machine {
     }
 
     virtual bool save(const std::string& name, bool silent = false) override {
-        if (!mpi::master) return true;
+        if (!mpi::master) {
+            MPI_Barrier(MPI_COMM_WORLD);
+            return true;
+        }
 
         std::ofstream output{name + ".rbm", std::ios::binary};
         if (output.is_open()) {
@@ -90,8 +93,10 @@ class pfaffian_psi : public abstract_machine {
             if (!silent)
                 std::cout << "Saved Pfaffian to '" << name << ".rbm'!"
                           << std::endl;
+            MPI_Barrier(MPI_COMM_WORLD);
             return true;
         } else {
+            MPI_Barrier(MPI_COMM_WORLD);
             return false;
         }
     }

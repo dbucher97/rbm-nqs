@@ -510,8 +510,14 @@ int main(int argc, char* argv[]) {
     //     lat.print_lattice(x);
     // }
 
-    // mpi::end();
-    // return 0;
+    // sampler->clear_aggs();
+
+    sampler->sample();
+    std::cout << "Sampled" << std::endl;
+    // optimizer->optimize();
+
+    mpi::end();
+    return 0;
 
     if (ini::train && rc == 0) {
         mpi::cout << "Number of parameters: " << rbm->get_n_params()
@@ -655,7 +661,7 @@ int main(int argc, char* argv[]) {
     }
 
     mpi::end();
-    return 0;
+    return rc;
     // size_t nch = 100;
     // auto samples = {1 << 9, 1 << 10, 1 << 11, 1 << 12};
     // for (auto& s : samples) {
@@ -733,8 +739,4 @@ int main(int argc, char* argv[]) {
     //                   << " \t" << taus[i] << ", " << vartaus[i] << std::endl;
     //     }
     // }
-
-    mpi::end();
-
-    return rc;
 }
