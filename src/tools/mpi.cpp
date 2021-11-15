@@ -39,6 +39,5 @@ void mpi::init(int argc, char* argv[]) {
 }
 void mpi::end() {
     MPI_Barrier(MPI_COMM_WORLD);
-    std::cout << "Help" << std::endl;
     MPI_Finalize();
 }
