@@ -511,13 +511,7 @@ int main(int argc, char* argv[]) {
     // }
 
     // sampler->clear_aggs();
-
-    sampler->sample();
-    std::cout << "Sampled" << std::endl;
     // optimizer->optimize();
-
-    mpi::end();
-    return 0;
 
     if (ini::train && rc == 0) {
         mpi::cout << "Number of parameters: " << rbm->get_n_params()
