@@ -44,8 +44,6 @@ def get_bonds_ops(model : str = "kitaev") -> List[Tuple]:
     elif model == "toric":
         return [(SX, SX, SX, SX), (SZ, SZ, SZ, SZ)]
     return []
-def get_hex_ops() -> List[Tuple]:
-    return [(SX, SY, SZ, SX, SY, SZ)]
 
 def get_hex_ops() -> List[Tuple]:
     return [(SX, SY, SZ, SX, SY, SZ)]
