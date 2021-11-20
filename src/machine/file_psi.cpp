@@ -23,6 +23,8 @@
 #include <stdexcept>
 //
 #include <machine/file_psi.hpp>
+#include <tools/eigen_fstream.hpp>
+#include <tools/mpi.hpp>
 #include <tools/state.hpp>
 
 using namespace machine;
@@ -34,19 +36,13 @@ file_psi::file_psi(lattice::bravais& lattice, const std::string& filename)
     if (lattice.n_total > 64) {
         throw std::runtime_error("File psi not possible for N > 64.");
     }
-    std::cout << state_vec_->rows() << ", " << state_vec_->cols() << std::endl;
     std::ifstream file{filename};
-    std::complex<double> line;
-    size_t c = 0;
-    while (file >> line) {
-        (*state_vec_)(c) = line;
-        c++;
+    if (file.good()) {
+        file >> *state_vec_;
     }
-    if (c != (size_t)state_vec_->size())
-        throw std::runtime_error("File " + filename + " has wrong size!");
-    std::cout << "Loaded state vec with norm: "
+    mpi::cout << "Loaded state vec with norm: "
               << (state_vec_->transpose().conjugate() * *state_vec_).real()
-              << std::endl;
+              << mpi::endl;
 }
 
 file_psi::~file_psi() {

@@ -271,11 +271,16 @@ int init_optimizer(std::unique_ptr<optimizer::abstract_optimizer>& optimizer,
     return 0;
 }
 
-void store_state(std::unique_ptr<model::abstract_model>& model,
-                 std::unique_ptr<machine::abstract_machine>& rbm,
-                 machine::pfaffian* pfaff, std::mt19937& rng) {
+void store_state() {
+    std::unique_ptr<std::mt19937> rng;
+    std::unique_ptr<model::abstract_model> model;
+    std::unique_ptr<machine::abstract_machine> rbm;
+    machine::pfaffian* pfaff = 0;
+    init_seed(ini::seed, rng);
+    init_model(model);
     init_machine(rbm, pfaff, model);
-    init_weights(rbm, pfaff, model, false, rng);
+    init_weights(rbm, pfaff, model, ini::rbm_force, *rng);
+
     sampler::full_sampler sampler{*rbm, ini::sa_full_n_parallel_bits};
     mpi::cout << "Storing State..." << mpi::endl;
     sampler.sample(true);
@@ -350,6 +355,11 @@ int main(int argc, char* argv[]) {
         mpi::end();
         return 0;
     }
+    if (ini::store_state) {
+        store_state();
+        mpi::end();
+        return 0;
+    }
 
     if (mpi::master) {
         logger::init();
@@ -367,12 +377,6 @@ int main(int argc, char* argv[]) {
     size_t seed = ini::seed;
     // Init Model
     rc |= init_model(model);
-
-    if (ini::store_state) {
-        store_state(model, rbm, pfaff, *rng);
-        mpi::end();
-        return 0;
-    }
 
     /* auto x = model->get_lattice().construct_symmetry();
     if (mpi::master) {
@@ -590,28 +594,37 @@ int main(int argc, char* argv[]) {
         model::SparseXcd plaq_op =
             model::kron({model::sx(), model::sy(), model::sz(), model::sx(),
                          model::sy(), model::sz()});
-        auto hex = dynamic_cast<lattice::honeycomb*>(&model->get_lattice())
-                       ->get_hexagons();
+
+        // mpi::cout <<
+        // dynamic_cast<machine::rbm_base*>(rbm.get())->get_weights()
+        //           << std::endl;
+        //
         std::vector<operators::aggregator*> aggs;
         std::vector<operators::base_op*> ops;
-        for (auto& h : hex) {
-            // for (auto& x : h) std::cout << x << ", ";
-            // std::cout << std::endl;
+        if (ini::model == ini::model_t::KITAEV) {
+            auto hex = dynamic_cast<lattice::honeycomb*>(&model->get_lattice())
+                           ->get_hexagons();
+            for (auto& h : hex) {
+                // for (auto& x : h) std::cout << x << ", ";
+                // std::cout << std::endl;
 
-            operators::local_op* op = new operators::local_op(h, plaq_op);
-            operators::aggregator* agg =
-                new operators::aggregator(*op, sampler->get_my_n_samples());
-            ops.push_back(op);
-            aggs.push_back(agg);
+                operators::local_op* op = new operators::local_op(h, plaq_op);
+                operators::aggregator* agg =
+                    new operators::aggregator(*op, sampler->get_my_n_samples());
+                ops.push_back(op);
+                aggs.push_back(agg);
+            }
+
+            sampler->register_ops(ops);
+            sampler->register_aggs(aggs);
         }
-
-        // sampler->register_ops(ops);
-        // sampler->register_aggs(aggs);
 
         model->remove_helper_hamiltoian();
         auto& h = model->get_hamiltonian();
         operators::aggregator ah(h, sampler->get_my_n_samples());
-        ah.track_variance();
+        size_t b = 50;
+        while (sampler->get_my_n_samples() % b != 0) b--;
+        ah.track_variance(b);
         sampler->register_op(&h);
         sampler->register_agg(&ah);
 
@@ -619,15 +632,20 @@ int main(int argc, char* argv[]) {
             sampler->sample();
 
             if (mpi::master) {
-                std::cout << "BEGIN OUTPUT" << std::endl;
                 std::cout.precision(16);
-                // for (size_t i = 0; i < hex.size(); i++) {
-                //     std::cout << aggs[i]->get_result() << std::endl;
-                // }
+                if (ini::model == ini::model_t::KITAEV) {
+                    for (size_t i = 0; i < aggs.size(); i++) {
+                        std::cout << "Hex" << i << ": " << aggs[i]->get_result()
+                                  << std::endl;
+                    }
+                }
 
                 // std::cout << ah.get_result() / rbm->n_visible << std::endl;
-                std::cout << "Var: " << ah.get_variance()(0) << std::endl;
-                std::cout << "Std: " << ah.get_stddev() << std::endl;
+                double std = ah.get_stddev()(0) / rbm->n_visible;
+                double var = ah.get_variance()(0) / rbm->n_visible;
+                double ene = std::real(ah.get_result()(0)) / rbm->n_visible;
+                std::cout << "Var: " << var << std::endl;
+                std::cout << "Std: " << std << std::endl;
                 std::cout << "Tau: " << ah.get_tau() << std::endl;
                 if (ini::sa_type == ini::sampler_t::METROPOLIS) {
                     std::cout << "Acc: "
@@ -636,8 +654,6 @@ int main(int argc, char* argv[]) {
                                      ->get_acceptance_rate()
                               << std::endl;
                 }
-                double std = ah.get_stddev()(0) / rbm->n_visible;
-                double ene = std::real(ah.get_result()(0)) / rbm->n_visible;
                 int ndigits = std::log10(std);
                 if (ndigits < 0) {
                     ndigits = -ndigits + 2;
@@ -646,10 +662,9 @@ int main(int argc, char* argv[]) {
                 }
                 std::cout << "E:   " << std::scientific
                           << std::setprecision(ndigits) << ene;
-                std::cout << " ± " << std::setprecision(0) << std << std::endl;
+                std::cout << " ± " << std::setprecision(1) << std << std::endl;
 
                 // std::cout << rbm->get_pfaffian().get_weights() << std::endl;
-                std::cout << "END OUTPUT" << std::endl;
             }
         }
     }

@@ -118,8 +118,12 @@ void aggregator::finalize(double ptotal) {
         MPI_Allreduce(MPI_IN_PLACE, &wsum2_, 1, MPI_DOUBLE, MPI_SUM,
                       MPI_COMM_WORLD);
         if (binning_) {
-            tau_ =
-                0.5 * bin_size_ * variance_binned_.array() / variance_.array();
+            if (variance_.isZero() && variance_binned_.isZero()) {
+                tau_.setConstant(0.5);
+            } else {
+                tau_ = 0.5 * bin_size_ * variance_binned_.array() /
+                       variance_.array();
+            }
 
             // Average taus
             tau_ /= mpi::n_proc;

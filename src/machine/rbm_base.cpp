@@ -24,6 +24,7 @@
 #include <iostream>
 #include <random>
 //
+#include <lattice/toric_lattice.hpp>
 #include <machine/rbm_base.hpp>
 #include <math.hpp>
 #include <tools/eigen_fstream.hpp>
@@ -85,6 +86,19 @@ void rbm_base::initialize_weights(std::mt19937& rng, double std_dev,
                     std::complex<double>(real_dist(rng), imag_dist(rng));
             }
         }
+
+        /*
+        // Initialize Toric Code with ground state
+        auto lat = dynamic_cast<lattice::toric_lattice*>(&lattice_);
+        h_bias_.setZero();
+        v_bias_.setZero();
+        weights_.setZero();
+        auto plaqs = lat->construct_plaqs();
+        for (size_t i = 0; i < 4; i++) {
+            weights_(plaqs[0].idxs[i], 0) = std::complex<double>(0., M_PI_4);
+            weights_(plaqs[1].idxs[i], 1) = std::complex<double>(0., M_PI_2);
+        }
+        */
     }
     MPI_Bcast(v_bias_.data(), v_bias_.size(), MPI_DOUBLE_COMPLEX, 0,
               MPI_COMM_WORLD);

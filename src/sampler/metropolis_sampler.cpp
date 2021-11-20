@@ -32,6 +32,9 @@
 #include <tools/state.hpp>
 #include <tools/time_keeper.hpp>
 
+// #define RANDOM_UPDATES
+// #define TORIC_UPDATES
+
 using namespace sampler;
 int g_chain = 0;
 
@@ -146,11 +149,14 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
     //     state(0) *= -1;
     // }
 
+#ifdef TORIC_UPDATES
+    auto plaq = dynamic_cast<lattice::toric_lattice*>(&rbm_.get_lattice())
+                    ->construct_plaqs();
+    std::uniform_int_distribution<size_t> b_dist(0, plaq.size() / 2 - 1);
+#else
     auto bonds = rbm_.get_lattice().get_bonds();
     std::uniform_int_distribution<size_t> b_dist(0, bonds.size() - 1);
-    // auto plaq = dynamic_cast<lattice::toric_lattice*>(&rbm_.get_lattice())
-    //                 ->construct_plaqs();
-    // std::uniform_int_distribution<size_t> b_dist(0, plaq.size() - 1);
+#endif
 
     // Retrieve context for state
     auto context = rbm_.get_context(state);
@@ -180,13 +186,24 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
             int type;
             if (x < bond_flips_) {
                 type = 1;
-                // auto p = plaq[b_dist(rng_)];
-                // flips = {p.idxs[0], p.idxs[1], p.idxs[2], p.idxs[3]};
+#ifdef RANDOM_UPDATES
+                size_t a = f_dist_(rng_);
+                size_t b = a;
+                while (a == b) b = f_dist_(rng_);
+                flips = {a, b};
+                sweep++;
+#else
+#ifdef TORIC_UPDATES
+                auto p = plaq[b_dist(rng_) * 2 + 1];
+                flips = {p.idxs[0], p.idxs[1], p.idxs[2], p.idxs[3]};
+                sweep += 3;
+#else
                 lattice::bond* b;
                 b = &bonds[b_dist(rng_)];
-
                 flips = {b->a, b->b};
                 sweep++;
+#endif
+#endif
             } else {
                 flips.push_back(f_dist_(rng_));
                 type = 0;
