@@ -6,6 +6,7 @@ tsf-out/
 *.ipynb
 *.txt
 *.log
+*.plog
 *.rbm
 *.state
 .cache/
