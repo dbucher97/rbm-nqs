@@ -17,6 +17,7 @@ if [ "$1" == "-n" ]; then
   force=""
   shift
 fi
+
 rand="--seed=$RANDOM"
 if [ "$1" == "-r" ]; then
   rand=""
@@ -24,6 +25,7 @@ if [ "$1" == "-r" ]; then
 fi
 
 tasks=`awk -F= -v key="#TASKS" '$1==key {print $2}' "$ini"`
+omp=`awk -F= -v key="#OMP" '$1==key {print $2}' "$ini"`
 cluster=`awk -F= -v key="#CLUSTER" '$1==key {print $2}' "$ini"`
 partition=`awk -F= -v key="#PARTITION" '$1==key {print $2}' "$ini"`
 #threads=`awk -F= -v key="n_threads" '{gsub(/ /,"")} $1==key {print $2}' "$ini"`
@@ -44,6 +46,9 @@ fi
 if [ -z $name ]; then
   name=noname
 fi
+if [ -z $omp ]; then
+  omp=1
+fi
 
 addstr=""
 for arg in $@; do
@@ -61,6 +66,7 @@ sub="#!/usr/bin/env sh
 #SBATCH --clusters=$cluster
 #SBATCH --partition=$partition
 #SBATCH --ntasks=$tasks
+#SBATCH --cpus-per-task=$omp
 #SBATCH --mail-type=end
 #SBATCH --mail-user=David.Bucher@physik.lmu.de
 #SBATCH --export=NONE
@@ -73,6 +79,7 @@ source load_modules.sh
 
 echo \"\$SLURM_JOB_ID $name\" >> ./tasks.log
 
+export OMP_NUM_THREADS=$omp
 mpiexec -n $tasks rbm -i $ini $force -P --train --evaluate --name=$name $r $@"
 
 echo "$sub"
