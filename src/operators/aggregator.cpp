@@ -121,8 +121,11 @@ void aggregator::finalize(double ptotal) {
             if (variance_.isZero() && variance_binned_.isZero()) {
                 tau_.setConstant(0.5);
             } else {
-                tau_ = 0.5 * bin_size_ * variance_binned_.array() /
-                       variance_.array();
+                tau_ =
+                    0.5 *
+                    ((bin_size_ * variance_binned_.array() / variance_.array())
+                         .cwiseMax(1) -
+                     1);
             }
 
             // Average taus

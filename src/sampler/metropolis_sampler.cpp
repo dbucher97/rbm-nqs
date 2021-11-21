@@ -165,6 +165,8 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
 
     std::uniform_real_distribution<double> rdist(0, 1);
 
+    size_t proposed = 0;
+
     // Do the Metropolis sampling
     for (size_t step = 0; step < total_steps; step++) {
         // Get the flips vector by randomly selecting one site.
@@ -208,6 +210,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
                 flips.push_back(f_dist_(rng_));
                 type = 0;
             }
+            proposed++;
             tries(type)++;
 
             machine::rbm_context new_context = context;
@@ -259,7 +262,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
     // }
 
     // Normalize acceptance rate
-    return ar / (double)total_steps / n_sweeps_;
+    return ar / (double)proposed;
 }
 
 void metropolis_sampler::log() {
