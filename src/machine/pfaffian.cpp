@@ -286,7 +286,8 @@ pfaff_context pfaffian::get_context(const spin_state& state) const {
 
     Eigen::MatrixXcd mat = get_mat(state);
 
-    ret.inv = mat.inverse();
+    ret.inv = mat.completeOrthogonalDecomposition().pseudoInverse();
+    // ret.inv = mat.inverse()
     ret.inv.noalias() -= ret.inv.transpose().eval();
     ret.inv *= 0.5;
 
