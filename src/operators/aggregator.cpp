@@ -173,7 +173,6 @@ Eigen::MatrixXd& aggregator::get_variance(bool sample_variance) {
     // ") "
     //           << (variance_ - variancex_).norm() << mpi::endl;
     if (sample_variance) {
-        mpi::cout << variancex_ << mpi::endl;
         return variance_;
     } else {
         variance_ /= sample_factor_;
