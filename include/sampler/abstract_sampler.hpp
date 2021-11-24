@@ -150,7 +150,7 @@ class abstract_sampler {
      *
      * @param Number of samples
      */
-    void set_n_samples(size_t samples);
+    virtual void set_n_samples(size_t samples);
 
     void evaluate_and_aggregate(const machine::spin_state& state,
                                 machine::rbm_context& context,

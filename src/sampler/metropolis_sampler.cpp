@@ -278,3 +278,9 @@ size_t metropolis_sampler::get_my_n_samples() const {
     }
     return ret;
 }
+
+void metropolis_sampler::set_n_samples(size_t samples) {
+    double f = samples / (double)n_samples_;
+    warmup_steps_ *= f;
+    n_samples_ = samples;
+}

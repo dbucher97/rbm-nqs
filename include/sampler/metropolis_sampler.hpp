@@ -96,6 +96,8 @@ class metropolis_sampler : public abstract_sampler {
     double get_acceptance_rate() { return acceptance_rate_; }
 
     virtual size_t get_my_n_samples() const override;
+
+    virtual void set_n_samples(size_t samples) override;
 };
 
 }  // namespace sampler
