@@ -56,6 +56,19 @@ void honeycomb_hex::row_col(size_t uc, size_t& row, size_t& col) const {
     col = uc - (below - col + delta);
 }
 
+void honeycomb_hex::get_loc(size_t uc, int* loc) const {
+    // NOT REAL LOC
+    size_t t = 2 * n_uc;
+    if (uc < t * n_uc) {
+        loc[0] = uc % t;
+        loc[1] = uc / t;
+    } else {
+        size_t ucx = uc - t * n_uc;
+        loc[0] = ucx % n_uc;
+        loc[1] = ucx / n_uc + n_uc;
+    }
+}
+
 size_t honeycomb_hex::uc_idx(std::vector<size_t>&& idxs) const {
     if (idxs[0] <= n_uc) {
         return (idxs[0] + n_uc - 1) * (idxs[0] + n_uc) / 2 - n_below_uc_ +

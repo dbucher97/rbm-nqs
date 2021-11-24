@@ -233,6 +233,8 @@ class bravais {
         return {};
     };
 
+    virtual void get_loc(size_t uc, int* loc) const;
+
     /**
      * @brief Returns true if custom weight initialization is supported
      *

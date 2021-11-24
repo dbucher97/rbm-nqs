@@ -29,6 +29,8 @@ class honeycomb_hex : public honeycomb {
     size_t cols(size_t row) const;
     void row_col(size_t uc, size_t& row, size_t& col) const;
 
+    void get_loc(size_t uc, int* loc) const override;
+
     size_t rot180(size_t idx) const override;
 
    public:

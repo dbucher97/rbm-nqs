@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 
-#define KEEP_TIME
+// #define KEEP_TIME
 
 namespace time_keeper {
 #ifdef KEEP_TIME

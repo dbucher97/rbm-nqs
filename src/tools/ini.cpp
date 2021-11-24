@@ -46,6 +46,7 @@ bool store_samples = false;
 bool noprogress = false;
 bool print_bonds = false;
 bool print_hex = false;
+bool exact_energy = false;
 int seed_search = 0;
 size_t seed_search_epochs = 200;
 
@@ -54,6 +55,7 @@ model_t model = KITAEV;
 size_t n_cells = 2;
 int n_cells_b = -1;
 coupling_t J = {{-1.}};
+double h = 0.;
 double helper_strength = 0.;
 symmetry_t symmetry = {{0.5}};
 std::string lattice_type = "";
@@ -156,6 +158,7 @@ int ini::load(int argc, char* argv[]) {
     ("store_samples",                         po::bool_switch(&store_samples),              "stores the samples into a plain text file 'name.samples'")
     ("print_bonds",                           po::bool_switch(&print_bonds),                "print the bonds of the current model and exit")
     ("print_hex"  ,                           po::bool_switch(&print_hex),                  "print the hexagons of the kitaev model and exit")
+    ("exact_energy"  ,                        po::bool_switch(&exact_energy),               "calculate the exact energy")
     ("seed",                                  po::value(&seed),                             "seed of the rng")
     ("infile,i",                              po::value<std::string>(),                     "ini file for params")
     ("name,n",                                po::value(&name),                             "set name of current rbm")
@@ -167,7 +170,8 @@ int ini::load(int argc, char* argv[]) {
     ("model.type",                            po::value(&model),                            "Model type.")
     ("model.n_cells,c",                       po::value(&n_cells),                          "set number of unit cells in one dimension")
     ("model.n_cells_b",                       po::value(&n_cells_b),                        "set number of unit cells in another dimension (if set to -1, use n_cells)")
-    ("model.J",                               po::value(&J)->multitoken(),                                "Interaction strength")
+    ("model.J",                               po::value(&J)->multitoken(),                  "Interaction strength")
+    ("model.h",                               po::value(&h),                                "Second Interaction strength")
     ("model.helper_strength",                 po::value(&helper_strength),                  "Helper Hamiltonian strength")
     ("model.symmetry",                        po::value(&symmetry)->multitoken(),           "Set translational symmetry")
     ("model.lattice_type",                    po::value(&lattice_type),                     "Set lattice type if special type is available (honeycomb -> hex base)")

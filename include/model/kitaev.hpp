@@ -36,6 +36,10 @@ namespace model {
 class kitaev : public abstract_model {
     using Base = abstract_model;
 
+    std::array<double, 3> J;
+    double h;
+    bool is_hex_;
+
    public:
     /**
      * @brief Kitaev model consturctor.
@@ -47,9 +51,10 @@ class kitaev : public abstract_model {
      * @param hex_base Use the lattice with hexagon shape.
      */
     kitaev(size_t size, double J, int size_b = -1,
-           const std::vector<double>& symmetry = {1}, bool hex_base = false)
+           const std::vector<double>& symmetry = {1}, bool hex_base = false,
+           double h = 0)
         : kitaev(size, std::array<double, 3>{J, J, J}, size_b, symmetry,
-                 hex_base) {}
+                 hex_base, h) {}
 
     /**
      * @brief Kitaev model consturctor.
@@ -61,11 +66,12 @@ class kitaev : public abstract_model {
      * @param hex_base Use the lattice with hexagon shape.
      */
     kitaev(size_t size, const std::vector<double>& J, int size_b = -1,
-           const std::vector<double>& symmetry = {1}, bool hex_base = false)
+           const std::vector<double>& symmetry = {1}, bool hex_base = false,
+           double h = 0)
         : kitaev(size,
                  std::array<double, 3>{J[0 % J.size()], J[1 % J.size()],
                                        J[2 % J.size()]},
-                 size_b, symmetry, hex_base) {}
+                 size_b, symmetry, hex_base, h) {}
 
     /**
      * @brief Kitaev model constructor.
@@ -77,10 +83,16 @@ class kitaev : public abstract_model {
      * @param hex_base Use the lattice with hexagon shape.
      */
     kitaev(size_t size, const std::array<double, 3>& J, int size_b = -1,
-           const std::vector<double>& symmetry = {1}, bool hex_base = false);
+           const std::vector<double>& symmetry = {1}, bool hex_base = false,
+           double h = 0);
 
     virtual bool supports_helper_hamiltonian() const override { return true; }
 
     virtual void add_helper_hamiltonian(double strength) override;
+
+    double exact_energy() const;
+
+   private:
+    std::complex<double> f(double p1, double p2) const;
 };
 }  // namespace model

@@ -72,6 +72,7 @@ int g_x;
 
 void progress_bar(size_t i, size_t n_epochs, double energy, char state) {
     double progress = i / (double)n_epochs;
+    std::cout.precision(5);
     int digs = (int)std::log10(n_epochs) - (int)std::log10(i);
     if (i == 0) digs = (int)std::log10(n_epochs);
     std::cout << "\rEpochs: (" << std::string(digs, ' ') << i << "/" << n_epochs
@@ -112,7 +113,7 @@ int init_model(std::unique_ptr<model::abstract_model>& model) {
         case ini::model_t::KITAEV:
             model = std::make_unique<model::kitaev>(
                 ini::n_cells, ini::J.strengths, ini::n_cells_b,
-                ini::symmetry.symm, ini::lattice_type == "hex");
+                ini::symmetry.symm, ini::lattice_type == "hex", ini::h);
             break;
         case ini::model_t::KITAEV_S3:
             model = std::make_unique<model::kitaevS3>(ini::n_cells,
@@ -313,15 +314,7 @@ void debug_() {
     }
 }
 
-int main(int argc, char* argv[]) {
-    mpi::init(argc, argv);
-    int rc = ini::load(argc, argv);
-    if (rc != 0) {
-        return rc;
-    }
-
-    omp_set_num_threads(omp_get_max_threads());
-
+bool special_cases() {
     if (ini::print_bonds && mpi::master) {
         std::unique_ptr<model::abstract_model> model;
         init_model(model);
@@ -339,8 +332,7 @@ int main(int argc, char* argv[]) {
                 std::cout << b.a << "," << b.b << "," << b.type << std::endl;
             }
         }
-        mpi::end();
-        return 0;
+        return true;
     }
 
     if (ini::print_hex && mpi::master && ini::model == ini::KITAEV) {
@@ -352,11 +344,35 @@ int main(int argc, char* argv[]) {
             for (const auto& x : h) std::cout << x << ", ";
             std::cout << std::endl;
         }
-        mpi::end();
-        return 0;
+        return true;
     }
+
+    if (ini::exact_energy && mpi::master && ini::model == ini::KITAEV) {
+        std::unique_ptr<model::abstract_model> model;
+        std::cout.precision(16);
+        init_model(model);
+        double e = dynamic_cast<model::kitaev*>(model.get())->exact_energy();
+        std::cout << "Exact Energy: " << e << std::endl;
+        return true;
+    }
+
     if (ini::store_state) {
         store_state();
+        return true;
+    }
+    return false;
+}
+
+int main(int argc, char* argv[]) {
+    mpi::init(argc, argv);
+    int rc = ini::load(argc, argv);
+    if (rc != 0) {
+        return rc;
+    }
+
+    omp_set_num_threads(omp_get_max_threads());
+
+    if (special_cases()) {
         mpi::end();
         return 0;
     }
@@ -402,6 +418,8 @@ int main(int argc, char* argv[]) {
         std::unique_ptr<optimizer::abstract_optimizer> best_optimizer;
         std::unique_ptr<optimizer::base_plugin> best_plug;
         std::uniform_int_distribution<unsigned long> udist(0, ULONG_MAX);
+        mpi::cout << "Seed Search: " << ini::seed_search_epochs << " Epochs"
+                  << mpi::endl;
         for (int i = 0; i < ini::seed_search; i++) {
             init_seed(seed, rng);
             seed = udist(*rng);

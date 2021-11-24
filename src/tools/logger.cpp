@@ -38,6 +38,7 @@ void logger::init_() {
         out = std::ofstream(filename, std::ios::app);
     else
         out = std::ofstream(filename);
+    buffer.precision(16);
 }
 
 void logger::writeln(const std::string& str) {

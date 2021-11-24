@@ -104,6 +104,18 @@ size_t bravais::down(size_t uc_idx, size_t dir, size_t step) const {
     return ret;
 }
 
+void bravais::get_loc(size_t uc, int* loc) const {
+    loc[0] = uc % n_uc_b;
+    if (n_dim > 1) loc[1] = (uc / n_uc_b) % n_uc;
+    if (n_dim > 2) {
+        size_t ucx = uc / n_uc_b / n_uc;
+        for (size_t i = 2; i < n_dim; i++) {
+            loc[i] = ucx % n_uc;
+            ucx /= n_uc;
+        }
+    }
+};
+
 std::vector<std::vector<size_t>> bravais::construct_uc_symmetry(
     const std::vector<double>& symm) const {
     if (symm.empty()) {

@@ -132,3 +132,21 @@ def load_state(name : str, N : int) -> np.ndarray:
     vec1 = vec1.sum(axis=1)
     return vec1
 
+def load_mat(f):
+    r, c = struct.unpack('ll', f.read(16))
+    nd = r * c * 2
+    x = np.array(struct.unpack(f'{nd}d', f.read(8 * nd)), dtype=complex)
+    x = x.reshape((-1, 2))
+    x[:, 1] *= 1j
+    x = np.sum(x, axis=1)
+    return x.reshape(c, r).T
+
+def load_weights(name, prefix=''):
+    with open(os.path.join(prefix, name), 'rb') as f:
+        weights = load_mat(f)
+        v_bias = load_mat(f)
+        h_bias = load_mat(f)
+    return weights, v_bias, h_bias
+
+
+
