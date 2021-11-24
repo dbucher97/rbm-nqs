@@ -113,24 +113,21 @@ def get_hex(n : int, log : bool = False, args : List = []) -> List[sp.csr_matrix
     return ret
 
 
-def evaluate(state : np.ndarray, op : Union[np.ndarray, sp.csr_matrix]) -> complex:
+def evaluate(state : np.ndarray, op : Union[np.ndarray, sp.csr_matrix]):
     return state.T.conj() @ op @ state
 
 def groundstate(ham : sp.csr_matrix) -> Tuple[float, np.ndarray]:
     v, w = eigsh(ham, k=1)
     return v[0], w[:, 0]
 
-def load_state(name : str, N : int) -> np.ndarray:
-    fmt = 'dd' * (2 ** N)
+def load_state(name : str, N : int = 1) -> np.ndarray:
     with open(name, 'rb') as f:
-        rows,  = struct.unpack('Q', f.read(8))
-        cols,  = struct.unpack('Q', f.read(8))
-        print(rows, cols)
-        vec1 = np.array(struct.unpack(fmt, f.read(len(fmt) * 8)), dtype=np.complex128)
-    vec1 = vec1.reshape(2 ** N, 2)
-    vec1[:, 1] *= 1j
-    vec1 = vec1.sum(axis=1)
-    return vec1
+        state = load_mat(f)
+    return state.T[0]
+
+def store_state(name : str, mat : np.ndarray):
+    with open(name, 'wb') as f:
+        store_mat(f, mat)
 
 def load_mat(f):
     r, c = struct.unpack('ll', f.read(16))
@@ -140,6 +137,17 @@ def load_mat(f):
     x[:, 1] *= 1j
     x = np.sum(x, axis=1)
     return x.reshape(c, r).T
+
+def store_mat(f, mat : np.ndarray):
+    sh = list(mat.shape)
+    if len(sh) == 1:
+        sh.append(1)
+    f.write(struct.pack('ll', *sh))
+    nd = sh[0] * sh[1] * 2
+    m1 = mat.T.flatten()
+    m2 = np.vstack((np.real(m1), np.imag(m1))).T
+    m2 = m2.flatten().astype('float64')
+    f.write(struct.pack(f'{nd}d', *m2))
 
 def load_weights(name, prefix=''):
     with open(os.path.join(prefix, name), 'rb') as f:

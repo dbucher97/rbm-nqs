@@ -120,7 +120,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
     size_t ar = 0;
     Eigen::ArrayXd accs(2);
     accs.setZero();
-    Eigen::ArrayXd tries(2);
+    Eigen::ArrayXd tries(3);
     tries.setZero();
 
     // Initilaize random state
@@ -154,8 +154,16 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
                     ->construct_plaqs();
     std::uniform_int_distribution<size_t> b_dist(0, plaq.size() / 2 - 1);
 #else
-    auto bonds = rbm_.get_lattice().get_bonds();
-    std::uniform_int_distribution<size_t> b_dist(0, bonds.size() - 1);
+    auto& bx = rbm_.get_lattice().get_bonds();
+    std::vector<size_t> ba;
+    std::vector<size_t> bb;
+    for (auto& b : bx) {
+        if (b.type != 2) {
+            ba.push_back(b.a);
+            bb.push_back(b.b);
+        }
+    }
+    std::uniform_int_distribution<size_t> b_dist(0, ba.size() - 1);
 #endif
 
     // Retrieve context for state
@@ -200,9 +208,8 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
                 flips = {p.idxs[0], p.idxs[1], p.idxs[2], p.idxs[3]};
                 sweep += 3;
 #else
-                lattice::bond* b;
-                b = &bonds[b_dist(rng_)];
-                flips = {b->a, b->b};
+                size_t bidx = b_dist(rng_);
+                flips = {ba[bidx], bb[bidx]};
                 sweep++;
 #endif
 #endif
@@ -211,7 +218,7 @@ double metropolis_sampler::sample_chain(size_t total_samples) {
                 type = 0;
             }
             proposed++;
-            tries(type)++;
+            // tries(type)++;
 
             machine::rbm_context new_context = context;
             // Calculate the probability of changing to new configuration

@@ -26,11 +26,9 @@ if __name__ == '__main__':
     gs = w[:, np.abs(v - np.min(v)) < 1e-10].T
     hex = rbm.get_hex(size, log=True, args=args)
     for j, g in enumerate(gs):
-        fn = f'state_{sys.argv[1]}_{j}.txt'
+        fn = f'ed_{sys.argv[1]}_{j}.state'
         print(f'Store State in "{fn}"')
-        with open(fn, 'w') as f:
-            for x in g:
-                f.write(f'({np.real(x)},{np.imag(x)})\n')
+        rbm.store_state(fn, g)
         print(f'Eval for GS({j})')
         for i, h in enumerate(hex):
             print(f'Wp{i}', rbm.evaluate(g, h))
@@ -43,11 +41,9 @@ if __name__ == '__main__':
     print('E0', (np.min(vx) + len(hex)) / N)
     gsx = wx[:, np.abs(vx - np.min(vx)) < 1e-10].T
     for j, g in enumerate(gsx):
-        fn = f'state_{sys.argv[1]}_x{j}.txt'
+        fn = f'ed_{sys.argv[1]}_x{j}.state'
         print(f'Store State in "{fn}"')
-        with open(fn, 'w') as f:
-            for x in g:
-                f.write(f'({np.real(x)},{np.imag(x)})\n')
+        rbm.store_state(fn, g)
         print(f'Eval for GSX({j})')
         for i, h in enumerate(hex):
             print(f'Wp{i}', rbm.evaluate(g, h))

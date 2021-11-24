@@ -119,7 +119,7 @@ void aggregator::finalize(double ptotal) {
                       MPI_COMM_WORLD);
         if (binning_) {
             if (variance_.isZero() && variance_binned_.isZero()) {
-                tau_.setConstant(0.5);
+                tau_.setConstant(0.0);
             } else {
                 tau_ =
                     0.5 *
@@ -138,7 +138,8 @@ void aggregator::finalize(double ptotal) {
                           MPI_COMM_WORLD);
             variance_binned_ += Eigen::Map<Eigen::MatrixXd>(
                 corr.data(), variance_binned_.rows(), variance_binned_.cols());
-            variance_binned_ /= ptotal - wsum2_ / ptotal;
+            variance_binned_ /= (ptotal - wsum2_ / ptotal);
+            variance_binned_ = variance_binned_.cwiseMax(0);
         }
 
         MPI_Allreduce(MPI_IN_PLACE, variance_.data(), variance_.size(),
@@ -148,6 +149,7 @@ void aggregator::finalize(double ptotal) {
                                                  variance_.cols());
 
         variance_ /= (ptotal - wsum2_ / ptotal);
+        variance_ = variance_.cwiseMax(0);
 
         sample_factor_ = ptotal / (ptotal - wsum2_ / ptotal);
 

@@ -675,14 +675,7 @@ int main(int argc, char* argv[]) {
                                      ->get_acceptance_rate()
                               << std::endl;
                 }
-                int ndigits = std::log10(std);
-                if (ndigits < 0) {
-                    ndigits = -ndigits + 2;
-                } else {
-                    ndigits = 0;
-                }
-                std::cout << "E:   " << std::scientific
-                          << std::setprecision(ndigits) << ene;
+                std::cout << "E:   " << std::scientific << ene;
                 std::cout << " ± " << std::setprecision(1) << std << std::endl;
 
                 // std::cout << rbm->get_pfaffian().get_weights() << std::endl;
