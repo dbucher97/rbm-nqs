@@ -109,11 +109,12 @@ void aggregator::finalize(double ptotal) {
         double wsumlast = weights(0);
         for (int i = 1; i < mpi::n_proc; i++) {
             wsumx += weights(i);
-            Eigen::MatrixXcd delta = current - results.col(i);
+            Eigen::MatrixXcd delta = results.col(i) - current;
             current += delta * weights(i) / wsumx;
             corr += delta.cwiseAbs2() * wsumlast * weights(i) / wsumx;
             wsumlast = wsumx;
         }
+        mpi::cout << current << mpi::endl;
 
         MPI_Allreduce(MPI_IN_PLACE, &wsum2_, 1, MPI_DOUBLE, MPI_SUM,
                       MPI_COMM_WORLD);
@@ -172,6 +173,7 @@ Eigen::MatrixXd& aggregator::get_variance(bool sample_variance) {
     // ") "
     //           << (variance_ - variancex_).norm() << mpi::endl;
     if (sample_variance) {
+        mpi::cout << variancex_ << mpi::endl;
         return variance_;
     } else {
         variance_ /= sample_factor_;
@@ -193,10 +195,7 @@ void aggregator::aggregate(double weight) {
     Eigen::MatrixXcd x = aggregate_();
     Eigen::MatrixXcd delta = weight * (x - result_);
     result_.noalias() += delta / wsum_;
-    // if (mpi::master && result_.size() == 1) mpi::cout << result_ <<
-    // mpi::endl;
-    //
-    // if (x.hasNaN() && result_.size() == 1) mpi::cout << x << mpi::endl;
+
 #ifdef INCLUDE_DEFAULT
     resultx_ += weight * x;
 #endif
