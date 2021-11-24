@@ -114,7 +114,6 @@ void aggregator::finalize(double ptotal) {
             corr += delta.cwiseAbs2() * wsumlast * weights(i) / wsumx;
             wsumlast = wsumx;
         }
-        mpi::cout << current << mpi::endl;
 
         MPI_Allreduce(MPI_IN_PLACE, &wsum2_, 1, MPI_DOUBLE, MPI_SUM,
                       MPI_COMM_WORLD);
