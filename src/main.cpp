@@ -620,7 +620,7 @@ int main(int argc, char* argv[]) {
 
         rbm->save(ini::name);
     }
-    if (ini::evaluate && rc == 0) {
+    if (ini::evaluate && (rc == 0 || rc == 55)) {
         sampler->clear_ops();
         sampler->clear_aggs();
         if (ini::sa_eval_samples != 0)
