@@ -226,6 +226,7 @@ extern double opt_adam_beta1;
 extern double opt_adam_beta2;
 extern double opt_adam_eps;
 extern double opt_mom_alpha;
+extern double opt_mom_dialup;
 extern double opt_heun_eps;
 extern bool opt_resample;
 extern double opt_resample_alpha1;

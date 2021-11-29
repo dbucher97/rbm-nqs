@@ -54,6 +54,7 @@ stochastic_reconfiguration::stochastic_reconfiguration(
       kp2_{kp2, rbm_.get_n_updates()},
       kp1d_{kp1d, rbm_.get_n_updates()},
       F_(rbm.get_n_params()) {
+    dw_.setZero();
     if (method == "direct") {
         solver_ = std::make_unique<direct_solver>(rbm_.get_n_params(),
                                                   rbm_.get_n_neural_params());
@@ -100,7 +101,7 @@ Eigen::VectorXcd& stochastic_reconfiguration::gradient(bool log) {
     // Calculate Gradient
     F_ = dh - h(0) * d.conjugate();
 
-    dw_.setZero();
+    // dw_.setZero();
     solver_->solve(a_dd_.get_result(), d, a_dd_.get_norm(), F_, dw_, reg1, reg2,
                    reg1delta, a_d_.get_variance());
 

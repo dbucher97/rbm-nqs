@@ -259,7 +259,7 @@ int init_optimizer(std::unique_ptr<optimizer::abstract_optimizer>& optimizer,
                 ini::opt_adam_eps);
         } else if (ini::opt_plugin == "momentum") {
             plug = std::make_unique<optimizer::momentum_plugin>(
-                rbm->get_n_params(), ini::opt_mom_alpha, ini::opt_mom_dialup);
+                rbm->get_n_params());
         } else if (ini::opt_plugin == "heun") {
             plug = std::make_unique<optimizer::heun_plugin>(
                 [&optimizer]() -> Eigen::VectorXcd& {
@@ -439,10 +439,10 @@ int main(int argc, char* argv[]) {
 
             for (size_t e = 0; e < ini::seed_search_epochs; e++) {
                 sampler->sample();
-                bool optim = optimizer->optimize();
+                optimizer->optimize();
                 logger::newline();
                 energy = 0.9 * energy + optimizer->get_current_energy();
-                if (!optim) break;
+                if (std::isnan(optimizer->get_current_energy())) break;
             }
             mpi::cout << energy * 0.1 / rbm->n_visible << mpi::endl;
             if (energy < best_energy) {
@@ -559,7 +559,7 @@ int main(int argc, char* argv[]) {
             oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
             fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
             // End getchar non-block
-            progress_bar(0, ini::n_epochs, -1, 'S');
+            progress_bar(0, ini::n_kkepochs, -1, 'S');
         }
 
         time_keeper::clear();
@@ -575,11 +575,11 @@ int main(int argc, char* argv[]) {
                              optimizer->get_current_energy() / rbm->n_visible,
                              'O');
             time_keeper::start("Optimization");
-            bool optim = optimizer->optimize();
+            optimizer->optimize();
             time_keeper::end("Optimization");
-            if (!optim) {
+            if (std::isnan(optimizer->get_current_energy())) {
                 if (mpi::master)
-                    std::cerr << "\nFATAL: Massive step detected." << std::endl;
+                    std::cerr << "\nFATAL: NaN Energy." << std::endl;
                 rc = 55;
                 break;
             }
@@ -663,7 +663,7 @@ int main(int argc, char* argv[]) {
 
                 // std::cout << ah.get_result() / rbm->n_visible << std::endl;
                 double std = ah.get_stddev()(0) / rbm->n_visible;
-                double var = ah.get_variance()(0) / std::pow(rbm->n_visible, 2);
+                double var = ah.get_variance()(0) / rbm->n_visible;
                 double ene = std::real(ah.get_result()(0)) / rbm->n_visible;
                 std::cout << "Var: " << var << std::endl;
                 std::cout << "Std: " << std << std::endl;

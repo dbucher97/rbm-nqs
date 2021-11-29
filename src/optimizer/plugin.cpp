@@ -22,6 +22,7 @@
 #include <iostream>
 //
 #include <optimizer/plugin.hpp>
+#include <tools/mpi.hpp>
 
 using namespace optimizer;
 
@@ -58,15 +59,26 @@ void adam_plugin::apply(Eigen::VectorXcd& dw, double lr) {
     dw *= lr;
 }
 
-momentum_plugin::momentum_plugin(size_t l, double alpha)
-    : Base{}, alpha_{alpha}, m_(l, 1) {
+momentum_plugin::momentum_plugin(size_t l, double alpha, double dialup)
+    : Base{},
+      alpha_{alpha},
+      dialup_{dialup},
+      dup_{dialup_ == 1. ? 1. : 1e-3},
+      m_(l, 1) {
     m_.setZero();
 }
 
 void momentum_plugin::apply(Eigen::VectorXcd& dw, double lr) {
     // Do the momentum update step.
-    m_ = alpha_ * m_ + lr * dw;
-    dw = m_;
+    double ax = alpha_;
+    if (m_.isZero()) m_ = dw;
+    // if (dup_ < 1.) {
+    //     dup_ *= dialup_;
+    //     ax *= dup_;
+    // }
+
+    m_ = ax * m_ + (1 - ax) * dw;
+    dw = lr * m_;
 }
 
 heun_plugin::heun_plugin(const std::function<Eigen::VectorXcd&(void)>& gradient,

@@ -94,7 +94,10 @@ class adam_plugin : public base_plugin {
 class momentum_plugin : public base_plugin {
     using Base = base_plugin;
 
-    double alpha_;  ///< \alpha param
+    double alpha_;   ///< \alpha param
+    double dialup_;  ///< \alpha param
+
+    double dup_;
 
     Eigen::MatrixXcd m_;  ///< The first order moment of last iteration.
 
@@ -103,9 +106,9 @@ class momentum_plugin : public base_plugin {
      * @brief Momentum Plugin constructor.
      *
      * @param l Number of Parameters.
-     * @param alpha \alpha param (Default = 0.1)
+     * @param alpha \alpha param (Default = 0.9)
      */
-    momentum_plugin(size_t l, double alpha = 0.1);
+    momentum_plugin(size_t l, double alpha = 0.9, double dialup = 1.);
 
     virtual void apply(Eigen::VectorXcd&, double lr) override;
 };

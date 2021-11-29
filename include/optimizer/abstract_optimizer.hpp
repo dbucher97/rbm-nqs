@@ -132,7 +132,7 @@ class abstract_optimizer {
     /**
      * @brief Do the optimization step described in the class description.
      */
-    virtual void optimize();
+    virtual bool optimize();
 
     /**
      * @brief Add a plugin to the optimization.

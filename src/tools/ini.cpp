@@ -66,7 +66,7 @@ size_t alpha = 1;
 bool rbm_force = false;
 size_t rbm_pop_mode = 0;
 size_t rbm_cosh_mode = 0;
-double rbm_weights = 0.0001;
+double rbm_weights = 1e-3;
 double rbm_weights_imag = -1;
 std::string rbm_weights_init_type = "";
 size_t rbm_correlators = 0;
@@ -103,7 +103,8 @@ double opt_sgd_real_factor = 1.;
 double opt_adam_beta1 = 0.9;
 double opt_adam_beta2 = 0.999;
 double opt_adam_eps = 1e-8;
-double opt_mom_alpha = 0.3;
+double opt_mom_alpha = 0.9;
+double opt_mom_dialup = 1.;
 std::string opt_sr_method = "minresqlp";
 bool opt_sr_iterative = false;
 size_t opt_sr_max_iterations = 0;
@@ -221,6 +222,7 @@ int ini::load(int argc, char* argv[]) {
     ("optimizer.adam.beta2",                  po::value(&opt_adam_beta2),                   "set ADAM plug beta2")
     ("optimizer.adam.eps",                    po::value(&opt_adam_eps),                     "set ADAM plug eps")
     ("optimizer.mom.alpha",                   po::value(&opt_mom_alpha),                    "set momentum plug alpha")
+    ("optimizer.mom.dialup",                  po::value(&opt_mom_dialup),                   "set momentum plug dialup")
     ("optimizer.heun.eps",                    po::value(&opt_heun_eps),                     "set heun plug epsilon")
     ("optimizer.resample",                    po::value(&opt_resample),                     "resample if certain conditions on energy / variance are not fullfilled")
     ("optimizer.resample.alpha1",             po::value(&opt_resample_alpha1),              "resample condition: energy difference smapller than alpha1")

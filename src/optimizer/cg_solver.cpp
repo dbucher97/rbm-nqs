@@ -298,7 +298,7 @@ void cg_solver::solve(const Eigen::MatrixXcd& mat, const Eigen::VectorXcd& d,
         };
     } else {
         Aprod = [&](const Eigen::VectorXcd& b, Eigen::VectorXcd& x) {
-            // Use last process, since the front processes are linkely to be
+            // Use last process, since the front processes are likely to be
             // more busy, since they are assinged more samples.
             time_keeper::start("Matmul");
             if (mpi::rank == mpi::n_proc - 1) {

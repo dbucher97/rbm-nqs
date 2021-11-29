@@ -77,7 +77,7 @@ abstract_optimizer::abstract_optimizer(machine::abstract_machine& rbm,
 void abstract_optimizer::set_plugin(base_plugin* plug) { plug_ = plug; }
 void abstract_optimizer::remove_plugin() { plug_ = nullptr; }
 
-void abstract_optimizer::optimize() {
+bool abstract_optimizer::optimize() {
     double lr = lr_.get();
     // Check resample criteria
     if (resample_ && rbm_.get_n_updates() > 50) {
@@ -154,6 +154,15 @@ void abstract_optimizer::optimize() {
     }
     last_energy_ = e;
 
+    if (dw_.cwiseAbs().maxCoeff() > 30) {
+        return false;
+    }
+    // if (mpi::master) {
+    //     std::cout << dw_.cwiseAbs().maxCoeff() << std::endl;
+    //     if (dw_.hasNaN()) {
+    //         std::cout << dw_ << std::endl;
+    //     }
+    // }
     // Apply plugin if set
     if (plug_) {
         plug_->apply(dw_, lr);
@@ -165,6 +174,7 @@ void abstract_optimizer::optimize() {
     rbm_.update_weights(dw_);
     // if (resample_)
     last_update_ = dw_;
+    return true;
 }
 
 double abstract_optimizer::get_current_energy() {
