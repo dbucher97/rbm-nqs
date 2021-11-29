@@ -437,17 +437,29 @@ int main(int argc, char* argv[]) {
 
             double energy = 0;
 
+            bool optim = true;
             for (size_t e = 0; e < ini::seed_search_epochs; e++) {
                 sampler->sample();
-                bool optim = optimizer->optimize();
+                optim = optimizer->optimize();
                 logger::newline();
-                energy = 0.9 * energy + optimizer->get_current_energy();
                 if (!optim) {
-                    energy = 1e10;
                     break;
                 }
             }
-            mpi::cout << energy * 0.1 / rbm->n_visible << mpi::endl;
+            if (!optim) {
+                energy = DBL_MAX;
+            } else {
+                std::unique_ptr<sampler::abstract_sampler> s2;
+                init_sampler(s2, rbm, *rng);
+                s2->set_n_samples(ini::sa_eval_samples);
+                auto h = model->get_hamiltonian();
+                auto ah = operators::aggregator(h, s2->get_my_n_samples());
+                s2->register_op(&h);
+                s2->register_agg(&ah);
+                s2->sample();
+                energy = ah.get_result().real()(0) / rbm->n_visible;
+            }
+            mpi::cout << energy << mpi::endl;
             if (energy < best_energy) {
                 best_energy = energy;
                 best_rng = std::move(rng);
@@ -467,9 +479,7 @@ int main(int argc, char* argv[]) {
         if (best_energy == DBL_MAX) {
             rc = 65;
         } else {
-            mpi::cout << "Best Seed: " << best_seed << " at E="
-                      << best_optimizer->get_current_energy() /
-                             best_rbm->n_visible
+            mpi::cout << "Best Seed: " << best_seed << " at E=" << best_energy
                       << mpi::endl;
         }
         seed = best_seed;
