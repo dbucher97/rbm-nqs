@@ -72,10 +72,10 @@ void momentum_plugin::apply(Eigen::VectorXcd& dw, double lr) {
     // Do the momentum update step.
     double ax = alpha_;
     if (m_.isZero()) m_ = dw;
-    // if (dup_ < 1.) {
-    //     dup_ *= dialup_;
-    //     ax *= dup_;
-    // }
+    if (dup_ < 1.) {
+        dup_ *= dialup_;
+        ax *= dup_;
+    }
 
     m_ = ax * m_ + (1 - ax) * dw;
     dw = lr * m_;

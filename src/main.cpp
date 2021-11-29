@@ -442,7 +442,10 @@ int main(int argc, char* argv[]) {
                 bool optim = optimizer->optimize();
                 logger::newline();
                 energy = 0.9 * energy + optimizer->get_current_energy();
-                if (!optim) break;
+                if (!optim) {
+                    energy = 1e10;
+                    break;
+                }
             }
             mpi::cout << energy * 0.1 / rbm->n_visible << mpi::endl;
             if (energy < best_energy) {
