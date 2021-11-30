@@ -302,11 +302,12 @@ void cg_solver::solve(const Eigen::MatrixXcd& mat, const Eigen::VectorXcd& d,
             // more busy, since they are assinged more samples.
             time_keeper::start("Matmul");
             if (mpi::rank == mpi::n_proc - 1) {
-                x = diag.array() * b.array();
+                x = diag.array();
                 x.topRows(n_neural_) *= r1;
                 x.bottomRows(nnn) *= r1 + rd;
 
-                x += max_diag * r2 * b;
+                x.array() += max_diag * r2;
+                x.array() *= b.array();
                 x += mat.conjugate() * (mat.transpose() * b) / norm;
                 x -= d.conjugate() * (d.transpose() * b);
             } else {

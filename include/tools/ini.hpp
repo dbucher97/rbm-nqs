@@ -166,6 +166,7 @@ extern bool print_bonds;
 extern bool print_hex;
 extern bool exact_energy;
 extern bool noprogress;
+extern bool deterministic;
 extern int seed_search;
 extern size_t seed_search_epochs;
 

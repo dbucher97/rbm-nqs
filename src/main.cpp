@@ -89,24 +89,36 @@ void progress_bar(size_t i, size_t n_epochs, double energy, char state) {
     std::cout << std::flush;
 }
 
-void init_seed(size_t g_seed, std::unique_ptr<std::mt19937>& rng) {
-    std::uniform_int_distribution<unsigned long> udist{0, ULONG_MAX};
+void init_seed(size_t g_seed, std::unique_ptr<std::mt19937>& rng,
+               bool deterministic) {
+    if (deterministic) {
+        std::uniform_int_distribution<unsigned long> udist{0, ULONG_MAX};
 
-    unsigned long seed;
-    if (mpi::master) {
-        rng = std::make_unique<std::mt19937>(
-            static_cast<std::mt19937::result_type>(g_seed));
-        for (int i = 1; i < mpi::n_proc; i++) {
-            seed = udist(*rng);
-            MPI_Send(&seed, 1, MPI_UNSIGNED_LONG, i, 0, MPI_COMM_WORLD);
+        unsigned long seed;
+        if (mpi::master) {
+            rng = std::make_unique<std::mt19937>(
+                static_cast<std::mt19937::result_type>(g_seed));
+            for (int i = 1; i < mpi::n_proc; i++) {
+                seed = udist(*rng);
+                MPI_Send(&seed, 1, MPI_UNSIGNED_LONG, i, 0, MPI_COMM_WORLD);
+            }
+        } else {
+            MPI_Recv(&seed, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD,
+                     MPI_STATUS_IGNORE);
+        }
+        if (!mpi::master) {
+            rng = std::make_unique<std::mt19937>(
+                static_cast<std::mt19937::result_type>(seed));
         }
     } else {
-        MPI_Recv(&seed, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD,
-                 MPI_STATUS_IGNORE);
-    }
-    if (!mpi::master) {
-        rng = std::make_unique<std::mt19937>(
-            static_cast<std::mt19937::result_type>(seed));
+        std::random_device r;
+
+        std::vector<std::uint_least32_t> data;
+        std::generate_n(back_inserter(data), 624, std::ref(r));
+
+        std::seed_seq seed(begin(data), end(data));
+
+        rng = std::make_unique<std::mt19937>(seed);
     }
 }
 
@@ -279,7 +291,7 @@ void store_state() {
     std::unique_ptr<model::abstract_model> model;
     std::unique_ptr<machine::abstract_machine> rbm;
     machine::pfaffian* pfaff = 0;
-    init_seed(ini::seed, rng);
+    init_seed(ini::seed, rng, ini::deterministic);
     init_model(model);
     init_machine(rbm, pfaff, model);
     init_weights(rbm, pfaff, model, ini::rbm_force, *rng);
@@ -424,9 +436,8 @@ int main(int argc, char* argv[]) {
         mpi::cout << "Seed Search: " << ini::seed_search_epochs << " Epochs"
                   << mpi::endl;
         for (int i = 0; i < ini::seed_search; i++) {
-            init_seed(seed, rng);
-            seed = udist(*rng);
             mpi::cout << "Seed: " << seed << " \t" << mpi::flush;
+            init_seed(seed, rng, ini::deterministic);
             // Init RBM
             init_machine(rbm, pfaff, model);
             // Init Weights
@@ -460,6 +471,7 @@ int main(int argc, char* argv[]) {
                 energy = ah.get_result().real()(0) / rbm->n_visible;
             }
             mpi::cout << energy << mpi::endl;
+            size_t new_seed = udist(*rng);
             if (energy < best_energy) {
                 best_energy = energy;
                 best_rng = std::move(rng);
@@ -469,6 +481,7 @@ int main(int argc, char* argv[]) {
                 best_plug = std::move(plug);
                 best_seed = seed;
             }
+            seed = new_seed;
 
             rng.reset(0);
             rbm.reset(0);
@@ -490,7 +503,7 @@ int main(int argc, char* argv[]) {
         plug = std::move(best_plug);
         time_keeper::clear();
     } else {
-        init_seed(seed, rng);
+        init_seed(seed, rng, ini::deterministic);
         mpi::cout << "Seed: " << ini::seed << mpi::endl;
         // Init RBM
         init_machine(rbm, pfaff, model);

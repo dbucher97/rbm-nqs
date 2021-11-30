@@ -46,6 +46,7 @@ bool store_samples = false;
 bool noprogress = false;
 bool print_bonds = false;
 bool print_hex = false;
+bool deterministic = true;
 bool exact_energy = false;
 int seed_search = 0;
 size_t seed_search_epochs = 200;
@@ -66,7 +67,7 @@ size_t alpha = 1;
 bool rbm_force = false;
 size_t rbm_pop_mode = 0;
 size_t rbm_cosh_mode = 0;
-double rbm_weights = 1e-3;
+double rbm_weights = 1e-4;
 double rbm_weights_imag = -1;
 std::string rbm_weights_init_type = "";
 size_t rbm_correlators = 0;
@@ -96,7 +97,7 @@ int sa_lut_exchange = 0;
 optimizer_t opt_type = SR;
 std::string opt_plugin = "";
 decay_t opt_lr = {1e-2};
-decay_t opt_sr_reg1 = {10, 1e-4, 0.9};
+decay_t opt_sr_reg1 = {1, 1e-4, 0.9};
 decay_t opt_sr_reg2 = {1e-3, 1e-6, 0.9};
 decay_t opt_sr_deltareg1 = {1e-2};
 double opt_sgd_real_factor = 1.;
@@ -159,6 +160,7 @@ int ini::load(int argc, char* argv[]) {
     ("store_samples",                         po::bool_switch(&store_samples),              "stores the samples into a plain text file 'name.samples'")
     ("print_bonds",                           po::bool_switch(&print_bonds),                "print the bonds of the current model and exit")
     ("print_hex"  ,                           po::bool_switch(&print_hex),                  "print the hexagons of the kitaev model and exit")
+    ("deterministic",                         po::value(&deterministic),                    "use specified seeds or seed with random device")
     ("exact_energy"  ,                        po::bool_switch(&exact_energy),               "calculate the exact energy")
     ("seed",                                  po::value(&seed),                             "seed of the rng")
     ("infile,i",                              po::value<std::string>(),                     "ini file for params")
