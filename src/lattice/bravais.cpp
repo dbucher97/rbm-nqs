@@ -118,7 +118,7 @@ void bravais::get_loc(size_t uc, int* loc) const {
 
 std::vector<std::vector<size_t>> bravais::construct_uc_symmetry(
     const std::vector<double>& symm) const {
-    if (symm.empty()) {
+    if (symm.empty() || symm[0] == 0) {
         std::vector<size_t> ret(n_total_uc);
         for (size_t i = 0; i < n_total_uc; i++) {
             ret[i] = i;
@@ -162,7 +162,7 @@ std::vector<std::vector<size_t>> bravais::construct_uc_symmetry(
 std::vector<Eigen::PermutationMatrix<Eigen::Dynamic>>
 bravais::construct_symmetry(const std::vector<double>& symm) const {
     using p_mat = Eigen::PermutationMatrix<Eigen::Dynamic>;
-    if (symm.empty()) {
+    if (symm.empty() || symm[0] == 0) {
         p_mat ret(n_total);
         for (size_t i = 0; i < n_total; i++) {
             ret.indices()(i) = i;
@@ -206,7 +206,7 @@ bravais::construct_symmetry(const std::vector<double>& symm) const {
 
 std::vector<size_t> bravais::construct_symm_basis(
     const std::vector<double>& symm) const {
-    if (symm.empty()) {
+    if (symm.empty() || symm[0] == 0) {
         std::vector<size_t> ret(n_total);
         for (size_t i = 0; i < n_total; i++) {
             ret[i] = i;
@@ -235,7 +235,7 @@ std::vector<size_t> bravais::construct_symm_basis(
 }
 
 size_t bravais::symmetry_size(const std::vector<double>& symm) const {
-    if (symm.empty()) {
+    if (symm.empty() || symm[0] == 0) {
         return 1;
     }
     auto x = clean_symms(symm);
