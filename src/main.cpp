@@ -473,6 +473,8 @@ int main(int argc, char* argv[]) {
             }
             mpi::cout << energy << mpi::endl;
             size_t new_seed = udist(*rng);
+            std::system(("mkdir -p ss_" + ini::name).c_str());
+            rbm->save("ss_" + ini::name + "/t" + std::to_string(i), true);
             if (energy < best_energy) {
                 best_energy = energy;
                 best_rng = std::move(rng);
@@ -496,6 +498,7 @@ int main(int argc, char* argv[]) {
             mpi::cout << "Best Seed: " << best_seed << " at E=" << best_energy
                       << mpi::endl;
         }
+        logger::newline();
         seed = best_seed;
         rng = std::move(best_rng);
         rbm = std::move(best_rbm);
