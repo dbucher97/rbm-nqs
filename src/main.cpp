@@ -454,6 +454,7 @@ int main(int argc, char* argv[]) {
                 optim = optimizer->optimize();
                 logger::newline();
                 if (!optim) {
+                    logger::newline();
                     break;
                 }
             }
