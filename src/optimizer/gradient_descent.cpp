@@ -48,8 +48,7 @@ Eigen::VectorXcd& gradient_descent::gradient(bool log) {
     if (log) {
         // Log energy, energy variance and sampler properties.
         logger::log(std::real(h(0)) / rbm_.n_visible, "Energy");
-        logger::log(std::real(a_h_.get_variance()(0)) / rbm_.n_visible,
-                    "EnergyVariance");
+        logger::log(a_h_.get_stddev()(0) / rbm_.n_visible, "EnergyStddev");
         sampler_.log();
     }
 

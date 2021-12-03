@@ -265,6 +265,7 @@ void cg_solver::solve(const Eigen::MatrixXcd& mat, const Eigen::VectorXcd& d,
     //     std::cout << "\n" << r1 << ", " << r2 << ", " << rd << std::endl;
     int nnn = n_ - n_neural_;
     double max_diag = diag.maxCoeff();
+    // max_diag = 1;
 
     Eigen::MatrixXcd S;
 
