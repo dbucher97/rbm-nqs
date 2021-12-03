@@ -9,12 +9,12 @@ INC_DIRS ?= include
 MAT_BACKEND ?= MKL
 
 # PFAPACK
-INC_DIRS += lib/pfapack/c_interface
+INC_DIRS += deps/pfapack/c_interface
 PFAPACK = $(BUILD_DIR)/pfapack/libpfapack.a
 PFAPACKC = $(BUILD_DIR)/pfapack/libcpfapack.a
 
 # MINRES QLP
-INC_DIRS += lib/minresqlp
+INC_DIRS += deps/minresqlp
 INC_DIRS += $(HOME)/googletest/googletest/include/
 MINRESQLP = $(BUILD_DIR)/minresqlp/libminresqlp.a
 
@@ -96,31 +96,31 @@ clean:
 	$(RM) -r $(BUILD_DIR)
 
 $(PFAPACK):
-	cd lib/pfapack/fortran/ && make
+	cd deps/pfapack/fortran/ && make
 	@mkdir -p $(BUILD_DIR)/pfapack
-	cp lib/pfapack/fortran/libpfapack.a $(PFAPACK)
+	cp deps/pfapack/fortran/libpfapack.a $(PFAPACK)
 
 $(PFAPACKC):
-	cd lib/pfapack/c_interface && make
+	cd deps/pfapack/c_interface && make
 	@mkdir -p $(BUILD_DIR)/pfapack
-	cp lib/pfapack/c_interface/libcpfapack.a $(PFAPACKC)
+	cp deps/pfapack/c_interface/libcpfapack.a $(PFAPACKC)
 
 $(MINRESQLP):
-	cd lib/minresqlp/ && make
+	cd deps/minresqlp/ && make
 	@mkdir -p $(BUILD_DIR)/minresqlp
-	cp lib/minresqlp/build/$(notdir $(MINRESQLP)) $(MINRESQLP)
+	cp deps/minresqlp/build/$(notdir $(MINRESQLP)) $(MINRESQLP)
 
 build_pfapack: $(PFAPACK) $(PFAPACKC)
 
 build_minresqlp: $(MINRESQLP)
 
 clean_pfapack:
-	cd lib/pfapack/fortran/ && make clean
-	cd lib/pfapack/c_interface && make clean
+	cd deps/pfapack/fortran/ && make clean
+	cd deps/pfapack/c_interface && make clean
 	rm -r build/pfapack
 
 clean_minresqlp:
-	cd lib/minresqlp/ && make clean
+	cd deps/minresqlp/ && make clean
 	rm -r build/minresqlp
 
 
