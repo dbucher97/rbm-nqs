@@ -57,12 +57,36 @@ The following options are available
 | `-i/--infile` | loads a ini file for parameters |
 | `--n_epochs [epochs]` | sets the number of epochs to train |
 
-### Model
+```ini
+seed = 3219872350     # Seed
 
-### RBM
+[model]
+type = kitaev
+J = -1
+helper_strength = 0
+symmetry = 0.5
 
-### Sampling
+[rbm]
+type = basic  # symmetry, pfaffian, file
+weights = 1e-4
+alpha = 1
 
-### Optimizer
+[sampler]
+type = metropolis # full
+n_samples = 1000
 
+[sampler.metropolis]
+n_steps_per_sample = 1
+n_warmup_steps = 100
+bond_flips = 0.5
+
+[optimizer]
+type = SR
+learing_rate = 1e-2
+
+plugin = # momentum, adam, heun
+
+sr.reg1 = 10,1e-4,0.9
+
+```
 
