@@ -1,16 +1,19 @@
 # RBM-NQS Application
 
 This repository features a Restricted Boltzmann Machine (RBM) implementation
-for Kitaev's toric code and the Kitaev Honeycomb Model (KHM). The code is easily extensible with new models
-and lattices. However, by now, it solely focuses on the Kitaev Honeycomb Model.
+for Kitaev's toric code and the Kitaev Honeycomb Model (KHM). The code is easily
+extensible with new models and lattices.
 
 ### Building
 
-The program is dependend of `Eigen3` and `Boost` and is only developed for UNIX
-based systems. To build the code, simply run `make`
+The program depends on `Eigen3`, `Boost` (ProgramOptions) and `MPI` and has been
+only developed for UNIX based systems. It ships with the Fortran Packages
+(MINRES-QLP)[https://arxiv.org/abs/1102.3440] and
+[Pfapack](https://www.pfapack.de).
+
+
 
 The `rbm` base executable is located in the `build` directory.
-
 
 ### Running
 
@@ -46,11 +49,8 @@ The following options are available
 
 | Option | Explanation |
 | ------ | ----------- |
-| `--seed [some_seed]` | Sets the seed for the `MT19937` random number generator |
-| `-h/--help` | Prints the available parameters |
-| `-n/--name [your_name]` | Sets the name of the current simulation and the filename of the weights and log, respectively |
-| `-t/--n_threads [threds]` | Sets the number of threads used for OpenMP |
-| `-i/--infile` | loads a ini file for parameters |
+| `-h/--help` | Prints the help message |
+| `-i/--infile` | loads a `ini` file for parameters |
 | `--n_epochs [epochs]` | sets the number of epochs to train |
 
 ```ini
