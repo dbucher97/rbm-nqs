@@ -6,22 +6,26 @@ extensible with new models and lattices.
 
 ### Building
 
-The program depends on `Eigen3`, `Boost` (ProgramOptions) and `MPI` and has been
-only developed for UNIX based systems. It ships with the Fortran Packages
-(MINRES-QLP)[https://arxiv.org/abs/1102.3440] and
-[Pfapack](https://www.pfapack.de).
+The program depends on `Eigen3`, `Boost` (ProgramOptions) `MPI` and
+`Googletest`, and has been only developed for UNIX based systems. The repository
+comes with the Open Source Fortran Packages
+[MINRES-QLP](https://www.netlib.org/toms/937) and
+[Pfapack](https://arxiv.org/abs/1102.3440).
 
+Those packages are found in the directory `deps` and need to be built and
+beforehand.
 
+Two Makefiles are listed. One is for building with `GCC` on my local machine,
+the other is for building with `ICPC` on the LRZ HPC Linux cluster.
+Please orient yourself upon those, when building.
 
-The `rbm` base executable is located in the `build` directory.
+Define `EIGEN_USE_MKL_ALL` for Intel `MKL` support, or `EIGEN_USE_BLAS` for
+`blas` routines. Make sure `MKL` or `BLAS` is installed then.
+
+The application should be linked into one executable, typically called `rbm`.
 
 ### Running
 
-The Program options is based on the Boost program options. You can get an
-overview of the available options with the `--help` flag. I would recommend
-using an `ini` file for defining the options. For training an RBM with specific
-options run. Also I would recommend setting a specific name for a simulation
-with the `name` option or `-n/--name` command line options.
 
 ```
 rbm --train -n [your_name] /path/to/your.ini
@@ -38,20 +42,10 @@ retrieve the whole quantum state (after the training). This can be achieved by
 the flag `-s` or `--state`.
 > This is not yet implemented however.
 
-## Explanation
+###  Parameters
 
-This section guides through the workings of the RBM program and explaines all
-the parameters on the go.
-
-### General settings
-
-The following options are available
-
-| Option | Explanation |
-| ------ | ----------- |
-| `-h/--help` | Prints the help message |
-| `-i/--infile` | loads a `ini` file for parameters |
-| `--n_epochs [epochs]` | sets the number of epochs to train |
+The following `ini` file gives an overview of the available parameters with
+quick explanations.
 
 ```ini
 # RBM ini file with all options for the application. Default values are set.
@@ -161,4 +155,22 @@ resample.alpha2 = 5       # Cond. 2: Imaginary energy samller than alpha2 * var.
 resample.alpha3 = 10      # Cond. 3: variance ratio samller than alpha3.
 
 ```
+
+## License
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Copyright (c) 2021 David Bucher
+
 
