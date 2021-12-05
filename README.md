@@ -1,12 +1,8 @@
-# Kitaev Honeycomb Model with Restricted Boltzmann Machine
+# RBM-NQS Application
 
 This repository features a Restricted Boltzmann Machine (RBM) implementation
-for the Kitaev Honeycomb Model. The code is easily extensible with new models
+for Kitaev's toric code and the Kitaev Honeycomb Model (KHM). The code is easily extensible with new models
 and lattices. However, by now, it solely focuses on the Kitaev Honeycomb Model.
-
-The RBM consists of a number of weights connecting the hidden nodes with the
-visible nodes. Each of the visible nodes is a spin and can have the value -1 or
-1 corresponding to the measurement results in the $`z`$-basis.
 
 ### Building
 
