@@ -49,7 +49,7 @@ bool print_hex = false;
 bool deterministic = true;
 bool exact_energy = false;
 int seed_search = 0;
-size_t seed_search_epochs = 200;
+size_t seed_search_epochs = 1000;
 
 // Model
 model_t model = KITAEV;
@@ -66,13 +66,13 @@ rbm_t rbm = BASIC;
 size_t alpha = 1;
 bool rbm_force = false;
 size_t rbm_pop_mode = 0;
-size_t rbm_cosh_mode = 0;
+size_t rbm_cosh_mode = 2;
 double rbm_weights = 1e-4;
 double rbm_weights_imag = -1;
 std::string rbm_weights_init_type = "";
 size_t rbm_correlators = 0;
 bool rbm_pfaffian = false;
-symmetry_t rbm_pfaffian_symmetry = {};
+symmetry_t rbm_pfaffian_symmetry = {{0.5}};
 bool rbm_pfaffian_normalize = false;
 double rbm_pfaffian_weights = 0.01;
 bool rbm_pfaffian_no_updating = false;
@@ -84,10 +84,10 @@ sampler_t sa_type = METROPOLIS;
 size_t sa_n_samples = 1000;
 size_t sa_eval_samples = 0;
 size_t sa_metropolis_samples_per_chain = 0;
-size_t sa_metropolis_n_chains = 16;
+size_t sa_metropolis_n_chains = 4;
 size_t sa_metropolis_n_warmup_steps = 100;
-size_t sa_metropolis_n_steps_per_sample = 10;
-size_t sa_full_n_parallel_bits = 3;
+size_t sa_metropolis_n_steps_per_sample = 1;
+size_t sa_full_n_parallel_bits = 2;
 std::string sa_exact_gs_file = "";
 double sa_metropolis_bond_flips = 0.5;
 int sa_pfaffian_refresh = 0;
@@ -106,8 +106,8 @@ double opt_adam_beta2 = 0.999;
 double opt_adam_eps = 1e-8;
 double opt_mom_alpha = 0.9;
 double opt_mom_dialup = 1.;
-std::string opt_sr_method = "minresqlp";
-bool opt_sr_iterative = false;
+std::string opt_sr_method = "cg";
+bool opt_sr_iterative = true;
 size_t opt_sr_max_iterations = 0;
 double opt_sr_rtol = 0.;
 double opt_heun_eps = 1e-3;
@@ -117,7 +117,7 @@ double opt_resample_alpha2 = 5;
 double opt_resample_alpha3 = 10;
 
 // Train
-size_t n_epochs = 600;
+size_t n_epochs = 4000;
 
 }  // namespace ini
 
@@ -154,84 +154,84 @@ int ini::load(int argc, char* argv[]) {
     desc.add_options()
     // Program
     ("help,h",                                "produce help message")
-    ("train",                                 po::bool_switch(&train),                      "train the RBM")
-    ("evaluate",                              po::bool_switch(&evaluate),                   "evaluate results of the RBM")
-    ("store_state",                           po::bool_switch(&store_state),                "stores the state into a file 'name.state'")
-    ("store_samples",                         po::bool_switch(&store_samples),              "stores the samples into a plain text file 'name.samples'")
-    ("print_bonds",                           po::bool_switch(&print_bonds),                "print the bonds of the current model and exit")
-    ("print_hex"  ,                           po::bool_switch(&print_hex),                  "print the hexagons of the kitaev model and exit")
-    ("deterministic",                         po::value(&deterministic),                    "use specified seeds or seed with random device")
-    ("exact_energy"  ,                        po::bool_switch(&exact_energy),               "calculate the exact energy")
-    ("seed",                                  po::value(&seed),                             "seed of the rng")
-    ("infile,i",                              po::value<std::string>(),                     "ini file for params")
-    ("name,n",                                po::value(&name),                             "set name of current rbm")
-    ("n_threads,t",                           po::value(&n_threads),                        "set number of omp threads")
-    ("noprogress,P",                          po::bool_switch(&noprogress),                 "switch to turn off progress bar")
-    ("seed_search",                           po::value(&seed_search),                      "set the number of different seeds to try")
-    ("seed_search_epochs",                    po::value(&seed_search_epochs),               "set the number of epochs after which seeds are compared")
+    ("train",                                 po::bool_switch(&train),                      "Train the RBM.")
+    ("evaluate",                              po::bool_switch(&evaluate),                   "Evaluate RBM energy with statistics-")
+    ("store_state",                           po::bool_switch(&store_state),                "Stores the RBM state into a file binary file 'name.state' and exit.")
+    ("store_samples",                         po::bool_switch(&store_samples),              "Stores the samples into a plain text file 'name.samples' and exit.")
+    ("print_bonds",                           po::bool_switch(&print_bonds),                "Print the bonds of the current model and exit.")
+    ("print_hex"  ,                           po::bool_switch(&print_hex),                  "Print the hexagons and exit (only Kitaev).")
+    ("exact_energy"  ,                        po::bool_switch(&exact_energy),               "Calculate the exact energy and exit (only Kitaev).")
+    ("seed",                                  po::value(&seed),                             "Seed of the RNG.")
+    ("deterministic",                         po::value(&deterministic),                    "Use specified seeds or seed RNG with random device.")
+    ("infile,i",                              po::value<std::string>(),                     "'.ini' file with params.")
+    ("name,n",                                po::value(&name),                             "Set name of the RBM.")
+    ("n_threads,t",                           po::value(&n_threads),                        "Set number of OMP threads.")
+    ("noprogress,P",                          po::bool_switch(&noprogress),                 "Turn off progress bar.")
+    ("seed_search",                           po::value(&seed_search),                      "Set the number of different seeds to try.")
+    ("seed_search_epochs",                    po::value(&seed_search_epochs),               "Set the number of epochs after which seeds are compared.")
     // Model
-    ("model.type",                            po::value(&model),                            "Model type.")
-    ("model.n_cells,c",                       po::value(&n_cells),                          "set number of unit cells in one dimension")
-    ("model.n_cells_b",                       po::value(&n_cells_b),                        "set number of unit cells in another dimension (if set to -1, use n_cells)")
-    ("model.J",                               po::value(&J)->multitoken(),                  "Interaction strength")
-    ("model.h",                               po::value(&h),                                "Second Interaction strength")
-    ("model.helper_strength",                 po::value(&helper_strength),                  "Helper Hamiltonian strength")
-    ("model.symmetry",                        po::value(&symmetry)->multitoken(),           "Set translational symmetry")
-    ("model.lattice_type",                    po::value(&lattice_type),                     "Set lattice type if special type is available (honeycomb -> hex base)")
+    ("model.type",                            po::value(&model),                            "Set the model type (kitaev or toric).")
+    ("model.n_cells,c",                       po::value(&n_cells),                          "Set number of unit cells (square)")
+    ("model.n_cells_b",                       po::value(&n_cells_b),                        "Set number of unit cells in the first dimension (if set to -1, use n_cells)")
+    ("model.J",                               po::value(&J)->multitoken(),                  "Set Interaction strength.")
+    ("model.h",                               po::value(&h),                                "Set second interaction strength.")
+    ("model.helper_strength",                 po::value(&helper_strength),                  "Set P_W strength.")
+    ("model.symmetry",                        po::value(&symmetry)->multitoken(),           "Set translational symmetry e.g. (0, 0.5, 1, 2).")
+    ("model.lattice_type",                    po::value(&lattice_type),                     "Set lattice type if special type is available (honeycomb: hex)")
     // RBM
-    ("rbm.type",                              po::value(&rbm),                              "set rbm type")
-    ("rbm.alpha",                             po::value(&alpha),                            "set number of hidden units = alpha * n_visbile")
-    ("rbm.force,f",                           po::bool_switch(&rbm_force),                  "force retraining of RBM")
-    ("rbm.weights",                           po::value(&rbm_weights),                      "set stddev for weights initialization")
-    ("rbm.weights_imag",                      po::value(&rbm_weights_imag),                 "set stddev for imag weights initialization (if not set = rbm.weights)")
-    ("rbm.weights_type",                      po::value(&rbm_weights_init_type),            "Initialization type for RBM weights, for special initial states")
-    ("rbm.correlators",                       po::value(&rbm_correlators),                  "enables correlators if set to 1 and correlators are available for the model")
-    ("rbm.pop_mode",                          po::value(&rbm_pop_mode),                     "switches between Psi calculation modes.")
-    ("rbm.cosh_mode",                         po::value(&rbm_cosh_mode),                    "turns cosh approximation on")
-    ("rbm.pfaffian",                          po::value(&rbm_pfaffian),                     "enables use of pfaffian wave function addition")
-    ("rbm.pfaffian.symmetry",                 po::value(&rbm_pfaffian_symmetry)->multitoken(),"symmetry condition of pfaffian parameters")
-    ("rbm.pfaffian.weights",                  po::value(&rbm_pfaffian_weights),             "stdev of pfaffian parameters")
-    ("rbm.pfaffian.normalize",                po::value(&rbm_pfaffian_normalize),           "normalize pfaffian parameters to pfaffian prop to 1")
-    ("rbm.file.name",                         po::value(&rbm_file_name),                    "specify the filename of the quantum state")
-    ("rbm.pfaffian.load",                     po::value(&rbm_pfaffian_load),                "specify name of a already trained rbm file of type pfaffian to load into this")
-    ("rbm.pfaffian.no_updating",              po::bool_switch(&rbm_pfaffian_no_updating),   "dont update the pfaffian context each iteration but calculate from scratch")
+    ("rbm.type",                              po::value(&rbm),                              "Set RBM type (basic, symmetry, pfaffian, file).")
+    ("rbm.alpha",                             po::value(&alpha),                            "Set number of hidden units (as multiple of visible units).")
+    ("rbm.force,f",                           po::bool_switch(&rbm_force),                  "Force retraining of RBM")
+    ("rbm.weights",                           po::value(&rbm_weights),                      "Set stddev for weights initialization")
+    ("rbm.weights_imag",                      po::value(&rbm_weights_imag),                 "Set stddev for imag weights initialization (if not set = rbm.weights)")
+    ("rbm.weights_type",                      po::value(&rbm_weights_init_type),            "Initialization type for RBM weights, for special initial states (deprecated).")
+    ("rbm.correlators",                       po::value(&rbm_correlators),                  "Enables correlators if set to 1 and correlators are available for the model (deprecated).")
+    ("rbm.pop_mode",                          po::value(&rbm_pop_mode),                     "Switches between Psi calculation modes (0 = sum log cosh, 1 = prod cosh).")
+    ("rbm.cosh_mode",                         po::value(&rbm_cosh_mode),                    "Switches between Cosh modes (0 = std cosh + log, 1 = approx cosh, 2 = our log cosh)")
+    ("rbm.pfaffian",                          po::value(&rbm_pfaffian),                     "Enables use of pfaffian wave function addition.")
+    ("rbm.pfaffian.symmetry",                 po::value(&rbm_pfaffian_symmetry)->multitoken(),"Set symmetry for the pfaffian parameters.")
+    ("rbm.pfaffian.weights",                  po::value(&rbm_pfaffian_weights),             "Set stddev of pfaffian parameters.")
+    ("rbm.pfaffian.normalize",                po::value(&rbm_pfaffian_normalize),           "Normalize pfaffian parameters to pfaffian prop to 1 (deptrecated).")
+    ("rbm.file.name",                         po::value(&rbm_file_name),                    "Specify the filename of the state to load from.")
+    ("rbm.pfaffian.load",                     po::value(&rbm_pfaffian_load),                "Specify name of a already trained '.rbm' of a Pfaffian wavefunction to load.")
+    ("rbm.pfaffian.no_updating",              po::bool_switch(&rbm_pfaffian_no_updating),   "Don't update the pfaffian context each iteration but calculate from scratch")
     // Sampler
-    ("sampler.type",                          po::value(&sa_type),                          "set sampler type")
-    ("sampler.n_samples",                     po::value(&sa_n_samples),                     "set sampler n sampler (metropolis only)")
-    ("sampler.n_samples_per_chain",           po::value(&sa_metropolis_samples_per_chain),  "set n samples per chain (overrides sampler.n_samples)")
-    ("sampler.eval_samples",                  po::value(&sa_eval_samples),                  "set sampler n sampler (metropolis only) for evaluation")
-    ("sampler.full.n_parallel_bits",          po::value(&sa_full_n_parallel_bits),          "set number of bits executed in parallel in full sampling")
-    ("sampler.metropolis.n_chains",           po::value(&sa_metropolis_n_chains),           "set number of MCMC chains in Metropolis sampling")
-    ("sampler.metropolis.n_warmup_steps",     po::value(&sa_metropolis_n_warmup_steps),     "set number of MCMC warmup steps")
-    ("sampler.metropolis.n_steps_per_sample", po::value(&sa_metropolis_n_steps_per_sample), "set number of MCMC steps between a sample")
-    ("sampler.exact.gs_file",                 po::value(&sa_exact_gs_file),                 "set file of ground state for exact sampling")
-    ("sampler.metropolis.bond_flips",         po::value(&sa_metropolis_bond_flips),         "probability for bond flips for update proposal")
-    ("sampler.pfaffian_refresh",              po::value(&sa_pfaffian_refresh),              "set number of Xinv updates before recalculating from scratch")
-    ("sampler.lut_exchange",              po::value(&sa_lut_exchange),                  "set number of samples before RBM LUT exchange is triggered")
+    ("sampler.type",                          po::value(&sa_type),                          "Set sampler type (metropolis, full).")
+    ("sampler.n_samples",                     po::value(&sa_n_samples),                     "Set number of samples.")
+    ("sampler.n_samples_per_chain",           po::value(&sa_metropolis_samples_per_chain),  "Set number samples per chain (overrides sampler.n_samples).")
+    ("sampler.eval_samples",                  po::value(&sa_eval_samples),                  "Set number of samples for evaluation.")
+    ("sampler.full.n_parallel_bits",          po::value(&sa_full_n_parallel_bits),          "Set number of bits executed in parallel in perfect sampling. #MPI processes = 2^n.")
+    ("sampler.metropolis.n_chains",           po::value(&sa_metropolis_n_chains),           "Set number of chains in Metropolis sampling.")
+    ("sampler.metropolis.n_warmup_steps",     po::value(&sa_metropolis_n_warmup_steps),     "Set number of warmup sweeps.")
+    ("sampler.metropolis.n_steps_per_sample", po::value(&sa_metropolis_n_steps_per_sample), "Set number of seeps between a sample.")
+    // ("sampler.exact.gs_file",              po::value(&sa_exact_gs_file),                 "Set file of ground state for exact sampling")
+    ("sampler.metropolis.bond_flips",         po::value(&sa_metropolis_bond_flips),         "Probability for bond flip for update proposal.")
+    ("sampler.pfaffian_refresh",              po::value(&sa_pfaffian_refresh),              "Set number of Xinv updates before recalculation from scratch.")
+    ("sampler.lut_exchange",                  po::value(&sa_lut_exchange),                  "Set number of samples before RBM LUT exchange is triggered.")
     // Optimizer
-    ("optimizer.type",                        po::value(&opt_type),                         "set optimizer type")
-    ("optimizer.learning_rate,l",             po::value(&opt_lr)->multitoken(),             "set learning rate optionally with decay factor")
-    ("optimizer.sr.reg1",                     po::value(&opt_sr_reg1)->multitoken(),         "set regularization diagonal scaling decay rate optionally with decay factor")
-    ("optimizer.sr.reg2",                     po::value(&opt_sr_reg2)->multitoken(),         "set regularization diagonal shift decay rate optionally with decay factor")
-    ("optimizer.sr.deltareg1",                po::value(&opt_sr_deltareg1)->multitoken(),   "diagonal scaling offset for pfaffian parameters")
-    ("optimizer.sr.method",                   po::value(&opt_sr_method),                    "the method for the sr solver either: direct, minresqlp, cg")
-    ("optimizer.sr.iterative",                po::value(&opt_sr_iterative),                 "backwards compatibility for non mpi version (dummy parameter, uses default sr_method)")
-    ("optimizer.sr.max_iterations",           po::value(&opt_sr_max_iterations),            "set number of max iterations for iterative method")
-    ("optimizer.sr.rtol",                     po::value(&opt_sr_rtol),                      "set residue tolerance for the iterative method")
-    ("optimizer.sgd.real_factor",             po::value(&opt_sgd_real_factor),              "set the factor the real part of the update vector is divided by (default 1.)")
-    ("optimizer.plugin",                      po::value(&opt_plugin),                       "set optional plugin for SR adam/momentum")
-    ("optimizer.adam.beta1",                  po::value(&opt_adam_beta1),                   "set ADAM plug beta1")
-    ("optimizer.adam.beta2",                  po::value(&opt_adam_beta2),                   "set ADAM plug beta2")
-    ("optimizer.adam.eps",                    po::value(&opt_adam_eps),                     "set ADAM plug eps")
-    ("optimizer.mom.alpha",                   po::value(&opt_mom_alpha),                    "set momentum plug alpha")
-    ("optimizer.mom.dialup",                  po::value(&opt_mom_dialup),                   "set momentum plug dialup")
-    ("optimizer.heun.eps",                    po::value(&opt_heun_eps),                     "set heun plug epsilon")
-    ("optimizer.resample",                    po::value(&opt_resample),                     "resample if certain conditions on energy / variance are not fullfilled")
-    ("optimizer.resample.alpha1",             po::value(&opt_resample_alpha1),              "resample condition: energy difference smapller than alpha1")
-    ("optimizer.resample.alpha2",             po::value(&opt_resample_alpha2),              "resample condition: imaginary energy samller than alpha2 * variance")
-    ("optimizer.resample.alpha3",             po::value(&opt_resample_alpha3),              "resample condition: variance ratio samller than alpha3")
+    ("optimizer.type",                        po::value(&opt_type),                         "Set optimizer type (SR, SGD).")
+    ("optimizer.learning_rate,l",             po::value(&opt_lr)->multitoken(),             "Set learning rate, optionally with decay factor.")
+    ("optimizer.sr.reg1",                     po::value(&opt_sr_reg1)->multitoken(),        "set regularization diagonal scaling decay rate, optionally with decay factor.")
+    ("optimizer.sr.reg2",                     po::value(&opt_sr_reg2)->multitoken(),        "set regularization diagonal shift decay rate, optionally with decay factor.")
+    ("optimizer.sr.deltareg1",                po::value(&opt_sr_deltareg1)->multitoken(),   "Diagonal scaling offset for pfaffian parameters.")
+    ("optimizer.sr.method",                   po::value(&opt_sr_method),                    "The method for the SR solver (direct, minresqlp, cg, cg-direct).")
+    ("optimizer.sr.iterative",                po::value(&opt_sr_iterative),                 "Backwards compatibility for non-MPI version (dummy parameter, uses default sr_method)")
+    ("optimizer.sr.max_iterations",           po::value(&opt_sr_max_iterations),            "Set number of max iterations for iterative method.")
+    ("optimizer.sr.rtol",                     po::value(&opt_sr_rtol),                      "Set residue tolerance for the iterative method.")
+    ("optimizer.sgd.real_factor",             po::value(&opt_sgd_real_factor),              "Set the factor the real part of the update vector is divided by (default 1.).")
+    ("optimizer.plugin",                      po::value(&opt_plugin),                       "Set optional plugin for optimization (momentum, adam, heun)")
+    ("optimizer.adam.beta1",                  po::value(&opt_adam_beta1),                   "Set Adam beta1")
+    ("optimizer.adam.beta2",                  po::value(&opt_adam_beta2),                   "Set Adam beta2")
+    ("optimizer.adam.eps",                    po::value(&opt_adam_eps),                     "Set Adam eps")
+    ("optimizer.mom.alpha",                   po::value(&opt_mom_alpha),                    "Set momentum alpha")
+    ("optimizer.mom.dialup",                  po::value(&opt_mom_dialup),                   "Set momentum dialup")
+    ("optimizer.heun.eps",                    po::value(&opt_heun_eps),                     "Set heun epsilon")
+    ("optimizer.resample",                    po::value(&opt_resample),                     "Resample if certain conditions on energy / variance are not fullfilled (not recommended!).")
+    ("optimizer.resample.alpha1",             po::value(&opt_resample_alpha1),              "Resample condition: energy difference smapller than alpha1")
+    ("optimizer.resample.alpha2",             po::value(&opt_resample_alpha2),              "Resample condition: imaginary energy samller than alpha2 * variance")
+    ("optimizer.resample.alpha3",             po::value(&opt_resample_alpha3),              "Resample condition: variance ratio samller than alpha3")
     // Train
-    ("n_epochs,e",                            po::value(&n_epochs),                         "set number of epochs for training");
+    ("n_epochs,e",                            po::value(&n_epochs),                         "Set number of epochs for training.");
         // clang-format on
         po::variables_map vm;
         po::store(po::parse_command_line(argc, argv, desc), vm);
