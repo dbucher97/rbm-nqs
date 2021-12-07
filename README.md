@@ -1,10 +1,11 @@
-# RBM-NQS Application
+# RBM-NNQS Application
 
-This repository features a Restricted Boltzmann Machine (RBM) implementation
+This repository features a Restricted Boltzmann Machine (RBM) neural network
+quantum state (NNQS) implementation
 for Kitaev's toric code and the Kitaev Honeycomb Model (KHM). The code is easily
 extensible with new models and lattices.
 
-### Building
+## Building
 
 The program depends on `Eigen3`, `Boost` (ProgramOptions) `MPI` and
 `Googletest`, and has been only developed for UNIX based systems. The repository
@@ -17,35 +18,50 @@ beforehand.
 
 Two Makefiles are listed. One is for building with `GCC` on my local machine,
 the other is for building with `ICPC` on the LRZ HPC Linux cluster.
-Please orient yourself upon those, when building.
+Please orientate yourself on those, when building. I cannot provide a general
+Makefile.
 
 Define `EIGEN_USE_MKL_ALL` for Intel `MKL` support, or `EIGEN_USE_BLAS` for
-`blas` routines. Make sure `MKL` or `BLAS` is installed then.
+`blas` routines. Make sure `MKL` or `BLAS` is installed and linked then.
 
 The application should be linked into one executable, typically called `rbm`.
 
-### Running
+## Running
 
+The application is split into two parts: Training and evaluation.
+They are accessed by the options `--train` and `evaluate`, respectively.
+Use the option `-i` to specify an `.ini` parameters file.
+The option `--name` lets you assigning a name to the training process. The `.log`
+and `.rbm` files are accordingly named.
+If a `.rbm` file with the name already exists, the application tries to load it.
+It fails, when it detects different weight sizes. The option `-f` forces an
+overwrite of the `.rbm`.
 
+For example,
 ```
-rbm --train -n [your_name] /path/to/your.ini
+rbm --train --name=n3_a8 --model.n_cells=3 --rbm.alpha=8 --evaluate
 ```
+starts training an RBM with `alpha = 8` hidden neurons on the KHM with 18 spins.
+Each epochs the current energy, standard deviation and acceptance rates are
+written to the `n3_a8.log` file. When training is finished, the final energy and
+plaquette operator expectation values are evaluated.
 
-A set of example `ini` files for the Honeycomb Kitev Model can be found inside
-the `params` directory.
+##  Parameters
 
-The result of a training process will be the optimized weights of the RBM. which
-are stored in `[your_name].rbm`. And the log of the training (Energy and various
-other obervables depending on the kind of process chosen) is stored in
-`[your_name].log`. Additionally sometimes for small system sizes one wants to
-retrieve the whole quantum state (after the training). This can be achieved by
-the flag `-s` or `--state`.
-> This is not yet implemented however.
-
-###  Parameters
+Possible command line options to the application:
+| Option | Explanation |
+| --- | --- |
+| `-i` (`--infile`) | Sets the `.ini` parameters file |
+| `-h` (`--help`) | Prints the help message. |
+| `--train` | Trains the network. |
+| `--evaluate` | Evaluates the network. |
+| `--store_state` | Stores the quantum state into a binary `.state` file and exits. |
+| `--print_bonds` | Prints the bond indices and exits. |
+| `--print_hex` | Prints the hexagon indices and exits. |
+| `--exact_energy` | Calculates the exact energy per site. |
 
 The following `ini` file gives an overview of the available parameters with
-quick explanations.
+a quick explanations.
 
 ```ini
 # RBM ini file with all options for the application. Default values are set.
@@ -155,6 +171,7 @@ resample.alpha2 = 5       # Cond. 2: Imaginary energy samller than alpha2 * var.
 resample.alpha3 = 10      # Cond. 3: variance ratio samller than alpha3.
 
 ```
+
 
 ## License
 
